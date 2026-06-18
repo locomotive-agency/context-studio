@@ -1,0 +1,6 @@
+construct: brand-messaging
+criticality: controlled
+retrieval_policy: deterministic
+approver_role: admin
+exact_language: true
+staleness_threshold_days: 60

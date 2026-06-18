@@ -1,0 +1,14 @@
+status: approved
+owner_role: editor
+read_roles:
+  - viewer
+  - editor
+  - admin
+edit_roles:
+  - editor
+  - admin
+durability: persistent
+provenance_type: original
+criticality: managed
+retrieval_policy: hybrid
+staleness_threshold_days: 90
