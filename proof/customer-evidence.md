@@ -4,8 +4,8 @@ id: ctx.proof-points.customer-evidence
 title: Customer evidence
 description: Approved customer evidence for supporting marketing claims.
 tags:
-  - customers
-  - evidence
+- customers
+- evidence
 ---
 
 # Customer evidence
