@@ -231,7 +231,7 @@ import "../styles/global.css";
         ["meta-type", "meta-description", "meta-tags"].forEach((id) => byId(id).readOnly = state.user.role === "viewer");
         byId("meta-scope").disabled = state.user.role === "viewer";
         renderGovernance(state.current.effective_frontmatter);
-        setEditorMode("raw"); renderPreview();
+        setEditorMode("preview");
         state.dirty = false;
         byId("save-state").textContent = "";
         renderDocumentValidation(state.current.validation); showView("documents");
