@@ -12,7 +12,7 @@ scopes:
 - id: product-a
   name: Product A
   level: product
-  parent_id: zoominfo-brand
+  parent_id: product-b
   order: 0
 - id: another-brand
   name: Another Brand
