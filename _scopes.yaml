@@ -12,8 +12,8 @@ scopes:
 - id: product-a
   name: Product A
   level: product
-  parent_id: product-b
-  order: 0
+  parent_id: another-brand
+  order: 1
 - id: another-brand
   name: Another Brand
   level: brand
