@@ -3,6 +3,7 @@ type: Reference
 id: ctx.proof-points.customer-evidence
 title: Customer evidence
 description: Approved customer evidence for supporting marketing claims.
+scope_id: zoominfo
 tags:
 - customers
 - evidence

@@ -1,0 +1,9 @@
+scopes:
+  - id: zoominfo
+    name: ZoomInfo
+    level: company
+    parent_id: null
+  - id: zoominfo-brand
+    name: ZoomInfo Brand
+    level: brand
+    parent_id: zoominfo

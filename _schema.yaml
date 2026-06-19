@@ -9,6 +9,6 @@ edit_roles:
   - admin
 durability: persistent
 provenance_type: original
-criticality: managed
+criticality: hybrid
 retrieval_policy: hybrid
 staleness_threshold_days: 90

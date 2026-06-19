@@ -3,6 +3,7 @@ type: Playbook
 id: ctx.how-we-sound.playbook
 title: Content voice playbook
 description: Voice and structural guidance for authored content.
+scope_id: zoominfo-brand
 tags:
   - voice
   - writing

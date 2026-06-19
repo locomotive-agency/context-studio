@@ -3,6 +3,7 @@ type: Brand Standard
 id: ctx.brand-messaging.terminology
 title: Brand terminology
 description: Approved language and prohibited marketing terms.
+scope_id: zoominfo-brand
 tags:
   - brand
   - terminology
