@@ -123,7 +123,7 @@ import "../styles/global.css";
 
     <script>
       // @ts-nocheck
-      import { createIcons, icons } from "lucide";
+      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X, createIcons } from "lucide";
       import DOMPurify from "dompurify";
       import yaml from "js-yaml";
       import { marked } from "marked";
@@ -138,7 +138,8 @@ import "../styles/global.css";
       };
       const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
       const toast = (message, error = false) => { const el = byId("toast"); el.textContent = message; el.className = `toast${error ? " error" : ""}`; setTimeout(() => el.classList.add("hidden"), 2600); };
-      const refreshIcons = () => createIcons({ icons });
+      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
+      const refreshIcons = () => createIcons({ icons: iconSet });
 
       async function start() {
         refreshIcons();
@@ -273,6 +274,13 @@ import "../styles/global.css";
       function showView(name) {
         document.querySelectorAll(".view").forEach((view) => view.classList.remove("active")); byId(`view-${name}`).classList.add("active");
         document.querySelectorAll(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
+        if (name !== "documents") {
+          byId("editor-modes").classList.add("hidden");
+          byId("document-history").classList.add("hidden");
+          byId("toggle-inspector").classList.add("hidden");
+          byId("save-document").classList.add("hidden");
+          byId("save-state").textContent = "";
+        }
         byId("current-location").textContent = name === "documents" && state.current ? state.current.frontmatter.title : name[0].toUpperCase() + name.slice(1);
       }
 

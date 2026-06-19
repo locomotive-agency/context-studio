@@ -4,7 +4,7 @@ This prototype is a file-based context CMS. Astro provides document, scope, sche
 
 ## Storage
 
-`context_repo/` is a standalone local Git repository. CMS writes create commits in that repository; no GitHub remote or deployment workflow is required.
+The project is one Git repository. CMS writes commit only the changed paths under `context_repo/`; they do not push automatically. The History view supports repository-wide structural history and path-filtered history for the open document.
 
 Governance resolves in this order:
 
@@ -17,6 +17,8 @@ Later values override earlier values. Every concept document must still contain 
 `context_repo/_scopes.yaml` stores the parent-linked scope hierarchy. Documents use a `scope_id`; context retrieval inherits from parent scopes and prefers the most specific matching records.
 
 CMS creation and editing actions use right-side drawers. Administrators can add, edit, and remove users and scopes. The active user and final administrator account cannot be removed.
+
+Markdown files are validated as OKF records. JSON files are supported as structured source documents. Both formats provide Raw, Preview, and Split editor modes. Representative case study, competitive, and ICP examples live under `context_repo/examples/`.
 
 ## Run
 
