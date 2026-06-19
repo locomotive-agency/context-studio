@@ -8,7 +8,7 @@ scopes:
   name: ZoomInfo Brand
   level: brand
   parent_id: zoominfo
-  order: 0
+  order: 1
 - id: product-a
   name: Product A
   level: product
@@ -18,7 +18,7 @@ scopes:
   name: Another Brand
   level: brand
   parent_id: zoominfo
-  order: 1
+  order: 0
 - id: product-b
   name: Product B
   level: product
