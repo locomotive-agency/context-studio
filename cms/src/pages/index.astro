@@ -507,7 +507,7 @@ import "../styles/global.css";
   .user-summary strong { font-size: 12px; text-transform: capitalize; }
   .user-summary small, .repo-summary small, .repo-summary > span { color: var(--muted); font-size: 10px; }
   .repo-summary { margin-left: auto; text-align: right; }
-  .main { grid-column: 2; }
+  .main { grid-column: 2; min-height: 0; height: 100%; overflow: hidden; }
   .topbar { height: 62px; flex-basis: 62px; padding: 0 22px; }
   .breadcrumbs { font-size: 13px; }
   .editor-layout { position: relative; min-height: 0; grid-template-columns: minmax(0, 1fr); overflow: hidden; }
@@ -625,9 +625,9 @@ import "../styles/global.css";
   .editor-mode-bar { flex: 0 0 47px; border-bottom: 1px solid var(--line); background: #fafbfa; }
   .editor-mode-bar-inner { width: min(920px, 100%); height: 100%; display: flex; align-items: center; justify-content: flex-end; margin: 0 auto; padding: 0 48px; }
   .page-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
-  .content-editor { min-height: 0; flex: 1; display: grid; }
-  .content-editor .body-editor { height: 100%; }
-  .document-preview { display: none; min-width: 0; padding: 34px 48px 90px; overflow: auto; color: #2b302d; font-size: 15px; line-height: 1.7; }
+  .content-editor { min-height: 0; flex: 1; display: grid; overflow: hidden; }
+  .content-editor .body-editor { height: 100%; min-height: 0; overflow: auto; }
+  .document-preview { display: none; min-width: 0; min-height: 0; height: 100%; padding: 34px 48px 90px; overflow: auto; color: #2b302d; font-size: 15px; line-height: 1.7; }
   .document-preview > :first-child { margin-top: 0; }
   .document-preview pre { overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 5px; background: #f6f7f6; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
   .document-preview code { padding: 2px 4px; border-radius: 3px; background: #f0f2f0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -672,6 +672,9 @@ import "../styles/global.css";
     .browser-layout { grid-template-columns: 190px minmax(0, 1fr); }
     .file-table-header, .file-row { grid-template-columns: minmax(230px, 1fr) 90px 24px; }
     .file-table-header > :nth-child(2), .file-type { display: none; }
+    .content-editor { overflow: visible; }
+    .content-editor .body-editor { min-height: 520px; }
+    .document-preview { height: auto; overflow: visible; }
   }
 
   @media (max-width: 680px) {
