@@ -6,6 +6,8 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from .models import GovernanceMetadata
+
 SCHEMA_FILE = "_schema.yaml"
 RESERVED_DOCUMENTS = {"index.md", "log.md"}
 
@@ -63,6 +65,15 @@ def validate_frontmatter(frontmatter: dict[str, Any]) -> DocumentValidation:
         OKFFrontmatter.model_validate(frontmatter)
     except ValidationError as exc:
         errors = [f"{'.'.join(str(part) for part in error['loc'])}: {error['msg']}" for error in exc.errors()]
+        return DocumentValidation(valid=False, errors=errors)
+    return DocumentValidation(valid=True)
+
+
+def validate_governance(metadata: dict[str, Any]) -> DocumentValidation:
+    try:
+        GovernanceMetadata.model_validate(metadata)
+    except ValidationError as exc:
+        errors = [f"{'.'.join(str(part) for part in error['loc']) or 'governance'}: {error['msg']}" for error in exc.errors()]
         return DocumentValidation(valid=False, errors=errors)
     return DocumentValidation(valid=True)
 

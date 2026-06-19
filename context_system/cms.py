@@ -14,6 +14,7 @@ from .okf import (
     parse_document,
     render_document,
     validate_frontmatter,
+    validate_governance,
     validate_relative_path,
 )
 from .models import ScopeNode
@@ -50,12 +51,14 @@ class ContentStore:
                 validation_data = {"valid": True, "errors": []}
             except json.JSONDecodeError as exc:
                 validation_data = {"valid": False, "errors": [f"invalid JSON: {exc.msg} at line {exc.lineno}"]}
-            return {"path": relative_path, "name": path.stem, "folder": "" if path.parent == self.repository else path.parent.relative_to(self.repository).as_posix(), "format": "json", "frontmatter": {}, "effective_frontmatter": {}, "body": raw if include_body else "", "validation": validation_data}
+            return {"path": relative_path, "name": path.stem, "folder": "" if path.parent == self.repository else path.parent.relative_to(self.repository).as_posix(), "format": "json", "frontmatter": {}, "inherited_frontmatter": {}, "effective_frontmatter": {}, "body": raw if include_body else "", "validation": validation_data}
         try:
             parsed = parse_document(path.read_text(encoding="utf-8"))
             schema = load_effective_schema(self.repository, relative_path)
             effective = schema | parsed.frontmatter
-            validation = validate_frontmatter(parsed.frontmatter)
+            okf_validation = validate_frontmatter(parsed.frontmatter)
+            governance_errors = self._governance_errors(effective)
+            validation = {"valid": okf_validation.valid and not governance_errors, "errors": okf_validation.errors + governance_errors}
             frontmatter = parsed.frontmatter
             body = parsed.body if include_body else ""
         except ValueError as exc:
@@ -68,6 +71,7 @@ class ContentStore:
             "name": path.stem,
             "folder": "" if Path(relative_path).parent == Path(".") else Path(relative_path).parent.as_posix(),
             "frontmatter": frontmatter,
+            "inherited_frontmatter": schema,
             "effective_frontmatter": effective,
             "body": body,
             "validation": validation_data,
@@ -94,6 +98,9 @@ class ContentStore:
         validation = validate_frontmatter(frontmatter)
         if not validation.valid:
             raise ValueError("; ".join(validation.errors))
+        governance_errors = self._governance_errors(load_effective_schema(self.repository, relative_path) | frontmatter)
+        if governance_errors:
+            raise ValueError("; ".join(governance_errors))
         path.write_text(render_document(frontmatter, body), encoding="utf-8")
         action = "Update" if self.git.history(relative_path, limit=1) else "Create"
         self.git.commit([relative_path], f"{action} {relative_path}", author)
@@ -115,6 +122,9 @@ class ContentStore:
             validation = validate_frontmatter(parsed.frontmatter)
             if not validation.valid:
                 raise ValueError("historical revision is not valid OKF: " + "; ".join(validation.errors))
+            governance_errors = self._governance_errors(load_effective_schema(self.repository, relative_path) | parsed.frontmatter)
+            if governance_errors:
+                raise ValueError("historical revision has invalid governance: " + "; ".join(governance_errors))
         path = self.repository / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(raw if raw.endswith("\n") else raw + "\n", encoding="utf-8")
@@ -147,16 +157,47 @@ class ContentStore:
         clean = validate_relative_path(folder) if folder else ""
         path = self.repository / clean / SCHEMA_FILE
         schema = yaml.safe_load(path.read_text(encoding="utf-8")) or {} if path.exists() else {}
-        return {"path": clean, "schema": schema}
+        return {"path": clean, "schema": schema, "inherited_schema": self._merged_schema(clean, include_current=False), "effective_schema": self._merged_schema(clean)}
 
     def save_schema(self, folder: str, schema: dict[str, Any], author: str) -> dict[str, Any]:
         clean = validate_relative_path(folder) if folder else ""
+        if not isinstance(schema, dict):
+            raise ValueError("schema must be a mapping")
+        governance_errors = self._governance_errors(self._merged_schema(clean, include_current=False) | schema)
+        if governance_errors:
+            raise ValueError("; ".join(governance_errors))
         path = self.repository / clean / SCHEMA_FILE
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(yaml.safe_dump(schema, sort_keys=False), encoding="utf-8")
         relative = path.relative_to(self.repository).as_posix()
         self.git.commit([relative], f"Update schema for {clean or 'root'}", author)
         return self.read_schema(clean)
+
+    def _merged_schema(self, folder: str, include_current: bool = True) -> dict[str, Any]:
+        folders = [""]
+        current = Path()
+        for part in Path(folder).parts:
+            current /= part
+            folders.append(current.as_posix())
+        if not include_current:
+            folders = folders[:-1]
+        merged: dict[str, Any] = {}
+        for candidate in folders:
+            path = self.repository / candidate / SCHEMA_FILE
+            if path.exists():
+                data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+                if not isinstance(data, dict):
+                    raise ValueError(f"{path.relative_to(self.repository)} must contain a YAML mapping")
+                merged.update(data)
+        return merged
+
+    def _governance_errors(self, metadata: dict[str, Any]) -> list[str]:
+        validation = validate_governance(metadata)
+        errors = list(validation.errors)
+        scope_id = metadata.get("scope_id")
+        if scope_id and scope_id not in {scope["id"] for scope in self.list_scopes()}:
+            errors.append(f"scope_id: unknown scope {scope_id}")
+        return errors
 
     def validation_report(self) -> dict[str, Any]:
         documents = self.list_documents()

@@ -96,8 +96,8 @@ import "../styles/global.css";
                 <div class="field"><label for="meta-type">Type</label><input id="meta-type" class="input" /></div>
                 <div class="field"><label for="meta-description">Description</label><textarea id="meta-description" class="textarea" rows="3"></textarea></div>
                 <div class="field"><label for="meta-tags">Tags</label><input id="meta-tags" class="input" placeholder="brand, writing" /></div>
-                <div class="field"><label for="meta-scope">Scope</label><select id="meta-scope" class="select"></select></div>
               </div>
+              <div id="document-metadata-fields" class="metadata-fields inspector-metadata"></div>
               <div id="validation-errors" class="validation-errors hidden"></div>
               <div class="governance-section"><div class="panel-title"><strong>Resolved governance</strong><span>Inherited</span></div><div id="resolved-metadata" class="resolved-grid"></div></div>
               <details class="advanced-metadata"><summary>Advanced frontmatter</summary><textarea id="frontmatter-editor" class="metadata-editor" spellcheck="false" aria-label="YAML frontmatter"></textarea></details>
@@ -108,7 +108,7 @@ import "../styles/global.css";
         <section id="view-validation" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Quality</span><h2>OKF validation</h2></div><button id="refresh-validation" class="icon-button" title="Refresh"><i data-lucide="refresh-cw"></i></button></div><div id="validation-summary" class="metric-row"></div><div id="validation-list" class="list"></div></div></section>
         <section id="view-history" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Local Git</span><h2>History</h2><p id="history-context" class="page-subtitle">Repository changes</p></div></div><div class="history-layout"><div id="history-list" class="list"></div><section class="revision-view"><div id="revision-empty" class="revision-empty">Select a revision</div><div id="revision-detail" class="hidden"><header class="revision-header"><div><span id="revision-hash" class="commit"></span><strong id="revision-title"></strong><small id="revision-meta"></small></div><button id="restore-revision" class="button hidden"><i data-lucide="rotate-ccw"></i>Restore this version</button></header><div id="diff-label" class="diff-label">Changes from the previous revision</div><div id="diff-view" class="diff-view"></div></div></section></div></div></section>
         <section id="view-scopes" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Hierarchy</span><h2>Context scopes</h2></div><button id="new-scope" class="button primary admin-only"><i data-lucide="plus"></i>Add scope</button></div><div id="scope-list" class="scope-list"></div></div></section>
-        <section id="view-schemas" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Governance</span><h2>Folder schemas</h2></div><button id="new-folder" class="button"><i data-lucide="folder-plus"></i>New folder</button></div><div class="schema-layout"><div id="schema-list" class="list"></div><div class="schema-editor"><div class="field"><label id="schema-label">Schema</label><textarea id="schema-body" class="textarea code" rows="20"></textarea></div><button id="save-schema" class="button primary"><i data-lucide="save"></i>Save schema</button></div></div></div></section>
+        <section id="view-schemas" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Governance</span><h2>Folder metadata</h2><p class="page-subtitle">Defaults inherited by documents in each folder.</p></div><button id="new-folder" class="button"><i data-lucide="folder-plus"></i>New folder</button></div><div class="schema-layout"><div id="schema-list" class="list"></div><form id="schema-form" class="schema-editor"><div class="metadata-form-header"><span class="eyebrow">Selected folder</span><strong id="schema-label">Root</strong></div><div id="schema-metadata-fields" class="metadata-fields"></div><details class="advanced-metadata schema-advanced"><summary>Advanced YAML</summary><textarea id="schema-body" class="metadata-editor" spellcheck="false" aria-label="Folder schema YAML"></textarea></details><button id="save-schema" class="button primary" type="submit"><i data-lucide="save"></i>Save folder metadata</button></form></div></div></section>
         <section id="view-users" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Access</span><h2>Users and roles</h2></div><button id="new-user" class="button"><i data-lucide="user-plus"></i>Add user</button></div><div id="user-list" class="list"></div></div></section>
       </main>
     </div>
@@ -140,6 +140,99 @@ import "../styles/global.css";
       const toast = (message, error = false) => { const el = byId("toast"); el.textContent = message; el.className = `toast${error ? " error" : ""}`; setTimeout(() => el.classList.add("hidden"), 2600); };
       const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
       const refreshIcons = () => createIcons({ icons: iconSet });
+      const metadataGroups = [
+        {title:"Classification", fields:[
+          {key:"construct", label:"Construct", type:"select", options:[["audience-profile","Audience Profile"],["brand-messaging","Brand Messaging"],["business-goals","Business Goals"],["communication-preferences","Communication Preferences"],["competitive-landscape","Competitive Landscape"],["customer-journey","Customer Journey"],["how-we-look","How We Look"],["how-we-sound","How We Sound"],["how-we-write","How We Write"],["legal-and-compliance","Legal and Compliance"],["measurement-and-kpis","Measurement and KPIs"],["product-and-offering","Product and Offering"],["proof-points","Proof Points"],["tech-stack","Tech Stack"],["use-cases-and-solutions","Use Cases and Solutions"],["value-proposition","Value Proposition"]]},
+          {key:"scope_id", label:"Scope", type:"scope"},
+          {key:"durability", label:"Durability", type:"select", options:[["ephemeral","Ephemeral"],["time_bound","Time-bound"],["persistent","Persistent"]]},
+          {key:"criticality", label:"Criticality", type:"select", options:[["flexible","Flexible"],["hybrid","Hybrid"],["controlled","Controlled"]]},
+        ]},
+        {title:"Governance and access", fields:[
+          {key:"status", label:"Status", type:"select", options:[["draft","Draft"],["proposed","Proposed"],["approved","Approved"],["archived","Archived"]]},
+          {key:"owner_role", label:"Owner role", type:"text"},
+          {key:"approver_role", label:"Approver role", type:"text"},
+          {key:"read_roles", label:"Read roles", type:"list", placeholder:"viewer, editor, admin"},
+          {key:"edit_roles", label:"Edit roles", type:"list", placeholder:"editor, admin"},
+          {key:"retrieval_policy", label:"Retrieval policy", type:"select", options:[["connector_search","Connector search"],["hybrid","Hybrid"],["deterministic","Deterministic"]]},
+          {key:"audit_required", label:"Audit required", type:"boolean"},
+          {key:"exact_language", label:"Exact language", type:"boolean"},
+        ]},
+        {title:"Sources and freshness", fields:[
+          {key:"provenance", label:"Provenance", type:"text", placeholder:"Source URL, URI, or document name"},
+          {key:"provenance_type", label:"Source type", type:"select", options:[["original","Original"],["derived","Derived"],["outcome","Outcome"],["observed","Observed"]]},
+          {key:"valid_from", label:"Valid from", type:"date", temporal:true},
+          {key:"valid_until", label:"Valid until", type:"date", temporal:true},
+          {key:"date_verified", label:"Last verified", type:"date"},
+          {key:"staleness_threshold_days", label:"Freshness limit (days)", type:"number"},
+        ]},
+      ];
+      const metadataKeys = metadataGroups.flatMap((group) => group.fields.map((field) => field.key));
+
+      function renderMetadataFields(prefix, own = {}, inherited = {}, disabled = false) {
+        const container = byId(`${prefix}-metadata-fields`);
+        container.innerHTML = metadataGroups.map((group) => `<section class="metadata-section"><div class="metadata-section-heading"><strong>${group.title}</strong></div><div class="metadata-grid">${group.fields.map((field) => metadataFieldMarkup(prefix, field, own, inherited, disabled)).join("")}</div></section>`).join("");
+        const durability = byId(`${prefix}-meta-durability`);
+        const updateTemporal = () => {
+          const show = (durability.value || inherited.durability) === "time_bound" || Boolean(own.valid_from || own.valid_until);
+          container.querySelectorAll("[data-temporal]").forEach((element) => element.classList.toggle("hidden", !show));
+        };
+        durability.addEventListener("change", updateTemporal); updateTemporal();
+        if (prefix === "document") container.querySelectorAll("input, select").forEach((element) => element.addEventListener("input", markDocumentDirty));
+      }
+
+      function metadataFieldMarkup(prefix, field, own, inherited, disabled) {
+        const hasOwn = Object.prototype.hasOwnProperty.call(own, field.key) && own[field.key] !== null;
+        const value = hasOwn ? metadataInputValue(own[field.key], field.type) : "";
+        const inheritedValue = inherited[field.key];
+        const inheritedText = inheritedValue === undefined || inheritedValue === null ? "Not set" : `Inherited: ${metadataDisplayValue(field.key, inheritedValue)}`;
+        const id = `${prefix}-meta-${field.key.replaceAll("_", "-")}`;
+        let control;
+        if (field.type === "select" || field.type === "boolean") {
+          const options = field.type === "boolean" ? [["true","Yes"],["false","No"]] : field.options;
+          const known = options.some(([option]) => option === value);
+          control = `<select id="${id}" class="select" ${disabled ? "disabled" : ""}><option value="">${escapeHtml(inheritedText)}</option>${!known && value ? `<option value="${escapeHtml(value)}" selected>${escapeHtml(value)}</option>` : ""}${options.map(([option,label]) => `<option value="${option}" ${value === option ? "selected" : ""}>${label}</option>`).join("")}</select>`;
+        } else if (field.type === "scope") {
+          control = `<select id="${id}" class="select" ${disabled ? "disabled" : ""}><option value="">${escapeHtml(inheritedText)}</option>${orderedScopes().map(({scope,depth}) => `<option value="${escapeHtml(scope.id)}" ${value === scope.id ? "selected" : ""}>${"— ".repeat(depth)}${escapeHtml(scope.name)} (${escapeHtml(scope.level)})</option>`).join("")}</select>`;
+        } else {
+          control = `<input id="${id}" class="input" type="${field.type === "list" ? "text" : field.type}" value="${escapeHtml(value)}" placeholder="${escapeHtml(hasOwn ? field.placeholder || "" : inheritedText)}" ${field.type === "number" ? "min=\"1\"" : ""} ${disabled ? "readonly" : ""} />`;
+        }
+        const ownLabel = prefix === "schema" ? "Set for this folder" : "Overrides folder default";
+        return `<div class="field metadata-field" ${field.temporal ? "data-temporal" : ""}><label for="${id}">${field.label}</label>${control}${hasOwn ? `<small class="override-label">${ownLabel}</small>` : inheritedValue !== undefined && inheritedValue !== null ? `<small class="inherited-label">${escapeHtml(inheritedText)}</small>` : ""}</div>`;
+      }
+
+      function metadataInputValue(value, type) {
+        if (type === "list") return Array.isArray(value) ? value.join(", ") : String(value || "");
+        if (type === "boolean") return value === true ? "true" : value === false ? "false" : "";
+        if (type === "date" && value instanceof Date) return value.toISOString().slice(0, 10);
+        return String(value ?? "");
+      }
+
+      function metadataDisplayValue(key, value) {
+        if (key === "scope_id") { const scope = state.scopes.find((item) => item.id === value); return scope ? `${scope.name} (${scope.level})` : String(value); }
+        if (Array.isArray(value)) return value.join(", ");
+        if (value === true) return "Yes";
+        if (value === false) return "No";
+        return String(value).replaceAll("_", " ");
+      }
+
+      function collectMetadataFields(prefix, target) {
+        for (const key of metadataKeys) {
+          const field = metadataGroups.flatMap((group) => group.fields).find((item) => item.key === key);
+          const element = byId(`${prefix}-meta-${key.replaceAll("_", "-")}`);
+          const value = element.value.trim();
+          if (!value) { delete target[key]; continue; }
+          if (field.type === "list") target[key] = value.split(",").map((item) => item.trim()).filter(Boolean);
+          else if (field.type === "boolean") target[key] = value === "true";
+          else if (field.type === "number") target[key] = Number(value);
+          else target[key] = value;
+        }
+        return target;
+      }
+
+      function markDocumentDirty() {
+        if (!state.current) return;
+        state.dirty = true; byId("save-state").textContent = "Unsaved changes";
+      }
 
       async function start() {
         refreshIcons();
@@ -227,9 +320,8 @@ import "../styles/global.css";
         byId("meta-type").value = state.current.frontmatter.type || "";
         byId("meta-description").value = state.current.frontmatter.description || "";
         byId("meta-tags").value = (state.current.frontmatter.tags || []).join(", ");
-        byId("meta-scope").innerHTML = scopeOptions(state.current.frontmatter.scope_id || "", true);
+        renderMetadataFields("document", state.current.frontmatter, state.current.inherited_frontmatter, state.user.role === "viewer");
         ["meta-type", "meta-description", "meta-tags"].forEach((id) => byId(id).readOnly = state.user.role === "viewer");
-        byId("meta-scope").disabled = state.user.role === "viewer";
         renderGovernance(state.current.effective_frontmatter);
         setEditorMode("preview");
         state.dirty = false;
@@ -238,7 +330,7 @@ import "../styles/global.css";
       }
 
       function renderGovernance(metadata) {
-        const keys = ["scope_id", "construct", "criticality", "status", "owner_role", "retrieval_policy", "staleness_threshold_days"];
+        const keys = ["scope_id", "construct", "durability", "criticality", "status", "owner_role", "approver_role", "retrieval_policy", "valid_from", "valid_until", "date_verified", "staleness_threshold_days"];
         byId("resolved-metadata").innerHTML = keys.filter((key) => metadata[key] !== undefined).map((key) => {
           const value = Array.isArray(metadata[key]) ? metadata[key].join(", ") : String(metadata[key]);
           return `<div><dt>${escapeHtml(key.replaceAll("_", " "))}</dt><dd>${escapeHtml(value)}</dd></div>`;
@@ -254,7 +346,7 @@ import "../styles/global.css";
         if (!state.current) return;
         try {
           const frontmatter = state.current.format === "json" ? {} : yaml.load(byId("frontmatter-editor").value) || {};
-          if (state.current.format === "markdown") { frontmatter.title = byId("document-title").value; frontmatter.type = byId("meta-type").value.trim(); frontmatter.description = byId("meta-description").value.trim(); frontmatter.tags = byId("meta-tags").value.split(",").map((tag) => tag.trim()).filter(Boolean); if (byId("meta-scope").value) frontmatter.scope_id = byId("meta-scope").value; else delete frontmatter.scope_id; }
+          if (state.current.format === "markdown") { frontmatter.title = byId("document-title").value; frontmatter.type = byId("meta-type").value.trim(); frontmatter.description = byId("meta-description").value.trim(); frontmatter.tags = byId("meta-tags").value.split(",").map((tag) => tag.trim()).filter(Boolean); collectMetadataFields("document", frontmatter); }
           state.current = await api(`/api/documents/${state.current.path}`, { method: "PUT", body: JSON.stringify({ frontmatter, body: byId("document-body").value }) });
           state.dirty = false; byId("save-state").textContent = "Saved"; await Promise.all([loadDocuments(), loadValidation()]); openDocument(state.current.path); toast("Document saved");
         } catch (error) { toast(error.message, true); }
@@ -352,10 +444,30 @@ import "../styles/global.css";
       async function loadSchemas() {
         state.folders = await api("/api/folders");
         byId("schema-list").innerHTML = state.folders.map((folder) => `<button class="list-row" data-schema-path="${escapeHtml(folder.path)}"><i data-lucide="folder-cog"></i><span><strong>${escapeHtml(folder.path || "Root")}</strong><small>${Object.keys(folder.schema).length} fields</small></span></button>`).join("");
-        byId("schema-list").querySelectorAll("[data-schema-path]").forEach((row) => row.addEventListener("click", () => { const folder = state.folders.find((item) => item.path === row.dataset.schemaPath); state.schemaPath = folder.path; byId("schema-label").textContent = `${folder.path || "Root"} schema`; byId("schema-body").value = yaml.dump(folder.schema, { lineWidth: -1 }); })); refreshIcons();
-        if (state.folders.length) byId("schema-list").querySelector("button").click();
+        byId("schema-list").querySelectorAll("[data-schema-path]").forEach((row) => row.addEventListener("click", () => selectSchema(row.dataset.schemaPath)));
+        refreshIcons();
+        if (state.folders.length) selectSchema(state.folders.some((folder) => folder.path === state.schemaPath) ? state.schemaPath : state.folders[0].path);
       }
-      byId("save-schema").addEventListener("click", async () => { try { await api("/api/schemas", { method: "PUT", body: JSON.stringify({ path: state.schemaPath, schema: yaml.load(byId("schema-body").value) || {} }) }); await Promise.all([loadSchemas(), loadDocuments(), loadValidation()]); toast("Schema saved"); } catch (error) { toast(error.message, true); } });
+
+      function selectSchema(path) {
+        const folder = state.folders.find((item) => item.path === path);
+        if (!folder) return;
+        state.schemaPath = folder.path;
+        byId("schema-label").textContent = folder.path || "Root";
+        byId("schema-body").value = yaml.dump(folder.schema, { lineWidth: -1, noRefs: true });
+        renderMetadataFields("schema", folder.schema, folder.inherited_schema);
+        byId("schema-list").querySelectorAll("[data-schema-path]").forEach((row) => row.classList.toggle("active", row.dataset.schemaPath === path));
+      }
+
+      byId("schema-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          const schema = yaml.load(byId("schema-body").value) || {};
+          collectMetadataFields("schema", schema);
+          await api("/api/schemas", { method: "PUT", body: JSON.stringify({ path: state.schemaPath, schema }) });
+          await Promise.all([loadSchemas(), loadDocuments(), loadValidation()]); toast("Folder metadata saved");
+        } catch (error) { toast(error.message, true); }
+      });
 
       async function loadScopes() {
         state.scopes = await api("/api/scopes");
@@ -511,7 +623,7 @@ import "../styles/global.css";
       const setInspectorOpen = (open) => { byId("document-editor").classList.toggle("inspector-open", open); byId("toggle-inspector").setAttribute("aria-expanded", String(open)); };
       byId("toggle-inspector").addEventListener("click", () => setInspectorOpen(!byId("document-editor").classList.contains("inspector-open")));
       byId("close-inspector").addEventListener("click", () => setInspectorOpen(false));
-      ["document-title", "document-body", "meta-type", "meta-description", "meta-tags", "meta-scope", "frontmatter-editor"].forEach((id) => byId(id).addEventListener("input", () => { if (state.current) { state.dirty = true; byId("save-state").textContent = "Unsaved changes"; if (id === "document-body") renderPreview(); } }));
+      ["document-title", "document-body", "meta-type", "meta-description", "meta-tags", "frontmatter-editor"].forEach((id) => byId(id).addEventListener("input", () => { markDocumentDirty(); if (id === "document-body") renderPreview(); }));
       start();
     </script>
   </body>
@@ -693,6 +805,24 @@ import "../styles/global.css";
   .content-editor.mode-split .body-editor { width: 100%; border-right: 1px solid var(--line); }
   .content-editor.mode-split .document-preview { display: block; padding-left: 28px; padding-right: 28px; }
   .preview-error { padding: 12px; border: 1px solid #e6c3bf; border-radius: 5px; color: var(--red); background: var(--red-soft); font-size: 12px; }
+  .schema-layout { grid-template-columns: minmax(230px, .65fr) minmax(500px, 1.35fr); align-items: start; }
+  .schema-editor { gap: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
+  .metadata-form-header { min-height: 64px; display: grid; align-content: center; gap: 4px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .metadata-form-header strong { font-size: 15px; }
+  .metadata-section { padding: 18px 20px 20px; border-bottom: 1px solid var(--line); background: white; }
+  .metadata-section-heading { margin-bottom: 14px; }
+  .metadata-section-heading strong { font-size: 12px; }
+  .metadata-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .metadata-field { align-content: start; }
+  .metadata-field small { min-height: 14px; display: block; margin-top: 5px; font-size: 10px; }
+  .inherited-label { color: var(--muted); }
+  .override-label { color: #397158; }
+  .schema-advanced { padding: 15px 20px 18px; border-bottom: 1px solid var(--line); }
+  .schema-advanced .metadata-editor { margin-top: 12px; }
+  .schema-editor > .button { justify-self: start; margin: 16px 20px; }
+  .inspector-metadata { background: white; }
+  .inspector-metadata .metadata-section { padding: 17px 20px; }
+  .inspector-metadata .metadata-grid { grid-template-columns: 1fr; gap: 14px; }
   .history-layout { align-items: start; }
   .history-row.active { background: var(--green-soft); box-shadow: inset 3px 0 var(--green); }
   .revision-view { min-width: 0; min-height: 500px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
@@ -759,6 +889,7 @@ import "../styles/global.css";
     .document-preview { height: auto; overflow: visible; }
     .revision-header { align-items: flex-start; flex-direction: column; }
     .revision-header .button { margin-left: 0; }
+    .schema-layout { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 680px) {
@@ -776,6 +907,7 @@ import "../styles/global.css";
     .content-editor.mode-split { grid-template-columns: 1fr; }
     .content-editor.mode-split .body-editor { border-right: 0; border-bottom: 1px solid var(--line); }
     .editor-mode-bar-inner { padding: 0 24px; }
+    .metadata-grid { grid-template-columns: 1fr; }
     .scope-row { grid-template-columns: calc(var(--depth) * 14px) 18px 32px minmax(0, 1fr) 34px; gap: 7px; }
     .scope-row .level-pill { display: none; }
   }

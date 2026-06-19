@@ -42,6 +42,39 @@ class SourceRef(BaseModel):
     url: Optional[str] = None
 
 
+class GovernanceMetadata(BaseModel):
+    construct: Optional[str] = None
+    scope_id: Optional[str] = None
+    durability: Optional[Durability] = None
+    provenance: Optional[str] = None
+    provenance_type: Optional[Provenance] = None
+    criticality: Optional[Criticality] = None
+    owner_role: Optional[str] = None
+    read_roles: Optional[list[str]] = None
+    edit_roles: Optional[list[str]] = None
+    approver_role: Optional[str] = None
+    status: Optional[RecordStatus] = None
+    valid_from: Optional[date] = None
+    valid_until: Optional[date] = None
+    retrieval_policy: Optional[RetrievalPolicy] = None
+    audit_required: Optional[bool] = None
+    exact_language: Optional[bool] = None
+    staleness_threshold_days: Optional[int] = Field(default=None, ge=1)
+    date_verified: Optional[date] = None
+
+    model_config = {"extra": "allow"}
+
+    @model_validator(mode="after")
+    def _validate_dates_and_controlled_context(self) -> "GovernanceMetadata":
+        if self.durability == "time_bound" and (not self.valid_from or not self.valid_until):
+            raise ValueError("time-bound context requires valid_from and valid_until")
+        if self.valid_from and self.valid_until and self.valid_until < self.valid_from:
+            raise ValueError("valid_until must be on or after valid_from")
+        if self.criticality == "controlled" and not self.approver_role:
+            raise ValueError("controlled context requires approver_role")
+        return self
+
+
 class ContextRecord(BaseModel):
     id: str
     title: str
@@ -50,6 +83,7 @@ class ContextRecord(BaseModel):
     scope: Scope = Field(default_factory=Scope)
     scope_id: Optional[str] = None
     durability: Durability = "persistent"
+    provenance: Optional[str] = None
     provenance_type: Provenance = "original"
     criticality: Criticality = "hybrid"
     owner_role: str
@@ -85,6 +119,8 @@ class RuntimeRecord(BaseModel):
     id: str
     title: str
     construct: str
+    durability: Durability
+    provenance: Optional[str] = None
     criticality: Criticality
     retrieval_policy: RetrievalPolicy
     status: RecordStatus
@@ -93,6 +129,8 @@ class RuntimeRecord(BaseModel):
     content_hash: str
     staleness_threshold_days: int
     date_verified: Optional[str] = None
+    valid_from: Optional[str] = None
+    valid_until: Optional[str] = None
     owner_role: str
     approver_role: Optional[str] = None
     read_roles: list[str] = Field(default_factory=list)

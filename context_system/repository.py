@@ -32,7 +32,7 @@ class ContextRepository:
         return records
 
     def get_construct(self, construct: str, include_body: bool = True, scope_id: str | None = None) -> list[RuntimeRecord]:
-        records = [record for record in self.runtime_records(include_body) if record.construct == construct and record.status == "approved"]
+        records = [record for record in self.runtime_records(include_body) if record.construct == construct and record.status == "approved" and self._is_current(record)]
         if not scope_id:
             return records
         ancestors = self.content.scope_ancestors(scope_id)
@@ -47,7 +47,7 @@ class ContextRepository:
         if not query.strip() or top_k <= 0:
             return []
         allowed = set(constructs or [])
-        records = [record for record in self.runtime_records() if record.criticality != "controlled" and (not allowed or record.construct in allowed)]
+        records = [record for record in self.runtime_records() if record.criticality != "controlled" and self._is_current(record) and (not allowed or record.construct in allowed)]
         if not records:
             return []
         doc_tokens = [tokenize(record.body) for record in records]
@@ -98,6 +98,8 @@ class ContextRepository:
             id=definition.id,
             title=definition.title,
             construct=definition.construct,
+            durability=definition.durability,
+            provenance=definition.provenance,
             criticality=definition.criticality,
             retrieval_policy=definition.retrieval_policy,
             status=definition.status,
@@ -106,6 +108,8 @@ class ContextRepository:
             content_hash=__import__("hashlib").sha256(path.read_bytes()).hexdigest()[:16],
             staleness_threshold_days=definition.staleness_threshold_days,
             date_verified=definition.date_verified.isoformat() if definition.date_verified else None,
+            valid_from=definition.valid_from.isoformat() if definition.valid_from else None,
+            valid_until=definition.valid_until.isoformat() if definition.valid_until else None,
             owner_role=definition.owner_role,
             approver_role=definition.approver_role,
             read_roles=definition.read_roles,
@@ -117,6 +121,15 @@ class ContextRepository:
             okf={"type": definition.okf_type, "title": definition.title, "description": definition.description, "resource": definition.resource, "tags": definition.tags},
             body=document["body"],
         )
+
+    @staticmethod
+    def _is_current(record: RuntimeRecord) -> bool:
+        today = date.today()
+        if record.valid_from and date.fromisoformat(record.valid_from) > today:
+            return False
+        if record.valid_until and date.fromisoformat(record.valid_until) < today:
+            return False
+        return True
 
     def _tfidf(self, counts: Counter[str], idf: dict[str, float]) -> dict[str, float]:
         total = sum(counts.values()) or 1

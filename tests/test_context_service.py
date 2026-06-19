@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -60,7 +61,7 @@ def test_authenticated_records_list():
 def test_frontmatter_overrides_folder_schema(tmp_path: Path):
     store = ContentStore(tmp_path / "context")
     store.save_schema("", {"criticality": "hybrid", "construct": "general"}, "admin")
-    store.save_schema("brand", {"criticality": "controlled", "construct": "brand"}, "admin")
+    store.save_schema("brand", {"criticality": "controlled", "construct": "brand", "approver_role": "admin"}, "admin")
     document = store.save_document(
         "brand/example.md",
         {"type": "Reference", "title": "Example", "criticality": "flexible"},
@@ -71,6 +72,55 @@ def test_frontmatter_overrides_folder_schema(tmp_path: Path):
     assert document["effective_frontmatter"]["construct"] == "brand"
     assert document["effective_frontmatter"]["criticality"] == "flexible"
     assert store.git.history("brand/example.md")[0]["author"] == "editor"
+
+
+def test_folder_scope_and_dates_are_inherited_and_document_scope_can_override(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    store.save_scope({"id": "company", "name": "Company", "level": "company"}, "admin")
+    store.save_scope({"id": "campaign", "name": "Campaign", "level": "campaign", "parent_id": "company"}, "admin")
+    store.save_schema(
+        "campaigns",
+        {
+            "construct": "business-goals",
+            "scope_id": "campaign",
+            "durability": "time_bound",
+            "valid_from": "2026-06-01",
+            "valid_until": "2026-06-30",
+        },
+        "admin",
+    )
+
+    inherited = store.save_document("campaigns/brief.md", {"type": "Brief", "title": "Brief"}, "Campaign", "editor")
+    overridden = store.save_document("campaigns/company.md", {"type": "Brief", "title": "Company", "scope_id": "company"}, "Company", "editor")
+
+    assert inherited["effective_frontmatter"]["scope_id"] == "campaign"
+    assert inherited["effective_frontmatter"]["valid_until"] == "2026-06-30"
+    assert overridden["effective_frontmatter"]["scope_id"] == "company"
+
+
+def test_time_bound_schema_requires_validity_dates(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+
+    try:
+        store.save_schema("campaigns", {"durability": "time_bound"}, "admin")
+    except ValueError as exc:
+        assert "valid_from and valid_until" in str(exc)
+    else:
+        raise AssertionError("time-bound schema should require validity dates")
+
+
+def test_expired_context_is_excluded_from_retrieval(tmp_path: Path):
+    repository_path = tmp_path / "context"
+    store = ContentStore(repository_path)
+    today = date.today()
+    base = {"type": "Brief", "construct": "business-goals", "owner_role": "editor", "status": "approved", "durability": "time_bound"}
+    store.save_document("expired.md", base | {"title": "Expired", "valid_from": today - timedelta(days=2), "valid_until": today - timedelta(days=1)}, "Expired", "admin")
+    store.save_document("current.md", base | {"title": "Current", "valid_from": today - timedelta(days=1), "valid_until": today + timedelta(days=1)}, "Current", "admin")
+    config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users.sqlite"))
+
+    records = ContextRepository(config).get_construct("business-goals")
+
+    assert [record.title for record in records] == ["Current"]
 
 
 def test_invalid_okf_document_is_visible_in_report(tmp_path: Path):
