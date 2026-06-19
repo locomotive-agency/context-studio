@@ -3,11 +3,19 @@ scopes:
   name: ZoomInfo
   level: company
   parent_id: null
+  order: 0
 - id: zoominfo-brand
   name: ZoomInfo Brand
   level: brand
   parent_id: zoominfo
+  order: 0
 - id: product-a
   name: Product A
   level: product
   parent_id: zoominfo-brand
+  order: 0
+- id: another-brand
+  name: Another Brand
+  level: brand
+  parent_id: zoominfo
+  order: 1
