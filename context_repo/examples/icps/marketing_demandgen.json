@@ -1,0 +1,211 @@
+{
+  "id": "marketing_demandgen",
+  "name": "Marketing & Demand Gen",
+  "description": "Senior marketing practitioners responsible for pipeline contribution, audience targeting, and campaign performance across ABM, demand gen, and growth motions. They operate at the intersection of strategy and execution, owning the programs that must prove measurable revenue impact.",
+  "job_titles": [
+    "Demand Gen Manager",
+    "Marketing Director",
+    "ABM Manager",
+    "Marketing Ops Manager",
+    "VP Marketing",
+    "Growth Marketing Manager"
+  ],
+  "seniority_range": [
+    "Manager",
+    "Senior Manager",
+    "Director",
+    "VP"
+  ],
+  "department": "Marketing",
+  "company_size": "Enterprise and upper mid-market (200+ employees)",
+  "industries": [
+    "B2B SaaS",
+    "Financial Services",
+    "Cloud",
+    "Professional Services",
+    "Healthcare/Biotech",
+    "Manufacturing",
+    "Telecommunications"
+  ],
+  "primary_pain": "Disconnected campaigns, stale audiences, and no closed-loop measurement between marketing activity and revenue outcomes",
+  "pain_points": [
+    {
+      "title": "Audience data goes stale before campaigns launch",
+      "severity": "CRITICAL",
+      "category": "Data Quality",
+      "example": "We build a target account list in Q1, spend three weeks getting it approved and loaded into our MAP, and by the time ads are live half the contacts have changed roles or the company has shifted priorities. We're spending budget against a snapshot, not reality.",
+      "primary_icps": [
+        "marketing_demandgen"
+      ],
+      "secondary_icps": [
+        "revops_gtm_eng"
+      ],
+      "transcript_pain_point_ids": [
+        "MKT_PP_02"
+      ]
+    },
+    {
+      "title": "No closed-loop visibility from campaign to closed revenue",
+      "severity": "CRITICAL",
+      "category": "Measurement & Attribution",
+      "example": "I can tell you MQL volume and cost-per-lead all day. What I can't tell you is which campaigns actually contributed to closed-won deals six months later. My CRM data is too dirty and too disconnected from what marketing touched to draw that line with confidence.",
+      "primary_icps": [
+        "marketing_demandgen"
+      ],
+      "secondary_icps": [
+        "revops_gtm_eng",
+        "sales_ae_sdr"
+      ],
+      "transcript_pain_point_ids": [
+        "MKT_PP_01",
+        "MKT_PP_06"
+      ]
+    },
+    {
+      "title": "ABM plays require engineering tickets and take weeks to launch",
+      "severity": "MAJOR",
+      "category": "Operational Efficiency",
+      "example": "Every time I want to build a new audience segment or launch an expansion play, I'm filing a ticket with RevOps or waiting on a data analyst to pull a list. By the time it's ready, the intent window has closed. We're always reacting to last quarter's signals.",
+      "primary_icps": [
+        "marketing_demandgen"
+      ],
+      "secondary_icps": [
+        "revops_gtm_eng"
+      ],
+      "transcript_pain_point_ids": [
+        "MKT_PP_13"
+      ]
+    },
+    {
+      "title": "Intent signals don't connect to actual buying committee behavior",
+      "severity": "MAJOR",
+      "category": "Intelligence & Targeting",
+      "example": "We're paying for intent data but it's basically a list of companies that visited some topic pages. I have no idea if the people researching are actually in the buying committee, whether they're early-stage or ready to talk to sales, or whether the signal is even from the right business unit.",
+      "primary_icps": [
+        "marketing_demandgen"
+      ],
+      "secondary_icps": [
+        "sales_ae_sdr",
+        "account_mgmt_cs"
+      ],
+      "transcript_pain_point_ids": [
+        "MKT_PP_03",
+        "MKT_PP_07",
+        "MKT_PP_12"
+      ]
+    },
+    {
+      "title": "Multi-channel campaigns are stitched together across disconnected tools",
+      "severity": "MAJOR",
+      "category": "Tool Fragmentation",
+      "example": "Our paid, email, and SDR sequences are all running off different data sources with different audience definitions. Sales is calling accounts we just suppressed in ads, and we have no single view of what a prospect has actually experienced across channels. It looks coordinated on a slide deck but it's chaos in practice.",
+      "primary_icps": [
+        "marketing_demandgen"
+      ],
+      "secondary_icps": [
+        "revops_gtm_eng",
+        "sales_ae_sdr"
+      ],
+      "transcript_pain_point_ids": [
+        "MKT_PP_04",
+        "MKT_PP_05"
+      ]
+    },
+    {
+      "title": "Web traffic is anonymous and form conversion rates are low",
+      "severity": "MODERATE",
+      "category": "Pipeline Conversion",
+      "example": "We're driving decent traffic to high-intent pages but our form fill rates are terrible. We ask for ten fields because we need the data for routing, and half the people bounce. The visitors who don't convert are completely invisible to us \u2014 we have no idea which accounts are showing up.",
+      "primary_icps": [
+        "marketing_demandgen"
+      ],
+      "secondary_icps": [
+        "revops_gtm_eng"
+      ],
+      "transcript_pain_point_ids": [
+        "MKT_PP_09"
+      ]
+    }
+  ],
+  "goals": [
+    "Demonstrate measurable pipeline and revenue contribution from marketing programs, not just MQL volume",
+    "Launch targeted ABM and demand gen plays faster \u2014 in hours or days, not weeks \u2014 without depending on engineering or RevOps tickets",
+    "Build and maintain audiences that reflect real-time account behavior and buying signals, not static quarterly snapshots",
+    "Align marketing campaigns with sales motions so outreach, ads, and sequences hit the same accounts with a coherent message",
+    "Increase conversion rates across web forms, landing pages, and digital advertising by reducing friction and improving targeting precision"
+  ],
+  "jobs_to_be_done": [
+    "Account-based marketing and digital advertising",
+    "Buyer intent monitoring",
+    "Territory design and TAM analysis",
+    "Website visitor de-anonymization",
+    "Web form optimization",
+    "CRM data enrichment and management",
+    "AI agent and workflow automation"
+  ],
+  "emotional_state": "Skeptical and ROI-fatigued \u2014 they've been burned by tools that promised pipeline impact and delivered dashboards, so they're evaluating new platforms through the lens of 'show me the revenue number, not the engagement metric.' They're also acutely aware of the organizational cost of being seen as out of sync with sales \u2014 they want to be the team that sales actually wants to work with, not the team that sends campaigns sales ignores. Anything that tightens the feedback loop between marketing activity and sales outcomes, and makes that alignment visible, is a strategic win.",
+  "decision_drivers": [
+    "Ability to prove pipeline and revenue attribution to executive leadership",
+    "Speed to launch \u2014 reducing the time from insight to live campaign without engineering dependencies",
+    "Audience accuracy that reflects current buying behavior, not stale list pulls",
+    "Alignment with sales so marketing programs visibly contribute to deals, not just top-of-funnel metrics",
+    "Consolidating point solutions into a platform that reduces vendor sprawl and operational overhead",
+    "Compliance and data privacy coverage for regulated industries and international campaigns"
+  ],
+  "messaging_angle": "Speak to the gap between the campaigns they can build and the revenue proof they're expected to deliver \u2014 position ZoomInfo's GTM Context Graph as the intelligence layer that finally closes that loop, and GTM Studio as the execution environment that removes the operational drag between insight and action. Weave in the alignment story too: the best campaign in the world fails if sales doesn't trust the data behind it or can't act on it in their workflow. Position ZoomInfo as the shared operating layer that gets marketing and sales working from the same signals, so campaigns don't just launch \u2014 they land.",
+  "expertise_level": "strategic",
+  "content_depth": "strategic_conceptual",
+  "proof_point_types": [
+    "Named customer outcomes with specific metrics (Smartsheet: 40%+ form fill increase, 84% MQL increase, 26% opportunity rate increase)",
+    "Operational efficiency benchmarks (expansion plays from 3 weeks to 30 minutes)",
+    "Engagement and pipeline impact metrics (900% CTR increase, 61% increase in opportunities)",
+    "Analyst recognition validating platform category leadership (Gartner Magic Quadrant Leader ABM Platforms 2024 and 2025, Forrester Wave Leader Intent Data Providers Q1 2025)",
+    "Scale indicators that establish data foundation credibility (500M contacts, 1.5B+ data points processed daily)",
+    "Behavioral benchmarks from top-performing teams (50+ plays per quarter)"
+  ],
+  "lead_pillars": [
+    "GTM Context Graph",
+    "GTM Studio"
+  ],
+  "narrative_variation": "B",
+  "tone_modifiers": [
+    "Revenue-outcome focused \u2014 anchor every capability to a pipeline or revenue result, not a feature description",
+    "Operationally empathetic \u2014 acknowledge the real friction of ticket queues, list-pull delays, and tool fragmentation before presenting the solution",
+    "Strategically credible \u2014 this persona reads analyst reports and benchmarks peers; cite Gartner, Forrester, and G2 rankings as validation, not decoration",
+    "Avoid demand gen jargon as shorthand \u2014 terms like 'intent-driven' and 'ABM' need to be grounded in specific mechanics, not used as assumed shared vocabulary",
+    "Peer-level confidence \u2014 write as a practitioner who understands the difference between MQL theater and real pipeline contribution, not as a vendor pitching features"
+  ],
+  "experience_signals": [
+    "Content authored or cited by practitioners who have run ABM or demand gen programs at enterprise scale",
+    "Examples that reflect real campaign architecture decisions \u2014 audience segmentation logic, channel sequencing, suppression lists \u2014 not hypothetical use cases",
+    "Familiarity with the actual tools in the marketing stack: MAPs, DSPs, CRMs, SEPs, and how data flows between them",
+    "Acknowledgment of the organizational dynamics \u2014 sales-marketing alignment friction, RevOps dependencies, executive attribution pressure \u2014 that shape how decisions actually get made"
+  ],
+  "expertise_signals": [
+    "Accurate use of ABM and demand gen terminology grounded in how practitioners actually use it, not how vendors define it",
+    "Demonstrated understanding of the difference between engagement metrics and pipeline metrics, and why that distinction matters to this persona's credibility internally",
+    "Specific knowledge of how intent data works mechanically \u2014 topic clusters, IP resolution, behavioral signals \u2014 and where it breaks down without a reasoning layer",
+    "Awareness of the attribution problem as a structural challenge, not a tooling gap \u2014 and positioning ZoomInfo's GTM Context Graph as an intelligence solution, not just another integration"
+  ],
+  "authority_signals": [
+    "Gartner Magic Quadrant Leader recognition for ABM Platforms (2024 and 2025)",
+    "Forrester Wave Leader for Intent Data Providers B2B with highest scores across 8 criteria (Q1 2025)",
+    "G2 No. 1 rankings in Buyer Intent, Account Data Management, and Lead-to-Account Matching (Summer 2025)",
+    "Named enterprise customers with documented outcomes: Smartsheet, Snowflake, Momentive",
+    "Nasdaq ticker change to GTM as a deliberate category ownership signal"
+  ],
+  "trust_signals": [
+    "Customer outcomes cited with specific named companies, titles, and verifiable metrics \u2014 not anonymized case studies",
+    "Honest acknowledgment of where point solutions have genuine strengths before explaining where ZoomInfo's integrated approach creates structural advantages",
+    "Compliance certifications relevant to enterprise marketing data use: ISO 27001, ISO 27701, SOC 2 Type II, TRUSTe GDPR and CCPA",
+    "Proof points sourced from independent analyst evaluations, not self-reported platform claims",
+    "Operational specificity \u2014 claims like 'expansion plays in 30 minutes vs. 3 weeks' are more trusted than percentage lift claims because they describe a workflow change this persona can visualize"
+  ],
+  "transcript_pain_points_ref": "sales_transcripts/marketing_demandgen_pain_points.json",
+  "orphan_transcript_pain_point_ids": [
+    "MKT_PP_08",
+    "MKT_PP_10",
+    "MKT_PP_11",
+    "MKT_PP_14"
+  ]
+}
