@@ -95,6 +95,23 @@ def test_json_document_can_be_read_and_saved(tmp_path: Path):
     assert '"Example"' in document["body"]
 
 
+def test_document_can_be_restored_as_a_new_revision(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    frontmatter = {"type": "Reference", "title": "Example"}
+    store.save_document("example.md", frontmatter, "First version", "editor")
+    first_revision = store.git.history("example.md")[0]["hash"]
+    store.save_document("example.md", frontmatter, "Second version", "editor")
+    second_revision = store.git.history("example.md")[0]["hash"]
+
+    diff = store.git.diff(second_revision, "example.md")
+    restored = store.restore_document("example.md", first_revision, "admin")
+
+    assert "-First version" in diff
+    assert "+Second version" in diff
+    assert restored["document"]["body"].strip() == "First version"
+    assert store.git.history("example.md")[0]["subject"].startswith("Restore example.md")
+
+
 def test_user_store_updates_password_role_and_removes_user(tmp_path: Path):
     users = UserStore(tmp_path / "users.sqlite")
 

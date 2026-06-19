@@ -99,6 +99,28 @@ class ContentStore:
         self.git.commit([relative_path], f"{action} {relative_path}", author)
         return self.read_document(relative_path)
 
+    def restore_document(self, relative_path: str, commit: str, author: str) -> dict[str, Any]:
+        relative_path = validate_relative_path(relative_path)
+        suffix = Path(relative_path).suffix.lower()
+        if suffix not in {".md", ".json"}:
+            raise ValueError("document path must end in .md or .json")
+        raw = self.git.file_at_revision(commit, relative_path)
+        if suffix == ".json":
+            try:
+                json.loads(raw)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"historical revision contains invalid JSON: {exc.msg}") from exc
+        else:
+            parsed = parse_document(raw)
+            validation = validate_frontmatter(parsed.frontmatter)
+            if not validation.valid:
+                raise ValueError("historical revision is not valid OKF: " + "; ".join(validation.errors))
+        path = self.repository / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(raw if raw.endswith("\n") else raw + "\n", encoding="utf-8")
+        restored_commit = self.git.commit([relative_path], f"Restore {relative_path} to {commit[:7]}", author)
+        return {"commit": restored_commit, "document": self.read_document(relative_path)}
+
     def create_folder(self, relative_path: str, author: str) -> dict[str, str]:
         relative_path = validate_relative_path(relative_path)
         schema_path = f"{relative_path}/{SCHEMA_FILE}"

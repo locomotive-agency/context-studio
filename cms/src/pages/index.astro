@@ -106,7 +106,7 @@ import "../styles/global.css";
         </section>
 
         <section id="view-validation" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Quality</span><h2>OKF validation</h2></div><button id="refresh-validation" class="icon-button" title="Refresh"><i data-lucide="refresh-cw"></i></button></div><div id="validation-summary" class="metric-row"></div><div id="validation-list" class="list"></div></div></section>
-        <section id="view-history" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Local Git</span><h2>History</h2><p id="history-context" class="page-subtitle">Repository changes</p></div><div class="segmented"><button id="repository-history" class="active">Repository</button><button id="current-document-history">Current document</button></div></div><div class="history-layout"><div id="history-list" class="list"></div><pre id="diff-view" class="diff">Select a revision</pre></div></div></section>
+        <section id="view-history" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Local Git</span><h2>History</h2><p id="history-context" class="page-subtitle">Repository changes</p></div><div class="segmented"><button id="repository-history" class="active">Repository</button><button id="current-document-history">Current document</button></div></div><div class="history-layout"><div id="history-list" class="list"></div><section class="revision-view"><div id="revision-empty" class="revision-empty">Select a revision</div><div id="revision-detail" class="hidden"><header class="revision-header"><div><span id="revision-hash" class="commit"></span><strong id="revision-title"></strong><small id="revision-meta"></small></div><button id="restore-revision" class="button hidden"><i data-lucide="rotate-ccw"></i>Restore this version</button></header><div id="diff-label" class="diff-label">Changes from the previous revision</div><div id="diff-view" class="diff-view"></div></div></section></div></div></section>
         <section id="view-scopes" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Hierarchy</span><h2>Context scopes</h2></div><button id="new-scope" class="button primary admin-only"><i data-lucide="plus"></i>Add scope</button></div><div id="scope-list" class="scope-list"></div></div></section>
         <section id="view-schemas" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Governance</span><h2>Folder schemas</h2></div><button id="new-folder" class="button"><i data-lucide="folder-plus"></i>New folder</button></div><div class="schema-layout"><div id="schema-list" class="list"></div><div class="schema-editor"><div class="field"><label id="schema-label">Schema</label><textarea id="schema-body" class="textarea code" rows="20"></textarea></div><button id="save-schema" class="button primary"><i data-lucide="save"></i>Save schema</button></div></div></div></section>
         <section id="view-users" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Access</span><h2>Users and roles</h2></div><button id="new-user" class="button"><i data-lucide="user-plus"></i>Add user</button></div><div id="user-list" class="list"></div></div></section>
@@ -123,13 +123,13 @@ import "../styles/global.css";
 
     <script>
       // @ts-nocheck
-      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X, createIcons } from "lucide";
+      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X, createIcons } from "lucide";
       import DOMPurify from "dompurify";
       import yaml from "js-yaml";
       import { marked } from "marked";
 
       const API = "http://127.0.0.1:8001";
-      const state = { user: null, documents: [], folders: [], scopes: [], current: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository" };
+      const state = { user: null, documents: [], folders: [], scopes: [], revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository" };
       const byId = (id) => document.getElementById(id);
       const api = async (path, options = {}) => {
         const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
@@ -138,7 +138,7 @@ import "../styles/global.css";
       };
       const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
       const toast = (message, error = false) => { const el = byId("toast"); el.textContent = message; el.className = `toast${error ? " error" : ""}`; setTimeout(() => el.classList.add("hidden"), 2600); };
-      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
+      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
       const refreshIcons = () => createIcons({ icons: iconSet });
 
       async function start() {
@@ -308,10 +308,46 @@ import "../styles/global.css";
       async function loadHistory() {
         const documentMode = state.historyMode === "document" && state.current;
         const history = await api(`/api/history${documentMode ? `?path=${encodeURIComponent(state.current.path)}` : ""}`);
+        state.revisions = history; state.selectedRevision = null;
         byId("repository-history").classList.toggle("active", !documentMode); byId("current-document-history").classList.toggle("active", !!documentMode); byId("current-document-history").disabled = !state.current;
-        byId("history-context").textContent = documentMode ? state.current.path : "Repository changes";
-        byId("history-list").innerHTML = history.map((item) => `<button class="list-row history-row" data-commit="${item.hash}"><span class="commit">${item.short_hash}</span><span><strong>${escapeHtml(item.subject)}</strong><small>${escapeHtml(item.author)} · ${new Date(item.timestamp).toLocaleString()}</small></span></button>`).join("") || `<div class="empty">No revisions</div>`;
-        byId("history-list").querySelectorAll("[data-commit]").forEach((row) => row.addEventListener("click", async () => { const query = documentMode ? `?path=${encodeURIComponent(state.current.path)}` : ""; const data = await api(`/api/history/${row.dataset.commit}/diff${query}`); byId("diff-view").textContent = data.diff || "No changes"; }));
+        byId("history-context").textContent = documentMode ? state.current.path : "Repository and structural changes";
+        byId("history-list").innerHTML = history.map((item, index) => `<button class="list-row history-row" data-revision-index="${index}"><span class="commit">${item.short_hash}</span><span><strong>${escapeHtml(item.subject)}</strong><small>${escapeHtml(item.author)} · ${new Date(item.timestamp).toLocaleString()}</small></span></button>`).join("") || `<div class="empty">No revisions</div>`;
+        byId("history-list").querySelectorAll("[data-revision-index]").forEach((row) => row.addEventListener("click", () => showRevision(Number(row.dataset.revisionIndex), !!documentMode)));
+        byId("revision-empty").classList.toggle("hidden", history.length > 0); byId("revision-detail").classList.add("hidden");
+        if (history.length) await showRevision(0, !!documentMode);
+      }
+
+      async function showRevision(index, documentMode) {
+        const revision = state.revisions[index];
+        if (!revision) return;
+        state.selectedRevision = {...revision, index, documentMode};
+        byId("history-list").querySelectorAll("[data-revision-index]").forEach((row) => row.classList.toggle("active", Number(row.dataset.revisionIndex) === index));
+        byId("revision-empty").classList.add("hidden"); byId("revision-detail").classList.remove("hidden");
+        byId("revision-hash").textContent = revision.short_hash; byId("revision-title").textContent = revision.subject; byId("revision-meta").textContent = `${revision.author} · ${new Date(revision.timestamp).toLocaleString()}`;
+        byId("diff-view").innerHTML = `<div class="diff-loading">Loading changes…</div>`;
+        byId("diff-label").textContent = documentMode ? "Changes from the previous document revision" : "Changes in this repository revision";
+        const restore = byId("restore-revision"); const currentRevision = index === 0;
+        restore.classList.toggle("hidden", !documentMode || state.user.role === "viewer"); restore.disabled = currentRevision;
+        restore.innerHTML = currentRevision ? `<i data-lucide="circle-check"></i>Current version` : `<i data-lucide="rotate-ccw"></i>Restore this version`;
+        refreshIcons();
+        try {
+          const query = documentMode ? `?path=${encodeURIComponent(state.current.path)}` : "";
+          const data = await api(`/api/history/${revision.hash}/diff${query}`);
+          renderRevisionDiff(data.diff);
+        } catch (error) { byId("diff-view").innerHTML = `<div class="diff-loading error">${escapeHtml(error.message)}</div>`; }
+      }
+
+      function renderRevisionDiff(diff) {
+        const rows = [];
+        for (const line of (diff || "").split("\n")) {
+          if (line.startsWith("diff --git ")) { rows.push(`<div class="diff-file">${escapeHtml(line.split(" b/").at(-1))}</div>`); continue; }
+          if (line.startsWith("index ") || line.startsWith("--- ") || line.startsWith("+++ ") || !line) continue;
+          if (line.startsWith("@@")) { rows.push(`<div class="diff-line hunk"><span></span><code>${escapeHtml(line)}</code></div>`); continue; }
+          const kind = line.startsWith("+") ? "added" : line.startsWith("-") ? "removed" : "context";
+          const marker = kind === "added" ? "+" : kind === "removed" ? "−" : "";
+          rows.push(`<div class="diff-line ${kind}"><span>${marker}</span><code>${escapeHtml(line.slice(kind === "context" && !line.startsWith(" ") ? 0 : 1))}</code></div>`);
+        }
+        byId("diff-view").innerHTML = rows.join("") || `<div class="diff-loading">No content changes in this revision</div>`;
       }
 
       async function loadSchemas() {
@@ -399,19 +435,21 @@ import "../styles/global.css";
         state.drawerMode = mode; state.drawerData = data; state.deleteArmed = false;
         const editing = mode.endsWith("-edit");
         const kind = mode.split("-")[0];
-        const titles = {document: "New document", folder: "New folder", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope"};
-        byId("drawer-eyebrow").textContent = editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = editing ? "Save changes" : "Create";
+        const restoring = kind === "revision";
+        const titles = {document: "New document", folder: "New folder", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope", revision: "Restore document"};
+        byId("drawer-eyebrow").textContent = restoring ? "History" : editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = restoring ? "Restore version" : editing ? "Save changes" : "Create";
         byId("delete-drawer-item").classList.toggle("hidden", !editing || !["user", "scope"].includes(kind));
         if (kind === "document") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-format">Format</label><select id="drawer-format" class="select"><option value="markdown">Markdown / OKF</option><option value="json">JSON</option></select></div><div class="field"><label for="drawer-path">Path</label><input id="drawer-path" class="input" placeholder="folder/document.md" required /></div><div class="field"><label for="drawer-document-title">Title</label><input id="drawer-document-title" class="input" required /></div><div class="field markdown-option"><label for="drawer-type">Type</label><input id="drawer-type" class="input" value="Context Document" required /></div><div class="field markdown-option"><label for="drawer-scope">Scope</label><select id="drawer-scope" class="select">${scopeOptions("", true)}</select></div>`;
         if (kind === "folder") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-path">Folder path</label><input id="drawer-path" class="input" placeholder="products/platform" required /></div>`;
         if (kind === "user") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-username">Username</label><input id="drawer-username" class="input" value="${escapeHtml(data?.username || "")}" ${editing ? "readonly" : "required"} /></div><div class="field"><label for="drawer-password">${editing ? "New password" : "Password"}</label><input id="drawer-password" class="input" type="password" ${editing ? "" : "required"} /></div><div class="field"><label for="drawer-role">Role</label><select id="drawer-role" class="select"><option ${data?.role === "viewer" ? "selected" : ""}>viewer</option><option ${data?.role === "editor" ? "selected" : ""}>editor</option><option ${data?.role === "admin" ? "selected" : ""}>admin</option></select></div>`;
         if (kind === "scope") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-scope-id">Scope ID</label><input id="drawer-scope-id" class="input" value="${escapeHtml(data?.id || "")}" ${editing ? "readonly" : "required"} placeholder="product-a" /></div><div class="field"><label for="drawer-scope-name">Name</label><input id="drawer-scope-name" class="input" value="${escapeHtml(data?.name || "")}" required /></div><div class="field"><label for="drawer-scope-level">Level</label><select id="drawer-scope-level" class="select">${["company","brand","product","market","campaign","audience","channel","custom"].map((level) => `<option ${data?.level === level ? "selected" : ""}>${level}</option>`).join("")}</select></div><div class="field"><label for="drawer-parent">Parent</label><select id="drawer-parent" class="select">${scopeOptions(data?.parent_id || "")}</select></div>`;
+        if (kind === "revision") byId("drawer-fields").innerHTML = `<div class="restore-summary"><span class="commit">${escapeHtml(data.short_hash)}</span><strong>${escapeHtml(data.subject)}</strong><small>${escapeHtml(state.current.path)}</small><p>The selected version will replace the current document and be saved as a new Git revision. Existing history will remain available.</p></div>`;
         byId("drawer-scrim").classList.remove("hidden"); refreshIcons();
       }
 
       function closeDrawer() { byId("drawer-scrim").classList.add("hidden"); state.drawerMode = ""; state.drawerData = null; }
 
-      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope"));
+      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
       byId("close-drawer").addEventListener("click", closeDrawer); byId("cancel-drawer").addEventListener("click", closeDrawer); byId("drawer-scrim").addEventListener("click", (event) => { if (event.target === byId("drawer-scrim")) closeDrawer(); });
 
       byId("drawer-form").addEventListener("submit", async (event) => {
@@ -422,6 +460,7 @@ import "../styles/global.css";
           if (kind === "folder") { await api("/api/folders", {method:"POST", body:JSON.stringify({path:byId("drawer-path").value.trim()})}); closeDrawer(); await loadSchemas(); }
           if (kind === "user") { const payload = {username:byId("drawer-username").value.trim(), password:byId("drawer-password").value, role:byId("drawer-role").value}; await api(editing ? `/api/users/${state.drawerData.username}` : "/api/users", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadUsers(); }
           if (kind === "scope") { const payload = {id:byId("drawer-scope-id").value.trim(), name:byId("drawer-scope-name").value.trim(), level:byId("drawer-scope-level").value, parent_id:byId("drawer-parent").value || null}; await api(editing ? `/api/scopes/${state.drawerData.id}` : "/api/scopes", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadScopes(); }
+          if (kind === "revision") { const result = await api(`/api/history/${state.drawerData.hash}/restore`, {method:"POST", body:JSON.stringify({path:state.current.path})}); state.current = result.document; closeDrawer(); await Promise.all([loadDocuments(), loadValidation()]); await loadHistory(); toast("Document restored"); return; }
           toast(editing ? "Changes saved" : "Created");
         } catch (error) { toast(error.message, true); }
       });
@@ -657,6 +696,32 @@ import "../styles/global.css";
   .content-editor.mode-split .body-editor { width: 100%; border-right: 1px solid var(--line); }
   .content-editor.mode-split .document-preview { display: block; padding-left: 28px; padding-right: 28px; }
   .preview-error { padding: 12px; border: 1px solid #e6c3bf; border-radius: 5px; color: var(--red); background: var(--red-soft); font-size: 12px; }
+  .history-layout { align-items: start; }
+  .history-row.active { background: var(--green-soft); box-shadow: inset 3px 0 var(--green); }
+  .revision-view { min-width: 0; min-height: 500px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
+  .revision-empty { min-height: 500px; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+  .revision-header { min-height: 76px; display: flex; align-items: center; gap: 18px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .revision-header > div { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 9px; }
+  .revision-header strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+  .revision-header small { grid-column: 1 / -1; color: var(--muted); font-size: 10px; }
+  .revision-header .button { flex: 0 0 auto; margin-left: auto; }
+  .diff-label { padding: 9px 14px; border-bottom: 1px solid var(--line); color: var(--muted); background: #fafbfa; font-size: 10px; font-weight: 750; text-transform: uppercase; }
+  .diff-view { max-height: 560px; overflow: auto; background: #fcfdfc; font: 11px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .diff-file { position: sticky; z-index: 1; top: 0; padding: 8px 12px; border-bottom: 1px solid #dfe4e0; color: #415047; background: #eef2ef; font-weight: 750; }
+  .diff-line { min-height: 23px; display: grid; grid-template-columns: 28px minmax(0, 1fr); border-bottom: 1px solid #f0f2f0; }
+  .diff-line > span { padding: 3px 6px; color: #8a938e; text-align: center; user-select: none; }
+  .diff-line code { padding: 3px 9px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .diff-line.added { background: #edf7f1; }
+  .diff-line.added > span { color: #176341; background: #dcefe4; }
+  .diff-line.removed { background: #fff2f1; }
+  .diff-line.removed > span { color: #a4453a; background: #f8dfdc; }
+  .diff-line.hunk { color: #53615a; background: #f3f5f3; }
+  .diff-loading { min-height: 180px; display: grid; place-items: center; padding: 20px; color: var(--muted); font: 12px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; text-align: center; }
+  .diff-loading.error { color: var(--red); }
+  .restore-summary { display: grid; justify-items: start; gap: 9px; }
+  .restore-summary strong { font-size: 15px; }
+  .restore-summary small { color: var(--muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+  .restore-summary p { margin: 9px 0 0; color: #4e5852; font-size: 13px; line-height: 1.6; }
   .scope-list { border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: white; }
   .scope-row { position: relative; min-height: 64px; display: grid; grid-template-columns: calc(var(--depth) * 24px) 20px 34px minmax(0, 1fr) 90px 36px; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
   .scope-row:last-child { border-bottom: 0; }
@@ -695,6 +760,8 @@ import "../styles/global.css";
     .content-editor { overflow: visible; }
     .content-editor .body-editor { min-height: 520px; }
     .document-preview { height: auto; overflow: visible; }
+    .revision-header { align-items: flex-start; flex-direction: column; }
+    .revision-header .button { margin-left: 0; }
   }
 
   @media (max-width: 680px) {

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -43,10 +44,23 @@ class GitStore:
         return history
 
     def diff(self, commit: str, path: str | None = None) -> str:
-        args = ["show", "--format=", "--no-ext-diff", commit]
+        commit = self._validate_commit(commit)
+        parent = f"{commit}^1"
+        parent_exists = self._run("rev-parse", "--verify", parent, check=False).returncode == 0
+        args = ["diff", "--no-ext-diff", parent, commit] if parent_exists else ["show", "--format=", "--no-ext-diff", commit]
         if path:
             args.extend(["--", self._content_path(path)])
-        return self._run(*args).stdout
+        result = self._run(*args, check=False)
+        if result.returncode != 0:
+            raise ValueError("revision diff is unavailable")
+        return result.stdout
+
+    def file_at_revision(self, commit: str, path: str) -> str:
+        commit = self._validate_commit(commit)
+        result = self._run("show", f"{commit}:{self._content_path(path)}", check=False)
+        if result.returncode != 0:
+            raise ValueError("revision does not contain this document")
+        return result.stdout
 
     def status(self) -> list[str]:
         args = ["status", "--short"]
@@ -68,3 +82,9 @@ class GitStore:
 
     def _content_path(self, path: str) -> str:
         return f"{self.path_prefix}/{path}" if self.path_prefix else path
+
+    @staticmethod
+    def _validate_commit(commit: str) -> str:
+        if not re.fullmatch(r"[0-9a-fA-F]{7,40}", commit):
+            raise ValueError("invalid revision")
+        return commit

@@ -218,7 +218,16 @@ def history(path: str | None = None, user: dict = Depends(current_user)) -> list
 def diff(commit: str, path: str | None = None, user: dict = Depends(current_user)) -> dict:
     try:
         return {"diff": content.git.diff(commit, path)}
-    except OSError as exc:
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/history/{commit}/restore")
+def restore_revision(commit: str, data: dict, user: dict = Depends(current_user)) -> dict:
+    require_role(user, ["editor", "admin"])
+    try:
+        return content.restore_document(data.get("path", ""), commit, user["username"])
+    except (OSError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
