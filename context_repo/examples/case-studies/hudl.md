@@ -1,24 +1,26 @@
 ---
-type: case-study
-company: "Athlete Data Firm Reduces Evaluation Time 75% with Chorus"
+type: proof-points
+company: Athlete Data Firm Reduces Evaluation Time 75% with Chorus
 slug: hudl
 source_url: https://www.zoominfo.com/about/case-studies/hudl
-industry: "SaaS / Software"
+industry: SaaS / Software
 company_size: enterprise
 products:
-  - "Chorus"
+- Chorus
 icps:
-  - developer_ai_builder
-  - account_mgmt_cs
-  - revops_gtm_eng
-date_published: 2025-07-29
-date_modified: 2026-02-17
+- developer_ai_builder
+- account_mgmt_cs
+- revops_gtm_eng
+date_published: '2025-07-29'
+date_modified: '2026-02-17'
 recency_tier: undated
 migration_date: true
 tags:
-  - case-study
-  - saas---software
-  - enterprise
+- case-study
+- saas---software
+- enterprise
+title: hudl
+description: ''
 ---
 
 # Athlete Data Firm Reduces Evaluation Time 75% with Chorus
