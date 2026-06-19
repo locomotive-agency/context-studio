@@ -1,23 +1,27 @@
 ---
-type: case-study
-company: "Shorter Ramp Times and Faster Scaling with Chorus"
+type: proof-points
+company: Shorter Ramp Times and Faster Scaling with Chorus
 slug: procore
 source_url: https://www.zoominfo.com/about/case-studies/procore
-industry: "SaaS / Software"
+industry: SaaS / Software
 company_size: enterprise
 products:
-  - "CRM Enrichment"
-  - "Chorus"
+- CRM Enrichment
+- Chorus
 icps:
-  - sales_ae_sdr
-date_published: 2025-07-29
-date_modified: 2026-02-17
+- sales_ae_sdr
+date_published: '2025-07-29'
+date_modified: '2026-02-17'
 recency_tier: undated
 migration_date: true
 tags:
-  - case-study
-  - saas---software
-  - enterprise
+- case-study
+- saas---software
+- enterprise
+title: procore
+description: ''
+durability: time_bound
+valid_until: '2026-07-31'
 ---
 
 # Shorter Ramp Times and Faster Scaling with Chorus
