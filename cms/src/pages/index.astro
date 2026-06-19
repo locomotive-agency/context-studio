@@ -53,7 +53,6 @@ import "../styles/global.css";
           <div class="breadcrumbs"><span>Context</span><i data-lucide="chevron-right"></i><strong id="current-location">Documents</strong></div>
           <div class="top-actions">
             <span id="save-state" class="save-state"></span>
-            <div id="editor-modes" class="segmented hidden"><button class="active" data-editor-mode="raw">Raw</button><button data-editor-mode="preview">Preview</button><button data-editor-mode="split">Split</button></div>
             <button id="document-history" class="button hidden"><i data-lucide="history"></i>History</button>
             <button id="toggle-inspector" class="button hidden"><i data-lucide="panel-right"></i>Details</button>
             <button id="save-document" class="button primary editor-only hidden"><i data-lucide="save"></i>Save</button>
@@ -88,6 +87,7 @@ import "../styles/global.css";
                 <div class="document-heading-main"><button id="back-to-documents" class="back-link"><i data-lucide="arrow-left"></i>Documents</button><span id="document-status" class="badge valid">Valid OKF</span><input id="document-title" class="title-input" aria-label="Document title" /></div>
                 <span id="document-path" class="path-label"></span>
               </div>
+              <div id="editor-mode-bar" class="editor-mode-bar hidden"><div class="editor-mode-bar-inner"><div id="editor-modes" class="segmented"><button class="active" data-editor-mode="raw">Raw</button><button data-editor-mode="preview">Preview</button><button data-editor-mode="split">Split</button></div></div></div>
               <div id="content-editor" class="content-editor mode-raw"><textarea id="document-body" class="body-editor" spellcheck="true" aria-label="Document content"></textarea><article id="document-preview" class="document-preview"></article></div>
             </article>
             <aside class="properties">
@@ -215,7 +215,7 @@ import "../styles/global.css";
         byId("document-browser").classList.add("hidden"); byId("document-editor").classList.remove("hidden");
         byId("save-document").classList.toggle("hidden", state.user.role === "viewer");
         byId("toggle-inspector").classList.toggle("hidden", state.current.format === "json");
-        byId("document-history").classList.remove("hidden"); byId("editor-modes").classList.remove("hidden");
+        byId("document-history").classList.remove("hidden"); byId("editor-mode-bar").classList.remove("hidden");
         setInspectorOpen(false);
         byId("current-location").textContent = state.current.frontmatter.title || state.current.name;
         byId("document-title").value = state.current.frontmatter.title || state.current.name;
@@ -275,7 +275,7 @@ import "../styles/global.css";
         document.querySelectorAll(".view").forEach((view) => view.classList.remove("active")); byId(`view-${name}`).classList.add("active");
         document.querySelectorAll(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
         if (name !== "documents") {
-          byId("editor-modes").classList.add("hidden");
+          byId("editor-mode-bar").classList.add("hidden");
           byId("document-history").classList.add("hidden");
           byId("toggle-inspector").classList.add("hidden");
           byId("save-document").classList.add("hidden");
@@ -290,7 +290,7 @@ import "../styles/global.css";
         byId("document-editor").classList.add("hidden");
         byId("document-browser").classList.remove("hidden");
         byId("toggle-inspector").classList.add("hidden");
-        byId("document-history").classList.add("hidden"); byId("editor-modes").classList.add("hidden");
+        byId("document-history").classList.add("hidden"); byId("editor-mode-bar").classList.add("hidden");
         byId("save-document").classList.add("hidden");
         byId("save-state").textContent = "";
         byId("current-location").textContent = "Documents";
@@ -622,6 +622,8 @@ import "../styles/global.css";
   .segmented { display: inline-flex; align-items: center; padding: 2px; border: 1px solid var(--line); border-radius: 5px; background: #f4f6f4; }
   .segmented button { height: 28px; padding: 0 9px; border: 0; border-radius: 3px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 700; }
   .segmented button.active { color: var(--ink); background: white; box-shadow: 0 1px 3px rgba(0,0,0,.09); }
+  .editor-mode-bar { flex: 0 0 47px; border-bottom: 1px solid var(--line); background: #fafbfa; }
+  .editor-mode-bar-inner { width: min(920px, 100%); height: 100%; display: flex; align-items: center; justify-content: flex-end; margin: 0 auto; padding: 0 48px; }
   .page-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
   .content-editor { min-height: 0; flex: 1; display: grid; }
   .content-editor .body-editor { height: 100%; }
@@ -686,6 +688,7 @@ import "../styles/global.css";
     .pagination { justify-content: center; }
     .content-editor.mode-split { grid-template-columns: 1fr; }
     .content-editor.mode-split .body-editor { border-right: 0; border-bottom: 1px solid var(--line); }
+    .editor-mode-bar-inner { padding: 0 24px; }
     .scope-row { grid-template-columns: calc(var(--depth) * 14px) 18px 32px minmax(0, 1fr) 34px; gap: 7px; }
     .scope-row .level-pill { display: none; }
   }
