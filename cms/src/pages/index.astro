@@ -1,0 +1,681 @@
+---
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Context documentation system" />
+    <title>Context System</title>
+  </head>
+  <body>
+    <section id="login" class="login-shell">
+      <form id="login-form" class="login-panel">
+        <div class="mark"><i data-lucide="braces"></i></div>
+        <div><h1>Context System</h1><p>Documentation workspace</p></div>
+        <div class="field"><label for="username">Username</label><input class="input" id="username" name="username" value="admin" autocomplete="username" /></div>
+        <div class="field"><label for="password">Password</label><input class="input" id="password" name="password" type="password" value="admin123" autocomplete="current-password" /></div>
+        <p id="login-error" class="form-error hidden"></p>
+        <button class="button primary login-button" type="submit">Sign in</button>
+      </form>
+    </section>
+
+    <div id="workspace" class="workspace hidden">
+      <aside class="sidebar" id="library">
+        <header class="brand-header">
+          <span class="brand-mark"><i data-lucide="braces"></i></span>
+          <span><strong>Context</strong><small>Documentation</small></span>
+        </header>
+        <nav class="primary-nav" aria-label="Workspace">
+          <button class="rail-button active" data-view="documents"><i data-lucide="files"></i><span>Documents</span></button>
+          <button class="rail-button" data-view="validation"><i data-lucide="shield-check"></i><span>Validation</span><span id="validation-dot" class="dot hidden"></span></button>
+          <button class="rail-button" data-view="history"><i data-lucide="history"></i><span>History</span></button>
+          <button class="rail-button" data-view="scopes"><i data-lucide="network"></i><span>Scopes</span></button>
+          <button class="rail-button admin-only" data-view="schemas"><i data-lucide="brackets"></i><span>Schemas</span></button>
+          <button class="rail-button admin-only" data-view="users"><i data-lucide="users"></i><span>Users</span></button>
+        </nav>
+        <div class="sidebar-context">
+          <span class="eyebrow">Repository</span>
+          <strong id="document-count">0 documents</strong>
+          <span id="git-sha">Git</span>
+        </div>
+        <footer class="sidebar-footer">
+          <span class="user-avatar" id="user-initial">A</span>
+          <span class="user-summary"><strong id="user-name">Admin</strong><small id="user-role">admin</small></span>
+        </footer>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <button id="mobile-library" class="icon-button mobile-only" title="Open navigation"><i data-lucide="menu"></i></button>
+          <div class="breadcrumbs"><span>Context</span><i data-lucide="chevron-right"></i><strong id="current-location">Documents</strong></div>
+          <div class="top-actions">
+            <span id="save-state" class="save-state"></span>
+            <div id="editor-modes" class="segmented hidden"><button class="active" data-editor-mode="raw">Raw</button><button data-editor-mode="preview">Preview</button><button data-editor-mode="split">Split</button></div>
+            <button id="document-history" class="button hidden"><i data-lucide="history"></i>History</button>
+            <button id="toggle-inspector" class="button hidden"><i data-lucide="panel-right"></i>Details</button>
+            <button id="save-document" class="button primary editor-only hidden"><i data-lucide="save"></i>Save</button>
+          </div>
+        </header>
+
+        <section id="view-documents" class="view active">
+          <div id="document-browser" class="document-browser page">
+            <div class="page-header documents-header">
+              <div><span class="eyebrow">Repository</span><h2>Documents</h2><p id="browser-summary">Browse context files by folder.</p></div>
+              <button id="new-menu" class="button primary editor-only"><i data-lucide="file-plus-2"></i>New document</button>
+            </div>
+            <div class="document-toolbar">
+              <div class="search-wrap"><i data-lucide="search"></i><input id="document-search" placeholder="Search names, paths, and types" /></div>
+              <span id="result-count" class="result-count"></span>
+            </div>
+            <div class="browser-layout">
+              <aside class="folder-browser">
+                <div class="section-label">Folders</div>
+                <div id="folder-list" class="folder-list"></div>
+              </aside>
+              <div class="file-browser">
+                <div class="file-table-header"><span>Name</span><span>Type</span><span>OKF</span><span></span></div>
+                <div id="document-list" class="file-table"></div>
+                <div class="pagination"><button id="previous-page" class="button"><i data-lucide="chevron-left"></i>Previous</button><span id="page-status"></span><button id="next-page" class="button">Next<i data-lucide="chevron-right"></i></button></div>
+              </div>
+            </div>
+          </div>
+          <div id="document-editor" class="editor-layout hidden">
+            <article class="editor-main">
+              <div class="document-heading">
+                <div class="document-heading-main"><button id="back-to-documents" class="back-link"><i data-lucide="arrow-left"></i>Documents</button><span id="document-status" class="badge valid">Valid OKF</span><input id="document-title" class="title-input" aria-label="Document title" /></div>
+                <span id="document-path" class="path-label"></span>
+              </div>
+              <div id="content-editor" class="content-editor mode-raw"><textarea id="document-body" class="body-editor" spellcheck="true" aria-label="Document content"></textarea><article id="document-preview" class="document-preview"></article></div>
+            </article>
+            <aside class="properties">
+              <div class="inspector-header"><div><span class="eyebrow">Document</span><strong>Details</strong></div><button id="close-inspector" class="icon-button" title="Close details"><i data-lucide="x"></i></button></div>
+              <div class="inspector-fields">
+                <div class="field"><label for="meta-type">Type</label><input id="meta-type" class="input" /></div>
+                <div class="field"><label for="meta-description">Description</label><textarea id="meta-description" class="textarea" rows="3"></textarea></div>
+                <div class="field"><label for="meta-tags">Tags</label><input id="meta-tags" class="input" placeholder="brand, writing" /></div>
+                <div class="field"><label for="meta-scope">Scope</label><select id="meta-scope" class="select"></select></div>
+              </div>
+              <div id="validation-errors" class="validation-errors hidden"></div>
+              <div class="governance-section"><div class="panel-title"><strong>Resolved governance</strong><span>Inherited</span></div><div id="resolved-metadata" class="resolved-grid"></div></div>
+              <details class="advanced-metadata"><summary>Advanced frontmatter</summary><textarea id="frontmatter-editor" class="metadata-editor" spellcheck="false" aria-label="YAML frontmatter"></textarea></details>
+            </aside>
+          </div>
+        </section>
+
+        <section id="view-validation" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Quality</span><h2>OKF validation</h2></div><button id="refresh-validation" class="icon-button" title="Refresh"><i data-lucide="refresh-cw"></i></button></div><div id="validation-summary" class="metric-row"></div><div id="validation-list" class="list"></div></div></section>
+        <section id="view-history" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Local Git</span><h2>History</h2><p id="history-context" class="page-subtitle">Repository changes</p></div><div class="segmented"><button id="repository-history" class="active">Repository</button><button id="current-document-history">Current document</button></div></div><div class="history-layout"><div id="history-list" class="list"></div><pre id="diff-view" class="diff">Select a revision</pre></div></div></section>
+        <section id="view-scopes" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Hierarchy</span><h2>Context scopes</h2></div><button id="new-scope" class="button primary admin-only"><i data-lucide="plus"></i>Add scope</button></div><div id="scope-list" class="scope-list"></div></div></section>
+        <section id="view-schemas" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Governance</span><h2>Folder schemas</h2></div><button id="new-folder" class="button"><i data-lucide="folder-plus"></i>New folder</button></div><div class="schema-layout"><div id="schema-list" class="list"></div><div class="schema-editor"><div class="field"><label id="schema-label">Schema</label><textarea id="schema-body" class="textarea code" rows="20"></textarea></div><button id="save-schema" class="button primary"><i data-lucide="save"></i>Save schema</button></div></div></div></section>
+        <section id="view-users" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Access</span><h2>Users and roles</h2></div><button id="new-user" class="button"><i data-lucide="user-plus"></i>Add user</button></div><div id="user-list" class="list"></div></div></section>
+      </main>
+    </div>
+
+    <div id="drawer-scrim" class="drawer-scrim hidden">
+      <aside class="action-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+        <header class="action-drawer-header"><div><span id="drawer-eyebrow" class="eyebrow">Create</span><h3 id="drawer-title">New document</h3></div><button id="close-drawer" class="icon-button" title="Close"><i data-lucide="x"></i></button></header>
+        <form id="drawer-form"><div id="drawer-fields" class="action-drawer-body"></div><footer class="action-drawer-footer"><button id="delete-drawer-item" class="button danger hidden" type="button"><i data-lucide="trash-2"></i>Remove</button><span></span><button id="cancel-drawer" class="button" type="button">Cancel</button><button id="save-drawer" class="button primary" type="submit">Save</button></footer></form>
+      </aside>
+    </div>
+    <div id="toast" class="toast hidden"></div>
+
+    <script>
+      // @ts-nocheck
+      import { createIcons, icons } from "lucide";
+      import DOMPurify from "dompurify";
+      import yaml from "js-yaml";
+      import { marked } from "marked";
+
+      const API = "http://127.0.0.1:8001";
+      const state = { user: null, documents: [], folders: [], scopes: [], current: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository" };
+      const byId = (id) => document.getElementById(id);
+      const api = async (path, options = {}) => {
+        const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
+        if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(data.detail || `Request failed (${response.status})`); }
+        return response.status === 204 ? null : response.json();
+      };
+      const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
+      const toast = (message, error = false) => { const el = byId("toast"); el.textContent = message; el.className = `toast${error ? " error" : ""}`; setTimeout(() => el.classList.add("hidden"), 2600); };
+      const refreshIcons = () => createIcons({ icons });
+
+      async function start() {
+        refreshIcons();
+        try { state.user = await api("/api/auth/me"); await enterWorkspace(); } catch { byId("login").classList.remove("hidden"); }
+      }
+
+      byId("login-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          state.user = await api("/api/auth/login", { method: "POST", body: JSON.stringify({ username: byId("username").value, password: byId("password").value }) });
+          byId("login-error").classList.add("hidden");
+          await enterWorkspace();
+        } catch (error) { byId("login-error").textContent = error.message; byId("login-error").classList.remove("hidden"); }
+      });
+
+      async function enterWorkspace() {
+        byId("login").classList.add("hidden"); byId("workspace").classList.remove("hidden");
+        byId("user-initial").textContent = state.user.username.slice(0, 1).toUpperCase();
+        byId("user-name").textContent = state.user.username;
+        byId("user-role").textContent = state.user.role;
+        document.querySelectorAll(".admin-only").forEach((el) => el.classList.toggle("hidden", state.user.role !== "admin"));
+        document.querySelectorAll(".editor-only").forEach((el) => el.classList.toggle("hidden", state.user.role === "viewer"));
+        byId("save-document").classList.add("hidden");
+        await Promise.all([loadDocuments(), loadValidation(), loadScopes()]);
+      }
+
+      async function loadDocuments() {
+        const [documents, stats] = await Promise.all([api("/api/documents"), api("/api/stats")]);
+        state.documents = documents; byId("git-sha").textContent = `Git ${stats.git_sha}`; byId("document-count").textContent = `${documents.length.toLocaleString()} documents`; renderBrowser();
+      }
+
+      function renderBrowser() {
+        const query = byId("document-search").value.toLowerCase();
+        const folderCounts = new Map([["", state.documents.length]]);
+        state.documents.forEach((doc) => {
+          const parts = doc.folder ? doc.folder.split("/") : [];
+          parts.forEach((_part, index) => {
+            const folder = parts.slice(0, index + 1).join("/");
+            folderCounts.set(folder, (folderCounts.get(folder) || 0) + 1);
+          });
+        });
+        const folders = [...folderCounts.entries()].sort(([left], [right]) => left.localeCompare(right));
+        byId("folder-list").innerHTML = folders.map(([folder, count]) => {
+          const depth = folder ? folder.split("/").length - 1 : 0;
+          const name = folder ? folder.split("/").at(-1) : "All documents";
+          return `<button class="folder-row ${state.folder === folder ? "active" : ""}" data-folder="${escapeHtml(folder)}" style="--depth:${depth}"><i data-lucide="${folder ? "folder" : "files"}"></i><span>${escapeHtml(name)}</span><small>${count.toLocaleString()}</small></button>`;
+        }).join("");
+        byId("folder-list").querySelectorAll("[data-folder]").forEach((button) => button.addEventListener("click", () => { state.folder = button.dataset.folder; state.page = 1; renderBrowser(); }));
+
+        const filtered = state.documents.filter((doc) => {
+          const inFolder = !state.folder || doc.folder === state.folder || doc.folder.startsWith(`${state.folder}/`);
+          const matchesQuery = `${doc.path} ${doc.frontmatter.title || ""} ${doc.frontmatter.type || ""}`.toLowerCase().includes(query);
+          return inFolder && matchesQuery;
+        });
+        const pages = Math.max(1, Math.ceil(filtered.length / state.pageSize));
+        state.page = Math.min(state.page, pages);
+        const start = (state.page - 1) * state.pageSize;
+        const visible = filtered.slice(start, start + state.pageSize);
+        byId("document-list").innerHTML = visible.map((doc) => `<button class="file-row" data-path="${escapeHtml(doc.path)}"><span class="file-name"><i data-lucide="${doc.format === "json" ? "braces" : "file-text"}"></i><span><strong>${escapeHtml(doc.frontmatter.title || doc.name)}</strong><small>${escapeHtml(doc.path)}</small></span></span><span class="file-type">${escapeHtml(doc.format === "json" ? "JSON" : doc.frontmatter.type || "Context Document")}</span><span><span class="status-pill ${doc.validation.valid ? "valid" : "invalid"}"><i data-lucide="${doc.validation.valid ? "circle-check" : "circle-alert"}"></i>${doc.validation.valid ? (doc.format === "json" ? "Valid JSON" : "Valid OKF") : "Invalid"}</span></span><span class="row-action"><i data-lucide="chevron-right"></i></span></button>`).join("") || `<div class="table-empty"><i data-lucide="file-search"></i><strong>No documents found</strong></div>`;
+        byId("document-list").querySelectorAll("[data-path]").forEach((button) => button.addEventListener("click", () => openDocument(button.dataset.path)));
+        byId("result-count").textContent = `${filtered.length.toLocaleString()} ${filtered.length === 1 ? "document" : "documents"}`;
+        byId("page-status").textContent = `Page ${state.page} of ${pages}`;
+        byId("previous-page").disabled = state.page === 1;
+        byId("next-page").disabled = state.page === pages;
+        byId("browser-summary").textContent = state.folder ? state.folder : "Browse context files by folder.";
+        refreshIcons();
+      }
+
+      async function openDocument(path) {
+        if (state.dirty && state.current?.path !== path && !window.confirm("Discard unsaved changes?")) return;
+        state.current = await api(`/api/documents/${path}`);
+        byId("library").classList.remove("open");
+        byId("document-browser").classList.add("hidden"); byId("document-editor").classList.remove("hidden");
+        byId("save-document").classList.toggle("hidden", state.user.role === "viewer");
+        byId("toggle-inspector").classList.toggle("hidden", state.current.format === "json");
+        byId("document-history").classList.remove("hidden"); byId("editor-modes").classList.remove("hidden");
+        setInspectorOpen(false);
+        byId("current-location").textContent = state.current.frontmatter.title || state.current.name;
+        byId("document-title").value = state.current.frontmatter.title || state.current.name;
+        byId("document-title").readOnly = state.user.role === "viewer" || state.current.format === "json";
+        byId("document-path").textContent = state.current.path;
+        byId("document-body").value = state.current.body; byId("document-body").readOnly = state.user.role === "viewer";
+        byId("frontmatter-editor").value = state.current.format === "markdown" ? yaml.dump(state.current.frontmatter, { lineWidth: -1, noRefs: true }) : "";
+        byId("frontmatter-editor").readOnly = state.user.role === "viewer";
+        byId("meta-type").value = state.current.frontmatter.type || "";
+        byId("meta-description").value = state.current.frontmatter.description || "";
+        byId("meta-tags").value = (state.current.frontmatter.tags || []).join(", ");
+        byId("meta-scope").innerHTML = scopeOptions(state.current.frontmatter.scope_id || "", true);
+        ["meta-type", "meta-description", "meta-tags"].forEach((id) => byId(id).readOnly = state.user.role === "viewer");
+        byId("meta-scope").disabled = state.user.role === "viewer";
+        renderGovernance(state.current.effective_frontmatter);
+        setEditorMode("raw"); renderPreview();
+        state.dirty = false;
+        byId("save-state").textContent = "";
+        renderDocumentValidation(state.current.validation); showView("documents");
+      }
+
+      function renderGovernance(metadata) {
+        const keys = ["scope_id", "construct", "criticality", "status", "owner_role", "retrieval_policy", "staleness_threshold_days"];
+        byId("resolved-metadata").innerHTML = keys.filter((key) => metadata[key] !== undefined).map((key) => {
+          const value = Array.isArray(metadata[key]) ? metadata[key].join(", ") : String(metadata[key]);
+          return `<div><dt>${escapeHtml(key.replaceAll("_", " "))}</dt><dd>${escapeHtml(value)}</dd></div>`;
+        }).join("");
+      }
+
+      function renderDocumentValidation(validation) {
+        const status = byId("document-status"); const kind = state.current?.format === "json" ? "JSON" : "OKF"; status.textContent = validation.valid ? `Valid ${kind}` : `Invalid ${kind}`; status.className = `badge ${validation.valid ? "valid" : "invalid"}`;
+        const errors = byId("validation-errors"); errors.innerHTML = validation.errors.map((error) => `<div><i data-lucide="circle-alert"></i>${escapeHtml(error)}</div>`).join(""); errors.classList.toggle("hidden", validation.valid); refreshIcons();
+      }
+
+      byId("save-document").addEventListener("click", async () => {
+        if (!state.current) return;
+        try {
+          const frontmatter = state.current.format === "json" ? {} : yaml.load(byId("frontmatter-editor").value) || {};
+          if (state.current.format === "markdown") { frontmatter.title = byId("document-title").value; frontmatter.type = byId("meta-type").value.trim(); frontmatter.description = byId("meta-description").value.trim(); frontmatter.tags = byId("meta-tags").value.split(",").map((tag) => tag.trim()).filter(Boolean); if (byId("meta-scope").value) frontmatter.scope_id = byId("meta-scope").value; else delete frontmatter.scope_id; }
+          state.current = await api(`/api/documents/${state.current.path}`, { method: "PUT", body: JSON.stringify({ frontmatter, body: byId("document-body").value }) });
+          state.dirty = false; byId("save-state").textContent = "Saved"; await Promise.all([loadDocuments(), loadValidation()]); openDocument(state.current.path); toast("Document saved");
+        } catch (error) { toast(error.message, true); }
+      });
+
+      document.querySelectorAll(".rail-button[data-view]").forEach((button) => button.addEventListener("click", async () => {
+        showView(button.dataset.view);
+        byId("library").classList.remove("open");
+        if (button.dataset.view === "documents") showDocumentBrowser();
+        if (button.dataset.view === "validation") await loadValidation();
+        if (button.dataset.view === "history") { state.historyMode = "repository"; await loadHistory(); }
+        if (button.dataset.view === "scopes") await loadScopes();
+        if (button.dataset.view === "schemas") await loadSchemas();
+        if (button.dataset.view === "users") await loadUsers();
+      }));
+
+      function showView(name) {
+        document.querySelectorAll(".view").forEach((view) => view.classList.remove("active")); byId(`view-${name}`).classList.add("active");
+        document.querySelectorAll(".rail-button").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
+        byId("current-location").textContent = name === "documents" && state.current ? state.current.frontmatter.title : name[0].toUpperCase() + name.slice(1);
+      }
+
+      function showDocumentBrowser() {
+        if (state.dirty && !window.confirm("Discard unsaved changes?")) return;
+        state.dirty = false;
+        byId("document-editor").classList.add("hidden");
+        byId("document-browser").classList.remove("hidden");
+        byId("toggle-inspector").classList.add("hidden");
+        byId("document-history").classList.add("hidden"); byId("editor-modes").classList.add("hidden");
+        byId("save-document").classList.add("hidden");
+        byId("save-state").textContent = "";
+        byId("current-location").textContent = "Documents";
+        renderBrowser();
+      }
+
+      async function loadValidation() {
+        const report = await api("/api/validation"); byId("validation-dot").classList.toggle("hidden", report.invalid === 0);
+        byId("validation-summary").innerHTML = `<div><strong>${report.total}</strong><span>Documents</span></div><div><strong>${report.total - report.invalid}</strong><span>Valid</span></div><div class="${report.invalid ? "danger" : ""}"><strong>${report.invalid}</strong><span>Invalid</span></div>`;
+        byId("validation-list").innerHTML = report.invalid ? report.documents.map((doc) => `<button class="list-row" data-invalid-path="${escapeHtml(doc.path)}"><i data-lucide="circle-alert"></i><span><strong>${escapeHtml(doc.path)}</strong><small>${escapeHtml(doc.validation.errors.join("; "))}</small></span><i data-lucide="chevron-right"></i></button>`).join("") : `<div class="empty"><div><i class="icon" data-lucide="shield-check"></i><div>All documents are valid OKF</div></div></div>`;
+        byId("validation-list").querySelectorAll("[data-invalid-path]").forEach((row) => row.addEventListener("click", () => openDocument(row.dataset.invalidPath))); refreshIcons();
+      }
+      byId("refresh-validation").addEventListener("click", loadValidation);
+
+      async function loadHistory() {
+        const documentMode = state.historyMode === "document" && state.current;
+        const history = await api(`/api/history${documentMode ? `?path=${encodeURIComponent(state.current.path)}` : ""}`);
+        byId("repository-history").classList.toggle("active", !documentMode); byId("current-document-history").classList.toggle("active", !!documentMode); byId("current-document-history").disabled = !state.current;
+        byId("history-context").textContent = documentMode ? state.current.path : "Repository changes";
+        byId("history-list").innerHTML = history.map((item) => `<button class="list-row history-row" data-commit="${item.hash}"><span class="commit">${item.short_hash}</span><span><strong>${escapeHtml(item.subject)}</strong><small>${escapeHtml(item.author)} · ${new Date(item.timestamp).toLocaleString()}</small></span></button>`).join("") || `<div class="empty">No revisions</div>`;
+        byId("history-list").querySelectorAll("[data-commit]").forEach((row) => row.addEventListener("click", async () => { const query = documentMode ? `?path=${encodeURIComponent(state.current.path)}` : ""; const data = await api(`/api/history/${row.dataset.commit}/diff${query}`); byId("diff-view").textContent = data.diff || "No changes"; }));
+      }
+
+      async function loadSchemas() {
+        state.folders = await api("/api/folders");
+        byId("schema-list").innerHTML = state.folders.map((folder) => `<button class="list-row" data-schema-path="${escapeHtml(folder.path)}"><i data-lucide="folder-cog"></i><span><strong>${escapeHtml(folder.path || "Root")}</strong><small>${Object.keys(folder.schema).length} fields</small></span></button>`).join("");
+        byId("schema-list").querySelectorAll("[data-schema-path]").forEach((row) => row.addEventListener("click", () => { const folder = state.folders.find((item) => item.path === row.dataset.schemaPath); state.schemaPath = folder.path; byId("schema-label").textContent = `${folder.path || "Root"} schema`; byId("schema-body").value = yaml.dump(folder.schema, { lineWidth: -1 }); })); refreshIcons();
+        if (state.folders.length) byId("schema-list").querySelector("button").click();
+      }
+      byId("save-schema").addEventListener("click", async () => { try { await api("/api/schemas", { method: "PUT", body: JSON.stringify({ path: state.schemaPath, schema: yaml.load(byId("schema-body").value) || {} }) }); await Promise.all([loadSchemas(), loadDocuments(), loadValidation()]); toast("Schema saved"); } catch (error) { toast(error.message, true); } });
+
+      async function loadScopes() {
+        state.scopes = await api("/api/scopes");
+        if (!byId("view-scopes").classList.contains("active")) return;
+        const ordered = orderedScopes();
+        byId("scope-list").innerHTML = ordered.map(({scope, depth}) => `<div class="scope-row" style="--depth:${depth}" data-scope-id="${escapeHtml(scope.id)}" data-parent-id="${escapeHtml(scope.parent_id || "")}" ${state.user.role === "admin" ? "draggable=\"true\"" : ""}><span class="scope-branch"></span><span class="drag-handle" title="Reorder or change nesting"><i data-lucide="grip-vertical"></i></span><span class="scope-icon"><i data-lucide="${scope.level === "company" ? "building-2" : scope.level === "brand" ? "badge" : "box"}"></i></span><span class="scope-name"><strong>${escapeHtml(scope.name)}</strong><small>${escapeHtml(scope.id)}${scope.parent_id ? ` · inherits from ${escapeHtml(scope.parent_id)}` : ""}</small></span><span class="level-pill">${escapeHtml(scope.level)}</span>${state.user.role === "admin" ? `<button class="icon-button" data-edit-scope="${escapeHtml(scope.id)}" title="Edit scope"><i data-lucide="pencil"></i></button>` : ""}</div>`).join("") || `<div class="empty">No scopes</div>`;
+        byId("scope-list").querySelectorAll("[data-edit-scope]").forEach((button) => button.addEventListener("click", () => openDrawer("scope-edit", state.scopes.find((scope) => scope.id === button.dataset.editScope))));
+        bindScopeDragging();
+        refreshIcons();
+      }
+
+      function orderedScopes() {
+        const children = new Map();
+        state.scopes.forEach((scope) => { const parent = scope.parent_id || ""; children.set(parent, [...(children.get(parent) || []), scope]); });
+        const ordered = [];
+        const visit = (parent, depth) => (children.get(parent) || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name)).forEach((scope) => { ordered.push({scope, depth}); visit(scope.id, depth + 1); });
+        visit("", 0);
+        return ordered;
+      }
+
+      function bindScopeDragging() {
+        if (state.user.role !== "admin") return;
+        const rows = byId("scope-list").querySelectorAll("[data-scope-id]");
+        rows.forEach((row) => {
+          row.addEventListener("dragstart", (event) => { state.draggedScopeId = row.dataset.scopeId; row.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", row.dataset.scopeId); });
+          row.addEventListener("dragover", (event) => {
+            const source = byId("scope-list").querySelector(`[data-scope-id="${state.draggedScopeId}"]`);
+            if (!source || source === row) return;
+            const bounds = row.getBoundingClientRect(); const ratio = (event.clientY - bounds.top) / bounds.height;
+            const target = state.scopes.find((scope) => scope.id === row.dataset.scopeId);
+            const newParentId = ratio > .25 && ratio < .75 ? target.id : target.parent_id;
+            if (scopeMoveWouldCycle(state.draggedScopeId, newParentId)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            rows.forEach((item) => item.classList.remove("drop-before", "drop-after", "drop-inside"));
+            row.classList.add(ratio <= .25 ? "drop-before" : ratio >= .75 ? "drop-after" : "drop-inside");
+          });
+          row.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            const sourceId = state.draggedScopeId; const targetId = row.dataset.scopeId;
+            const source = state.scopes.find((scope) => scope.id === sourceId); const target = state.scopes.find((scope) => scope.id === targetId);
+            if (!source || !target) return;
+            const nestInside = row.classList.contains("drop-inside"); const after = row.classList.contains("drop-after");
+            const parentId = nestInside ? target.id : target.parent_id;
+            if (scopeMoveWouldCycle(sourceId, parentId)) return;
+            const siblings = state.scopes.filter((scope) => scope.parent_id === parentId && scope.id !== sourceId).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name));
+            const targetIndex = nestInside ? siblings.length : siblings.findIndex((scope) => scope.id === targetId) + (after ? 1 : 0);
+            try { await api("/api/scopes/move", {method:"POST", body:JSON.stringify({scope_id:sourceId, parent_id:parentId || null, index:Math.max(0, targetIndex)})}); await loadScopes(); toast(nestInside ? "Scope nesting saved" : "Scope order saved"); } catch (error) { toast(error.message, true); }
+          });
+          row.addEventListener("dragend", () => { state.draggedScopeId = null; rows.forEach((item) => item.classList.remove("dragging", "drop-before", "drop-after", "drop-inside")); });
+        });
+      }
+
+      function scopeMoveWouldCycle(scopeId, parentId) {
+        let current = parentId;
+        while (current) {
+          if (current === scopeId) return true;
+          current = state.scopes.find((scope) => scope.id === current)?.parent_id || null;
+        }
+        return false;
+      }
+
+      function scopeOptions(selected = "", allowGlobal = false) {
+        const options = allowGlobal ? `<option value="">Global / unscoped</option>` : `<option value="">No parent</option>`;
+        return options + orderedScopes().map(({scope, depth}) => `<option value="${escapeHtml(scope.id)}" ${scope.id === selected ? "selected" : ""}>${"— ".repeat(depth)}${escapeHtml(scope.name)} (${escapeHtml(scope.level)})</option>`).join("");
+      }
+
+      async function loadUsers() {
+        const users = await api("/api/users");
+        byId("user-list").innerHTML = users.map((user) => `<div class="list-row"><div class="avatar">${user.username.slice(0,1).toUpperCase()}</div><span><strong>${escapeHtml(user.username)}</strong><small>Local account</small></span><span class="role-pill">${escapeHtml(user.role)}</span><button class="icon-button" data-edit-user="${escapeHtml(user.username)}" title="Edit user"><i data-lucide="pencil"></i></button></div>`).join("");
+        byId("user-list").querySelectorAll("[data-edit-user]").forEach((button) => button.addEventListener("click", () => openDrawer("user-edit", users.find((user) => user.username === button.dataset.editUser))));
+        refreshIcons();
+      }
+
+      function openDrawer(mode, data = null) {
+        state.drawerMode = mode; state.drawerData = data; state.deleteArmed = false;
+        const editing = mode.endsWith("-edit");
+        const kind = mode.split("-")[0];
+        const titles = {document: "New document", folder: "New folder", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope"};
+        byId("drawer-eyebrow").textContent = editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = editing ? "Save changes" : "Create";
+        byId("delete-drawer-item").classList.toggle("hidden", !editing || !["user", "scope"].includes(kind));
+        if (kind === "document") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-format">Format</label><select id="drawer-format" class="select"><option value="markdown">Markdown / OKF</option><option value="json">JSON</option></select></div><div class="field"><label for="drawer-path">Path</label><input id="drawer-path" class="input" placeholder="folder/document.md" required /></div><div class="field"><label for="drawer-document-title">Title</label><input id="drawer-document-title" class="input" required /></div><div class="field markdown-option"><label for="drawer-type">Type</label><input id="drawer-type" class="input" value="Context Document" required /></div><div class="field markdown-option"><label for="drawer-scope">Scope</label><select id="drawer-scope" class="select">${scopeOptions("", true)}</select></div>`;
+        if (kind === "folder") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-path">Folder path</label><input id="drawer-path" class="input" placeholder="products/platform" required /></div>`;
+        if (kind === "user") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-username">Username</label><input id="drawer-username" class="input" value="${escapeHtml(data?.username || "")}" ${editing ? "readonly" : "required"} /></div><div class="field"><label for="drawer-password">${editing ? "New password" : "Password"}</label><input id="drawer-password" class="input" type="password" ${editing ? "" : "required"} /></div><div class="field"><label for="drawer-role">Role</label><select id="drawer-role" class="select"><option ${data?.role === "viewer" ? "selected" : ""}>viewer</option><option ${data?.role === "editor" ? "selected" : ""}>editor</option><option ${data?.role === "admin" ? "selected" : ""}>admin</option></select></div>`;
+        if (kind === "scope") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-scope-id">Scope ID</label><input id="drawer-scope-id" class="input" value="${escapeHtml(data?.id || "")}" ${editing ? "readonly" : "required"} placeholder="product-a" /></div><div class="field"><label for="drawer-scope-name">Name</label><input id="drawer-scope-name" class="input" value="${escapeHtml(data?.name || "")}" required /></div><div class="field"><label for="drawer-scope-level">Level</label><select id="drawer-scope-level" class="select">${["company","brand","product","market","campaign","audience","channel","custom"].map((level) => `<option ${data?.level === level ? "selected" : ""}>${level}</option>`).join("")}</select></div><div class="field"><label for="drawer-parent">Parent</label><select id="drawer-parent" class="select">${scopeOptions(data?.parent_id || "")}</select></div>`;
+        byId("drawer-scrim").classList.remove("hidden"); refreshIcons();
+      }
+
+      function closeDrawer() { byId("drawer-scrim").classList.add("hidden"); state.drawerMode = ""; state.drawerData = null; }
+
+      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope"));
+      byId("close-drawer").addEventListener("click", closeDrawer); byId("cancel-drawer").addEventListener("click", closeDrawer); byId("drawer-scrim").addEventListener("click", (event) => { if (event.target === byId("drawer-scrim")) closeDrawer(); });
+
+      byId("drawer-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+          const kind = state.drawerMode.split("-")[0]; const editing = state.drawerMode.endsWith("-edit");
+          if (kind === "document") { const format = byId("drawer-format").value; const rawPath = byId("drawer-path").value.trim().replace(/\.(md|json)$/i, ""); const path = `${rawPath}.${format === "json" ? "json" : "md"}`; const title = byId("drawer-document-title").value.trim(); const frontmatter = format === "json" ? {} : {type:byId("drawer-type").value.trim(), title}; if (format !== "json" && byId("drawer-scope").value) frontmatter.scope_id = byId("drawer-scope").value; await api(`/api/documents/${path}`, {method:"PUT", body:JSON.stringify({frontmatter, body:format === "json" ? "{}" : `# ${title}`})}); closeDrawer(); await loadDocuments(); await openDocument(path); }
+          if (kind === "folder") { await api("/api/folders", {method:"POST", body:JSON.stringify({path:byId("drawer-path").value.trim()})}); closeDrawer(); await loadSchemas(); }
+          if (kind === "user") { const payload = {username:byId("drawer-username").value.trim(), password:byId("drawer-password").value, role:byId("drawer-role").value}; await api(editing ? `/api/users/${state.drawerData.username}` : "/api/users", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadUsers(); }
+          if (kind === "scope") { const payload = {id:byId("drawer-scope-id").value.trim(), name:byId("drawer-scope-name").value.trim(), level:byId("drawer-scope-level").value, parent_id:byId("drawer-parent").value || null}; await api(editing ? `/api/scopes/${state.drawerData.id}` : "/api/scopes", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadScopes(); }
+          toast(editing ? "Changes saved" : "Created");
+        } catch (error) { toast(error.message, true); }
+      });
+
+      byId("delete-drawer-item").addEventListener("click", async () => {
+        if (!state.deleteArmed) { state.deleteArmed = true; byId("delete-drawer-item").textContent = "Confirm remove"; return; }
+        try { const kind = state.drawerMode.split("-")[0]; await api(kind === "user" ? `/api/users/${state.drawerData.username}` : `/api/scopes/${state.drawerData.id}`, {method:"DELETE"}); closeDrawer(); if (kind === "user") await loadUsers(); else await loadScopes(); toast("Removed"); } catch (error) { state.deleteArmed = false; byId("delete-drawer-item").textContent = "Remove"; toast(error.message, true); }
+      });
+
+      byId("document-search").addEventListener("input", () => { state.page = 1; renderBrowser(); });
+      byId("previous-page").addEventListener("click", () => { if (state.page > 1) { state.page -= 1; renderBrowser(); } });
+      byId("next-page").addEventListener("click", () => { state.page += 1; renderBrowser(); });
+      byId("back-to-documents").addEventListener("click", showDocumentBrowser);
+      byId("document-history").addEventListener("click", async () => { state.historyMode = "document"; showView("history"); await loadHistory(); });
+      byId("repository-history").addEventListener("click", async () => { state.historyMode = "repository"; await loadHistory(); });
+      byId("current-document-history").addEventListener("click", async () => { if (state.current) { state.historyMode = "document"; await loadHistory(); } });
+      byId("editor-modes").querySelectorAll("[data-editor-mode]").forEach((button) => button.addEventListener("click", () => setEditorMode(button.dataset.editorMode)));
+
+      function setEditorMode(mode) {
+        state.editorMode = mode; byId("content-editor").className = `content-editor mode-${mode}`;
+        byId("editor-modes").querySelectorAll("[data-editor-mode]").forEach((button) => button.classList.toggle("active", button.dataset.editorMode === mode));
+        renderPreview();
+      }
+
+      function renderPreview() {
+        if (!state.current || state.editorMode === "raw") return;
+        const raw = byId("document-body").value;
+        if (state.current.format === "json") {
+          try { byId("document-preview").innerHTML = `<pre>${escapeHtml(JSON.stringify(JSON.parse(raw), null, 2))}</pre>`; }
+          catch (error) { byId("document-preview").innerHTML = `<div class="preview-error">${escapeHtml(error.message)}</div>`; }
+        } else {
+          byId("document-preview").innerHTML = DOMPurify.sanitize(marked.parse(raw));
+        }
+      }
+      byId("mobile-library").addEventListener("click", () => byId("library").classList.toggle("open"));
+      const setInspectorOpen = (open) => { byId("document-editor").classList.toggle("inspector-open", open); byId("toggle-inspector").setAttribute("aria-expanded", String(open)); };
+      byId("toggle-inspector").addEventListener("click", () => setInspectorOpen(!byId("document-editor").classList.contains("inspector-open")));
+      byId("close-inspector").addEventListener("click", () => setInspectorOpen(false));
+      ["document-title", "document-body", "meta-type", "meta-description", "meta-tags", "meta-scope", "frontmatter-editor"].forEach((id) => byId(id).addEventListener("input", () => { if (state.current) { state.dirty = true; byId("save-state").textContent = "Unsaved changes"; if (id === "document-body") renderPreview(); } }));
+      start();
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .login-shell { min-height: 100vh; display: grid; place-items: center; background: #eef1ee; }
+  .login-panel { width: min(360px, calc(100vw - 32px)); display: grid; gap: 18px; padding: 30px; background: white; border: 1px solid var(--line); border-radius: 7px; box-shadow: 0 12px 35px rgba(27, 41, 33, .08); }
+  .login-panel h1 { font-size: 21px; margin: 0 0 3px; letter-spacing: 0; }.login-panel p { color: var(--muted); margin: 0; font-size: 13px; }.mark { width: 38px; height: 38px; display: grid; place-items: center; background: var(--green); color: white; border-radius: 6px; }.login-button { justify-content: center; }.form-error { color: var(--red) !important; font-size: 12px !important; }
+  .workspace { display: grid; grid-template-columns: 58px 270px minmax(0, 1fr); height: 100vh; overflow: hidden; }
+  .rail { background: #26312b; color: #dfe7e2; display: flex; flex-direction: column; align-items: center; padding: 12px 0; }.rail-mark { width: 34px; height: 34px; display: grid; place-items: center; color: white; margin-bottom: 25px; }.rail nav { display: grid; gap: 7px; }.rail-button { position: relative; width: 38px; height: 38px; border: 0; border-radius: 5px; display: grid; place-items: center; color: #aebbb4; background: transparent; }.rail-button:hover,.rail-button.active { background: #3b4841; color: white; }.rail-button :global(svg) { width: 18px; }.dot { position: absolute; right: 6px; top: 6px; width: 6px; height: 6px; border-radius: 50%; background: #ef8b75; }.rail-footer { margin-top: auto; }.rail-footer span,.avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #d9e8df; color: #24543e; font-size: 12px; font-weight: 800; }
+  .library { background: #f8f9f7; border-right: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; }.library-header { height: 68px; padding: 12px 14px 10px 17px; display: flex; justify-content: space-between; align-items: center; }.library-header > div { display: grid; gap: 3px; }.library-header strong { font-size: 14px; }.eyebrow { font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 800; }.search-wrap { margin: 0 12px 10px; height: 34px; display: flex; align-items: center; gap: 7px; padding: 0 9px; border: 1px solid var(--line); background: white; border-radius: 5px; color: var(--muted); }.search-wrap :global(svg) { width: 15px; }.search-wrap input { min-width: 0; border: 0; outline: 0; background: none; font-size: 12px; width: 100%; }.document-tree { padding: 0 8px 12px; overflow: auto; flex: 1; }.tree-group { margin-bottom: 12px; }.tree-folder { height: 28px; display: flex; align-items: center; gap: 7px; padding: 0 8px; font-size: 11px; font-weight: 750; text-transform: uppercase; color: var(--muted); }.tree-folder :global(svg) { width: 14px; }.tree-folder small { margin-left: auto; }.tree-document { width: 100%; min-height: 35px; display: grid; grid-template-columns: 17px minmax(0,1fr) 16px; align-items: center; gap: 7px; padding: 5px 8px 5px 15px; border: 0; border-radius: 4px; background: transparent; text-align: left; color: #444b47; font-size: 12px; }.tree-document:hover { background: #ecefeb; }.tree-document.active { background: #e2ebe5; color: #174d37; font-weight: 650; }.tree-document span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.tree-document :global(svg) { width: 14px; }.validity.ok { color: var(--green); }.validity.bad { color: var(--red); }.tree-empty { padding: 20px; color: var(--muted); font-size: 12px; }.library-footer { height: 38px; border-top: 1px solid var(--line); padding: 0 15px; display: flex; align-items: center; justify-content: space-between; font-size: 10px; color: var(--muted); }
+  .main { min-width: 0; background: white; display: flex; flex-direction: column; }.topbar { height: 54px; flex: 0 0 54px; border-bottom: 1px solid var(--line); padding: 0 18px; display: flex; align-items: center; justify-content: space-between; }.breadcrumbs { display: flex; align-items: center; gap: 7px; font-size: 12px; min-width: 0; }.breadcrumbs span { color: var(--muted); }.breadcrumbs strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.breadcrumbs :global(svg) { width: 13px; color: #9ca49f; }.top-actions { display: flex; align-items: center; gap: 12px; }.save-state { font-size: 11px; color: var(--muted); }.view { display: none; min-height: 0; flex: 1; overflow: auto; }.view.active { display: block; }.editor-layout { height: 100%; display: grid; grid-template-columns: minmax(420px, 1fr) 330px; }.editor-main { min-width: 0; display: flex; flex-direction: column; }.document-heading { padding: 32px 42px 18px; border-bottom: 1px solid #eef0ee; display: flex; justify-content: space-between; align-items: end; gap: 20px; }.document-heading > div { min-width: 0; display: grid; gap: 11px; }.title-input { width: 100%; border: 0; outline: 0; padding: 0; font-size: 25px; font-weight: 700; color: var(--ink); background: transparent; }.path-label { color: var(--muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }.body-editor { flex: 1; width: 100%; min-height: 500px; border: 0; outline: 0; resize: none; padding: 28px 42px 80px; font: 14px/1.75 ui-monospace, SFMono-Regular, Menlo, monospace; color: #303632; }.properties { background: #fafbfa; border-left: 1px solid var(--line); display: flex; flex-direction: column; overflow: auto; }.panel-title { min-height: 45px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); font-size: 12px; }.panel-title span { font-size: 10px; color: var(--muted); text-transform: uppercase; }.metadata-editor { width: 100%; min-height: 290px; padding: 14px 16px; border: 0; border-bottom: 1px solid var(--line); outline: 0; resize: vertical; background: white; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }.resolved-title { border-top: 1px solid var(--line); }.resolved { margin: 0; padding: 14px 16px 30px; white-space: pre-wrap; color: var(--muted); font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }.validation-errors { padding: 10px 15px; background: var(--red-soft); color: var(--red); font-size: 11px; }.validation-errors div { display: flex; gap: 7px; }.validation-errors :global(svg) { width: 14px; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 35px 36px 70px; }.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }.page-header h2 { margin: 4px 0 0; font-size: 22px; letter-spacing: 0; }.metric-row { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 22px; }.metric-row > div { min-height: 90px; display: grid; align-content: center; padding: 16px 20px; border-right: 1px solid var(--line); }.metric-row > div:last-child { border: 0; }.metric-row strong { font-size: 23px; }.metric-row span { font-size: 11px; color: var(--muted); }.metric-row .danger strong { color: var(--red); }.list { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }.list-row { width: 100%; min-height: 56px; padding: 9px 14px; border: 0; border-bottom: 1px solid var(--line); background: white; display: flex; align-items: center; gap: 12px; text-align: left; color: var(--ink); }.list-row:last-child { border-bottom: 0; }.list-row:hover:is(button) { background: #fafbfa; }.list-row > :global(svg):first-child { color: var(--muted); width: 17px; }.list-row > :global(svg):last-child { margin-left: auto; width: 15px; color: var(--muted); }.list-row span:not(.commit) { min-width: 0; display: grid; gap: 3px; }.list-row strong { font-size: 12px; }.list-row small { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.history-layout,.schema-layout { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(400px, 1.1fr); gap: 20px; }.commit { font: 11px ui-monospace, monospace; color: var(--green); background: var(--green-soft); padding: 3px 5px; border-radius: 3px; }.diff { margin: 0; padding: 16px; min-height: 450px; overflow: auto; background: #26312b; color: #e2e9e4; border-radius: 6px; font: 11px/1.6 ui-monospace, monospace; }.schema-editor { display: grid; gap: 12px; align-content: start; }.code { font: 12px/1.6 ui-monospace, monospace; }.role-select { width: 115px; margin-left: auto; }.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; } dialog { border: 1px solid var(--line); border-radius: 7px; padding: 0; box-shadow: 0 18px 50px rgba(0,0,0,.2); } dialog::backdrop { background: rgba(26,32,28,.35); } dialog form { width: 360px; display: grid; gap: 14px; padding: 22px; } dialog h3 { margin: 0 0 4px; font-size: 17px; } #dialog-extra { display: grid; gap: 14px; }
+  .mobile-only { display: none; }
+  @media (max-width: 880px) { .workspace { grid-template-columns: 52px minmax(0,1fr); }.library { position: fixed; z-index: 10; left: 52px; top: 0; bottom: 0; width: min(290px, calc(100vw - 52px)); transform: translateX(calc(-100% - 52px)); box-shadow: 12px 0 30px rgba(0,0,0,.12); transition: transform .18s ease; }.library.open { transform: translateX(0); }.main { grid-column: 2; }.mobile-only { display: inline-grid; }.topbar { justify-content: initial; gap: 8px; }.top-actions { margin-left: auto; }.editor-layout { height: auto; grid-template-columns: 1fr; }.document-heading { padding: 25px 22px 16px; align-items: start; flex-direction: column; }.body-editor { min-height: 480px; padding: 22px; }.properties { border-left: 0; border-top: 1px solid var(--line); }.page { padding: 28px 20px 60px; }.history-layout,.schema-layout { grid-template-columns: 1fr; }.metric-row { grid-template-columns: 1fr 1fr 1fr; }.metric-row > div { padding: 12px; }.title-input { font-size: 21px; } }
+
+  /* Usability pass: one labeled sidebar and an optional document inspector. */
+  .workspace { grid-template-columns: 276px minmax(0, 1fr); background: var(--paper); }
+  .sidebar { min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--line); background: #f7f8f6; }
+  .brand-header { min-height: 72px; display: flex; align-items: center; gap: 11px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 6px; color: white; background: #26312b; }
+  .brand-mark :global(svg) { width: 19px; }
+  .brand-header > span:last-child { display: grid; gap: 2px; }
+  .brand-header strong { font-size: 15px; }
+  .brand-header small { color: var(--muted); font-size: 11px; }
+  .primary-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 10px 10px 12px; border-bottom: 1px solid var(--line); }
+  .rail-button { width: auto; height: 36px; padding: 0 9px; display: flex; align-items: center; justify-content: flex-start; gap: 8px; border: 1px solid transparent; border-radius: 5px; color: #56605a; background: transparent; font-size: 12px; font-weight: 650; }
+  .rail-button :global(svg) { width: 16px; }
+  .rail-button:hover { border-color: var(--line); color: var(--ink); background: white; }
+  .rail-button.active { color: #14573e; background: var(--green-soft); border-color: #cfe3d7; }
+  .rail-button .dot { position: static; width: 7px; height: 7px; margin-left: auto; }
+  .library-header { height: 46px; padding: 10px 12px 6px 16px; }
+  .library-header strong { font-size: 12px; color: var(--muted); text-transform: uppercase; }
+  .search-wrap { height: 38px; margin: 0 12px 12px; padding: 0 10px; border-color: #d3d8d4; }
+  .search-wrap input { font-size: 13px; }
+  .document-tree { min-height: 0; padding: 0 8px 14px; }
+  .tree-folder { height: 31px; padding: 0 10px; font-size: 11px; }
+  .tree-document { min-height: 40px; grid-template-columns: 18px minmax(0,1fr) 17px; gap: 8px; padding: 7px 9px 7px 17px; font-size: 13px; }
+  .tree-document.active { background: #dfece4; box-shadow: inset 3px 0 #207454; }
+  .sidebar-footer { min-height: 58px; display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-top: 1px solid var(--line); background: white; }
+  .user-avatar { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: #195239; background: #dcebe2; font-size: 12px; font-weight: 800; }
+  .user-summary, .repo-summary { display: grid; gap: 1px; }
+  .user-summary strong { font-size: 12px; text-transform: capitalize; }
+  .user-summary small, .repo-summary small, .repo-summary > span { color: var(--muted); font-size: 10px; }
+  .repo-summary { margin-left: auto; text-align: right; }
+  .main { grid-column: 2; }
+  .topbar { height: 62px; flex-basis: 62px; padding: 0 22px; }
+  .breadcrumbs { font-size: 13px; }
+  .editor-layout { position: relative; grid-template-columns: minmax(0, 1fr); }
+  .editor-layout.inspector-open { grid-template-columns: minmax(420px, 1fr) 380px; }
+  .document-heading { width: min(920px, 100%); margin: 0 auto; padding: 42px 48px 23px; }
+  .document-heading > div { gap: 13px; }
+  .title-input { font-size: 30px; line-height: 1.2; }
+  .body-editor { width: min(920px, 100%); margin: 0 auto; min-height: 560px; padding: 34px 48px 90px; color: #2b302d; font: 16px/1.75 Inter, ui-sans-serif, system-ui, sans-serif; }
+  .properties { display: none; min-width: 0; background: #fbfcfb; }
+  .inspector-open .properties { display: flex; }
+  .inspector-header { min-height: 62px; display: flex; align-items: center; justify-content: space-between; padding: 10px 16px 10px 20px; border-bottom: 1px solid var(--line); background: white; }
+  .inspector-header > div { display: grid; gap: 3px; }
+  .inspector-header strong { font-size: 15px; }
+  .inspector-fields { display: grid; gap: 17px; padding: 20px; border-bottom: 1px solid var(--line); background: white; }
+  .inspector-fields .input, .inspector-fields .textarea { font-size: 13px; }
+  .governance-section { padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .resolved-grid { display: grid; gap: 0; padding: 5px 20px 12px; }
+  .resolved-grid > div { min-height: 34px; display: grid; grid-template-columns: 1fr 1.2fr; align-items: center; gap: 12px; border-bottom: 1px solid #e7eae7; }
+  .resolved-grid > div:last-child { border-bottom: 0; }
+  .resolved-grid dt { color: var(--muted); font-size: 11px; text-transform: capitalize; }
+  .resolved-grid dd { margin: 0; font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+  .advanced-metadata { padding: 15px 20px 24px; }
+  .advanced-metadata summary { cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 700; }
+  .advanced-metadata[open] summary { margin-bottom: 12px; }
+  .metadata-editor { min-height: 260px; padding: 12px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+  .page { padding-top: 42px; }
+  .page-header h2 { font-size: 26px; }
+  .list-row strong { font-size: 13px; }
+  .list-row small { font-size: 11px; }
+
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: minmax(0, 1fr); }
+    .sidebar { position: fixed; z-index: 10; inset: 0 auto 0 0; width: min(300px, calc(100vw - 44px)); transform: translateX(-105%); box-shadow: 12px 0 30px rgba(0,0,0,.12); transition: transform .18s ease; }
+    .sidebar.open { transform: translateX(0); }
+    .main { grid-column: 1; }
+    .mobile-only { display: inline-grid; }
+    .topbar { height: 58px; flex-basis: 58px; padding: 0 12px; }
+    .breadcrumbs > span, .breadcrumbs :global(svg) { display: none; }
+    .editor-layout.inspector-open { grid-template-columns: 1fr; }
+    .document-heading { padding: 30px 24px 20px; align-items: start; flex-direction: column; }
+    .title-input { font-size: 25px; }
+    .body-editor { min-height: 520px; padding: 26px 24px 70px; font-size: 15px; }
+    .inspector-open .properties { border-left: 0; border-top: 1px solid var(--line); }
+    .history-layout, .schema-layout { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 560px) {
+    .button { padding: 0 10px; }
+    #toggle-inspector { font-size: 0; gap: 0; }
+    #toggle-inspector :global(svg) { width: 17px; }
+    .path-label { white-space: normal; overflow-wrap: anywhere; }
+    .metric-row { grid-template-columns: repeat(3, 1fr); }
+    .metric-row > div { min-height: 74px; padding: 10px; }
+  }
+
+  .workspace { grid-template-columns: 224px minmax(0, 1fr); }
+  .primary-nav { grid-template-columns: 1fr; padding: 12px 10px; }
+  .rail-button { height: 40px; font-size: 13px; }
+  .sidebar-context { display: grid; gap: 4px; margin: 14px 12px; padding: 13px 12px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+  .sidebar-context strong { font-size: 13px; }
+  .sidebar-context > span:last-child { color: var(--muted); font-size: 11px; }
+  .sidebar-footer { margin-top: auto; }
+  .documents-header { align-items: end; }
+  .documents-header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  .document-browser { max-width: 1460px; }
+  .document-toolbar { min-height: 58px; display: flex; align-items: center; gap: 16px; padding: 9px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 7px 7px 0 0; background: #fafbfa; }
+  .document-toolbar .search-wrap { width: min(480px, 100%); margin: 0; }
+  .result-count { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .browser-layout { min-height: 560px; display: grid; grid-template-columns: 240px minmax(0, 1fr); border: 1px solid var(--line); border-radius: 0 0 7px 7px; overflow: hidden; }
+  .folder-browser { min-width: 0; padding: 14px 10px; border-right: 1px solid var(--line); background: #f7f8f7; }
+  .section-label { padding: 0 10px 9px; color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+  .folder-list { display: grid; gap: 2px; }
+  .folder-row { width: 100%; min-height: 38px; display: grid; grid-template-columns: 17px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 9px 6px calc(9px + var(--depth) * 14px); border: 1px solid transparent; border-radius: 5px; color: #4d5651; background: transparent; text-align: left; font-size: 12px; }
+  .folder-row svg { width: 16px; color: #77817b; }
+  .folder-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .folder-row small { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .folder-row:hover { border-color: var(--line); background: white; }
+  .folder-row.active { color: #14573e; border-color: #c7dfd1; background: var(--green-soft); font-weight: 700; }
+  .file-browser { min-width: 0; display: flex; flex-direction: column; background: white; }
+  .file-table-header, .file-row { display: grid; grid-template-columns: minmax(260px, 1.8fr) minmax(130px, .7fr) 100px 24px; align-items: center; gap: 16px; }
+  .file-table-header { min-height: 38px; padding: 0 16px; border-bottom: 1px solid var(--line); color: var(--muted); background: #fafbfa; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+  .file-table { flex: 1; }
+  .file-row { width: 100%; min-height: 59px; padding: 8px 16px; border: 0; border-bottom: 1px solid #e8ebe8; color: var(--ink); background: white; text-align: left; }
+  .file-row:hover { background: #f7faf8; }
+  .file-name { min-width: 0; display: grid; grid-template-columns: 19px minmax(0, 1fr); align-items: center; gap: 10px; }
+  .file-name > svg { width: 18px; color: #66716a; }
+  .file-name > span { min-width: 0; display: grid; gap: 3px; }
+  .file-name strong { overflow: hidden; color: #252a27; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+  .file-name small { overflow: hidden; color: var(--muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .file-type { overflow: hidden; color: #4e5752; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+  .status-pill { width: fit-content; min-height: 24px; display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 4px; font-size: 10px; font-weight: 750; }
+  .status-pill svg { width: 13px; }
+  .status-pill.valid { color: var(--green); background: var(--green-soft); }
+  .status-pill.invalid { color: var(--red); background: var(--red-soft); }
+  .row-action { color: #929a95; }
+  .row-action svg { width: 15px; }
+  .table-empty { min-height: 300px; display: grid; place-items: center; align-content: center; gap: 10px; color: var(--muted); }
+  .table-empty svg { width: 25px; }
+  .table-empty strong { font-size: 13px; }
+  .pagination { min-height: 54px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 8px 14px; border-top: 1px solid var(--line); background: #fafbfa; }
+  .pagination span { min-width: 90px; color: var(--muted); font-size: 11px; text-align: center; }
+  .button:disabled { cursor: default; opacity: .45; }
+  button:focus { outline: none; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #5c967c; outline-offset: 2px; }
+  .back-link { width: fit-content; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 12px; font-weight: 700; }
+  .back-link:hover { color: var(--green); }
+  .back-link svg { width: 15px; }
+  .document-heading-main { min-width: 0; display: grid; gap: 13px; }
+  .segmented { display: inline-flex; align-items: center; padding: 2px; border: 1px solid var(--line); border-radius: 5px; background: #f4f6f4; }
+  .segmented button { height: 28px; padding: 0 9px; border: 0; border-radius: 3px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 700; }
+  .segmented button.active { color: var(--ink); background: white; box-shadow: 0 1px 3px rgba(0,0,0,.09); }
+  .page-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+  .content-editor { min-height: 0; flex: 1; display: grid; }
+  .content-editor .body-editor { height: 100%; }
+  .document-preview { display: none; min-width: 0; padding: 34px 48px 90px; overflow: auto; color: #2b302d; font-size: 15px; line-height: 1.7; }
+  .document-preview > :first-child { margin-top: 0; }
+  .document-preview pre { overflow: auto; padding: 14px; border: 1px solid var(--line); border-radius: 5px; background: #f6f7f6; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .document-preview code { padding: 2px 4px; border-radius: 3px; background: #f0f2f0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .content-editor.mode-preview .body-editor { display: none; }
+  .content-editor.mode-preview .document-preview { display: block; width: min(920px, 100%); margin: 0 auto; }
+  .content-editor.mode-split { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .content-editor.mode-split .body-editor { width: 100%; border-right: 1px solid var(--line); }
+  .content-editor.mode-split .document-preview { display: block; padding-left: 28px; padding-right: 28px; }
+  .preview-error { padding: 12px; border: 1px solid #e6c3bf; border-radius: 5px; color: var(--red); background: var(--red-soft); font-size: 12px; }
+  .scope-list { border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: white; }
+  .scope-row { position: relative; min-height: 64px; display: grid; grid-template-columns: calc(var(--depth) * 24px) 20px 34px minmax(0, 1fr) 90px 36px; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .scope-row:last-child { border-bottom: 0; }
+  .scope-icon { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 5px; color: #416552; background: var(--green-soft); }
+  .scope-icon svg { width: 17px; }
+  .drag-handle { height: 30px; display: grid; place-items: center; color: #939b96; cursor: grab; }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle svg { width: 16px; }
+  .scope-row.dragging { opacity: .45; }
+  .scope-row.drop-before::before, .scope-row.drop-after::after { position: absolute; z-index: 2; right: 12px; left: 12px; height: 2px; content: ""; background: var(--green); }
+  .scope-row.drop-before::before { top: -1px; }
+  .scope-row.drop-after::after { bottom: -1px; }
+  .scope-row.drop-inside { background: var(--green-soft); box-shadow: inset 0 0 0 2px #63a384; }
+  .scope-name { min-width: 0; display: grid; gap: 3px; }
+  .scope-name strong { font-size: 13px; }
+  .scope-name small { overflow: hidden; color: var(--muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .level-pill, .role-pill { width: fit-content; padding: 4px 7px; border-radius: 4px; color: #49534d; background: #eef0ee; font-size: 10px; font-weight: 750; text-transform: capitalize; }
+  .role-pill { margin-left: auto; }
+  .button.danger { color: var(--red); border-color: #e7c4c0; background: var(--red-soft); }
+  .drawer-scrim { position: fixed; z-index: 30; inset: 0; display: flex; justify-content: flex-end; background: rgba(28, 34, 30, .28); }
+  .action-drawer { width: min(420px, 100vw); height: 100%; display: flex; flex-direction: column; border-left: 1px solid var(--line); background: white; box-shadow: -14px 0 38px rgba(20, 29, 24, .14); }
+  .action-drawer-header { min-height: 76px; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 14px 22px; border-bottom: 1px solid var(--line); }
+  .action-drawer-header > div { display: grid; gap: 4px; }
+  .action-drawer-header h3 { margin: 0; font-size: 18px; }
+  #drawer-form { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+  .action-drawer-body { min-height: 0; flex: 1; display: grid; align-content: start; gap: 18px; padding: 22px; overflow: auto; }
+  .action-drawer-footer { min-height: 66px; display: flex; align-items: center; justify-content: flex-end; gap: 9px; padding: 12px 16px; border-top: 1px solid var(--line); background: #fafbfa; }
+  .action-drawer-footer > span { flex: 1; }
+  .list-row > .icon-button { margin-left: 4px; }
+
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: minmax(0, 1fr); }
+    .browser-layout { grid-template-columns: 190px minmax(0, 1fr); }
+    .file-table-header, .file-row { grid-template-columns: minmax(230px, 1fr) 90px 24px; }
+    .file-table-header > :nth-child(2), .file-type { display: none; }
+  }
+
+  @media (max-width: 680px) {
+    .document-browser.page { padding: 24px 14px 50px; }
+    .documents-header { align-items: start; }
+    .documents-header .button { font-size: 0; }
+    .documents-header .button svg { margin: 0; }
+    .document-toolbar { align-items: stretch; flex-direction: column; gap: 8px; }
+    .result-count { margin-left: 2px; }
+    .browser-layout { grid-template-columns: 1fr; }
+    .folder-browser { max-height: 205px; overflow: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .file-table-header, .file-row { grid-template-columns: minmax(0, 1fr) 76px 18px; gap: 8px; padding-left: 11px; padding-right: 11px; }
+    .file-table-header > :nth-child(2), .file-type { display: none; }
+    .pagination { justify-content: center; }
+    .content-editor.mode-split { grid-template-columns: 1fr; }
+    .content-editor.mode-split .body-editor { border-right: 0; border-bottom: 1px solid var(--line); }
+    .scope-row { grid-template-columns: calc(var(--depth) * 14px) 18px 32px minmax(0, 1fr) 34px; gap: 7px; }
+    .scope-row .level-pill { display: none; }
+  }
+</style>

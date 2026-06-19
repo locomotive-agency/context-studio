@@ -1,0 +1,9 @@
+.pytest_cache/
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+cms/.astro/
+cms/dist/
+cms/node_modules/
+var/*.sqlite

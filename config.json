@@ -1,0 +1,9 @@
+{
+  "domain": "pipeline.zoominfo.com",
+  "internal_domains": ["pipeline.zoominfo.com", "www.zoominfo.com", "zoominfo.com"],
+  "default_icp": "sales_ae_sdr",
+  "context_server_name": "marketing-context",
+  "context_repository_path": "context_repo",
+  "index_path": "var/index.sqlite",
+  "audit_path": "var/audit.sqlite"
+}

@@ -1,0 +1,19 @@
+{
+  "name": "context-system-cms",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/check": "latest",
+    "astro": "latest",
+    "dompurify": "latest",
+    "js-yaml": "latest",
+    "lucide": "latest",
+    "marked": "latest",
+    "typescript": "latest"
+  }
+}
