@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 from .audit import AuditLog
 from .config import Config, get_config
-from .models import ContextPackage, MissingContextBlock, StalenessFlag
+from .models import ContextPackage, MissingContextBlock
 from .repository import ContextRepository
 
 
@@ -39,7 +38,7 @@ class ContextService:
             if not records:
                 pkg.missing_blocks.append(
                     MissingContextBlock(
-                        construct=construct,
+                        type=construct,
                         reason="no approved records",
                         blocks_workflow=False,
                     )
@@ -51,17 +50,13 @@ class ContextService:
                     if not (self.config.context_repo / record.kb_path).exists() or not record.body.strip():
                         pkg.missing_blocks.append(
                             MissingContextBlock(
-                                construct=construct,
+                                type=construct,
                                 reason=f"controlled record {record.id} has no body",
                             )
                         )
                         continue
-                    if record.exact_language:
-                        pkg.exact_language_map[record.id] = record.body
                     controlled_used.append(data)
                 pkg.records.append(data)
-            pkg.staleness_flags.extend(self._staleness([record.model_dump() for record in records]))
-
         if query:
             pkg.search_pointers = self.repository.search(query, constructs)
         if controlled_used and run_id:
@@ -77,21 +72,3 @@ class ContextService:
         stats = self.repository.stats()
         stats["recent_controlled_uses"] = self.audit.recent(limit=5)
         return stats
-
-    def _staleness(self, records: list[dict]) -> list[StalenessFlag]:
-        flags: list[StalenessFlag] = []
-        today = date.today()
-        for record in records:
-            verified = record.get("date_verified")
-            if not verified:
-                continue
-            overdue = (today - date.fromisoformat(verified)).days - record["staleness_threshold_days"]
-            if overdue > 0:
-                flags.append(
-                    StalenessFlag(
-                        record_id=record["id"],
-                        days_overdue=overdue,
-                        message=f"{record['id']} is {overdue} days past its freshness window",
-                    )
-                )
-        return flags

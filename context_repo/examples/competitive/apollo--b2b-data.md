@@ -1,5 +1,5 @@
 ---
-type: sub-product
+type: competitive-landscape
 brand: Apollo
 sub_product: Apollo B2B Data
 slug: apollo--b2b-data

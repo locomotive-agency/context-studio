@@ -131,6 +131,19 @@ class ContentStore:
         restored_commit = self.git.commit([relative_path], f"Restore {relative_path} to {commit[:7]}", author)
         return {"commit": restored_commit, "document": self.read_document(relative_path)}
 
+    def delete_document(self, relative_path: str, author: str) -> None:
+        relative_path = validate_relative_path(relative_path)
+        suffix = Path(relative_path).suffix.lower()
+        if suffix not in {".md", ".json"}:
+            raise ValueError("document path must end in .md or .json")
+        if Path(relative_path).name in RESERVED_DOCUMENTS:
+            raise ValueError(f"{Path(relative_path).name} is reserved by OKF")
+        path = self.repository / relative_path
+        if not path.is_file():
+            raise FileNotFoundError(relative_path)
+        path.unlink()
+        self.git.commit([relative_path], f"Delete {relative_path}", author)
+
     def create_folder(self, relative_path: str, author: str) -> dict[str, str]:
         relative_path = validate_relative_path(relative_path)
         schema_path = f"{relative_path}/{SCHEMA_FILE}"
@@ -141,6 +154,30 @@ class ContentStore:
         path.write_text("{}\n", encoding="utf-8")
         self.git.commit([schema_path], f"Create folder {relative_path}", author)
         return {"path": relative_path}
+
+    def delete_folder(self, relative_path: str, author: str) -> None:
+        clean = validate_relative_path(relative_path)
+        if not clean:
+            raise ValueError("root folder cannot be deleted")
+        documents = [document for document in self.list_documents() if document["folder"] == clean or document["folder"].startswith(f"{clean}/")]
+        if documents:
+            raise ValueError("folder contains documents")
+        folder = self.repository / clean
+        schema_path = folder / SCHEMA_FILE
+        if not folder.exists():
+            raise FileNotFoundError(clean)
+        removed_paths: list[str] = []
+        if schema_path.exists():
+            schema_path.unlink()
+            removed_paths.append(f"{clean}/{SCHEMA_FILE}")
+        try:
+            folder.rmdir()
+        except OSError as exc:
+            raise ValueError("folder is not empty") from exc
+        if not removed_paths:
+            self.git.commit([clean], f"Delete folder {clean}", author)
+        else:
+            self.git.commit(removed_paths, f"Delete folder {clean}", author)
 
     def list_folders(self) -> list[dict[str, Any]]:
         folders = {""}

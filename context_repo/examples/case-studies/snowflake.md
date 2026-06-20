@@ -1,5 +1,5 @@
 ---
-type: case-study
+type: proof-points
 company: "Snowflake's Data"
 slug: snowflake
 source_url: https://www.zoominfo.com/about/case-studies/snowflake

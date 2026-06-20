@@ -1,5 +1,5 @@
 ---
-type: Brand Standard
+type: brand-messaging
 id: ctx.brand-messaging.terminology
 title: Brand terminology
 description: Approved language and prohibited marketing terms.

@@ -3,5 +3,4 @@ edit_roles:
 - admin
 durability: persistent
 criticality: hybrid
-staleness_threshold_days: 90
 scope_id: zoominfo

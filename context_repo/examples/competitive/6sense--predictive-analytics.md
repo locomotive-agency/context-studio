@@ -1,5 +1,5 @@
 ---
-type: sub-product
+type: competitive-landscape
 brand: 6sense
 sub_product: Predictive Analytics
 slug: 6sense--predictive-analytics

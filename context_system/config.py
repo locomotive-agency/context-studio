@@ -22,6 +22,14 @@ class Config(BaseModel):
     default_remote_url: str = "http://localhost:8000"
     secret_key: str = "change-me-in-production"
     embedding_model: Optional[str] = None
+    public_app_url: str = "http://127.0.0.1:4321"
+    github_owner: Optional[str] = None
+    github_repo: Optional[str] = None
+    github_client_id: Optional[str] = None
+    github_client_secret: Optional[str] = None
+    github_api_url: str = "https://api.github.com"
+    github_authorize_url: str = "https://github.com/login/oauth/authorize"
+    github_token_url: str = "https://github.com/login/oauth/access_token"
 
     _base: Path = PROJECT_DIR
 
@@ -44,6 +52,16 @@ class Config(BaseModel):
     @property
     def users_db(self) -> Path:
         return self.path(self.users_path)
+
+    @property
+    def github_enabled(self) -> bool:
+        return all([self.github_owner, self.github_repo, self.github_client_id, self.github_client_secret])
+
+    @property
+    def github_full_name(self) -> str | None:
+        if not self.github_owner or not self.github_repo:
+            return None
+        return f"{self.github_owner}/{self.github_repo}"
 
     @classmethod
     def load(cls, config_path: str | Path | None = None) -> "Config":

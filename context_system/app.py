@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from subprocess import CalledProcessError
 
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from .auth import UserStore, current_user, login_response, require_role
+from .auth import GitHubAuth, UserStore, current_user, login_response, require_role
 from .cms import ContentStore
 from .config import get_config
 from .mcp_server import mcp
@@ -15,10 +16,17 @@ cfg = get_config()
 service = ContextService(cfg)
 content = ContentStore(cfg.context_repo)
 users = UserStore(cfg.users_db)
+github_auth = GitHubAuth()
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if cfg.github_enabled:
+        try:
+            content.git.sync_with_remote()
+        except CalledProcessError as exc:
+            detail = (exc.stderr or exc.stdout or "Git sync failed").strip()
+            raise RuntimeError(detail) from exc
     async with mcp.session_manager.run():
         yield
 
@@ -33,6 +41,42 @@ app.add_middleware(
 )
 
 
+def _public_user(user: dict) -> dict:
+    return {
+        "username": user["username"],
+        "role": user["role"],
+        "provider": user.get("provider", "local"),
+        "permission": user.get("permission"),
+        "auth_mode": "github" if cfg.github_enabled else "local",
+        "can_edit": user["role"] in {"editor", "admin"},
+    }
+
+
+def _prepare_write(user: dict, local_roles: list[str]) -> dict:
+    if user.get("provider") == "github":
+        refreshed = github_auth.refresh_user_permission(user, users)
+        if refreshed["role"] == "viewer":
+            raise HTTPException(status_code=403, detail="GitHub write access is required")
+        try:
+            content.git.sync_with_remote()
+        except CalledProcessError as exc:
+            detail = (exc.stderr or exc.stdout or "Git sync failed").strip()
+            raise HTTPException(status_code=409, detail=detail) from exc
+        return refreshed
+    require_role(user, local_roles)
+    return user
+
+
+def _finish_write(user: dict) -> None:
+    if user.get("provider") != "github":
+        return
+    try:
+        content.git.push_to_remote()
+    except CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "Git push failed").strip()
+        raise HTTPException(status_code=409, detail=detail) from exc
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "service": cfg.context_server_name, "mcp_url": "/mcp/"}
@@ -45,25 +89,46 @@ def stats() -> dict:
 
 @app.post("/api/auth/login")
 def login(data: dict, response: Response) -> dict:
+    if cfg.github_enabled:
+        raise HTTPException(status_code=400, detail="Use GitHub to sign in")
     username, password = data.get("username", ""), data.get("password", "")
     if not username or not password:
         raise HTTPException(status_code=400, detail="username and password are required")
     return login_response(username, password, response, users)
 
 
+@app.get("/api/auth/config")
+def auth_config() -> dict:
+    return {"mode": "github" if cfg.github_enabled else "local", "repository": cfg.github_full_name}
+
+
+@app.get("/api/auth/github/login")
+def github_login(request: Request) -> Response:
+    return github_auth.login_redirect(request)
+
+
+@app.get("/api/auth/github/callback")
+def github_callback(code: str, state: str, request: Request) -> Response:
+    return github_auth.callback_response(code, state, request, users)
+
+
 @app.get("/api/auth/me")
 def me(user: dict = Depends(current_user)) -> dict:
-    return user
+    return _public_user(user)
 
 
 @app.get("/api/users")
 def list_users(user: dict = Depends(current_user)) -> list[dict]:
+    if cfg.github_enabled:
+        raise HTTPException(status_code=400, detail="User access is managed in GitHub")
     require_role(user, ["admin"])
     return users.list_users()
 
 
 @app.post("/api/users")
 def create_user(data: dict, user: dict = Depends(current_user)) -> dict:
+    if cfg.github_enabled:
+        raise HTTPException(status_code=400, detail="User access is managed in GitHub")
     require_role(user, ["admin"])
     try:
         created = users.create_user(data.get("username", ""), data.get("password", ""), data.get("role", "viewer"))
@@ -76,6 +141,8 @@ def create_user(data: dict, user: dict = Depends(current_user)) -> dict:
 
 @app.patch("/api/users/{username}")
 def update_user_role(username: str, data: dict, user: dict = Depends(current_user)) -> dict:
+    if cfg.github_enabled:
+        raise HTTPException(status_code=400, detail="User access is managed in GitHub")
     require_role(user, ["admin"])
     try:
         updated = users.update_user(username, data.get("role", ""), data.get("password") or None)
@@ -88,6 +155,8 @@ def update_user_role(username: str, data: dict, user: dict = Depends(current_use
 
 @app.delete("/api/users/{username}")
 def delete_user(username: str, user: dict = Depends(current_user)) -> dict:
+    if cfg.github_enabled:
+        raise HTTPException(status_code=400, detail="User access is managed in GitHub")
     require_role(user, ["admin"])
     if username == user["username"]:
         raise HTTPException(status_code=400, detail="you cannot remove your own account")
@@ -115,11 +184,26 @@ def get_document(document_path: str, user: dict = Depends(current_user)) -> dict
 
 @app.put("/api/documents/{document_path:path}")
 def save_document(document_path: str, data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["editor", "admin"])
+    user = _prepare_write(user, ["editor", "admin"])
     try:
-        return content.save_document(document_path, data.get("frontmatter", {}), data.get("body", ""), user["username"])
+        result = content.save_document(document_path, data.get("frontmatter", {}), data.get("body", ""), user["username"])
+        _finish_write(user)
+        return result
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.delete("/api/documents/{document_path:path}")
+def delete_document(document_path: str, user: dict = Depends(current_user)) -> dict:
+    user = _prepare_write(user, ["editor", "admin"])
+    try:
+        content.delete_document(document_path, user["username"])
+        _finish_write(user)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "deleted"}
 
 
 @app.get("/api/folders")
@@ -134,53 +218,62 @@ def list_scopes(user: dict = Depends(current_user)) -> list[dict]:
 
 @app.post("/api/scopes")
 def create_scope(data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["admin"])
+    user = _prepare_write(user, ["admin"])
     try:
-        return content.save_scope(data, user["username"])
+        result = content.save_scope(data, user["username"])
+        _finish_write(user)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/scopes/reorder")
 def reorder_scopes(data: dict, user: dict = Depends(current_user)) -> list[dict]:
-    require_role(user, ["admin"])
+    user = _prepare_write(user, ["admin"])
     ordered_ids = data.get("ordered_ids", [])
     if not isinstance(ordered_ids, list):
         raise HTTPException(status_code=400, detail="ordered_ids must be a list")
     try:
-        return content.reorder_scopes(data.get("parent_id"), ordered_ids, user["username"])
+        result = content.reorder_scopes(data.get("parent_id"), ordered_ids, user["username"])
+        _finish_write(user)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/scopes/move")
 def move_scope(data: dict, user: dict = Depends(current_user)) -> list[dict]:
-    require_role(user, ["admin"])
+    user = _prepare_write(user, ["admin"])
     try:
-        return content.move_scope(
+        result = content.move_scope(
             scope_id=data.get("scope_id", ""),
             parent_id=data.get("parent_id") or None,
             index=int(data.get("index", 0)),
             author=user["username"],
         )
+        _finish_write(user)
+        return result
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.patch("/api/scopes/{scope_id}")
 def update_scope(scope_id: str, data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["admin"])
+    user = _prepare_write(user, ["admin"])
     try:
-        return content.save_scope(data, user["username"], existing_id=scope_id)
+        result = content.save_scope(data, user["username"], existing_id=scope_id)
+        _finish_write(user)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.delete("/api/scopes/{scope_id}")
 def delete_scope(scope_id: str, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["admin"])
+    user = _prepare_write(user, ["admin"])
     try:
         content.delete_scope(scope_id, user["username"])
+        _finish_write(user)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"status": "deleted"}
@@ -188,18 +281,35 @@ def delete_scope(scope_id: str, user: dict = Depends(current_user)) -> dict:
 
 @app.post("/api/folders")
 def create_folder(data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["editor", "admin"])
+    user = _prepare_write(user, ["editor", "admin"])
     try:
-        return content.create_folder(data.get("path", ""), user["username"])
+        result = content.create_folder(data.get("path", ""), user["username"])
+        _finish_write(user)
+        return result
     except (ValueError, FileExistsError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.delete("/api/folders/{folder_path:path}")
+def delete_folder(folder_path: str, user: dict = Depends(current_user)) -> dict:
+    user = _prepare_write(user, ["editor", "admin"])
+    try:
+        content.delete_folder(folder_path, user["username"])
+        _finish_write(user)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return {"status": "deleted"}
+
+
 @app.put("/api/schemas")
 def save_schema(data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["admin"])
+    user = _prepare_write(user, ["admin"])
     try:
-        return content.save_schema(data.get("path", ""), data.get("schema", {}), user["username"])
+        result = content.save_schema(data.get("path", ""), data.get("schema", {}), user["username"])
+        _finish_write(user)
+        return result
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -224,9 +334,11 @@ def diff(commit: str, path: str | None = None, user: dict = Depends(current_user
 
 @app.post("/api/history/{commit}/restore")
 def restore_revision(commit: str, data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["editor", "admin"])
+    user = _prepare_write(user, ["editor", "admin"])
     try:
-        return content.restore_document(data.get("path", ""), commit, user["username"])
+        result = content.restore_document(data.get("path", ""), commit, user["username"])
+        _finish_write(user)
+        return result
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

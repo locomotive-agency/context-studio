@@ -68,6 +68,23 @@ class GitStore:
             args.extend(["--", self.path_prefix])
         return self._run(*args).stdout.splitlines()
 
+    def sync_with_remote(self) -> dict[str, str | bool]:
+        remote = self._run("remote", "get-url", "origin", check=False)
+        if remote.returncode != 0:
+            return {"synced": False, "reason": "no origin remote"}
+        branch = self._run("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        self._run("fetch", "origin")
+        self._run("pull", "--ff-only", "origin", branch)
+        return {"synced": True, "branch": branch}
+
+    def push_to_remote(self) -> dict[str, str | bool]:
+        remote = self._run("remote", "get-url", "origin", check=False)
+        if remote.returncode != 0:
+            return {"pushed": False, "reason": "no origin remote"}
+        branch = self._run("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        self._run("push", "origin", branch)
+        return {"pushed": True, "branch": branch}
+
     def head(self) -> str:
         result = self._run("rev-parse", "--short", "HEAD", check=False)
         return result.stdout.strip() if result.returncode == 0 else "uncommitted"

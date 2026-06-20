@@ -32,7 +32,7 @@ class ContextRepository:
         return records
 
     def get_construct(self, construct: str, include_body: bool = True, scope_id: str | None = None) -> list[RuntimeRecord]:
-        records = [record for record in self.runtime_records(include_body) if record.construct == construct and record.status == "approved" and self._is_current(record)]
+        records = [record for record in self.runtime_records(include_body) if record.type == construct and record.status == "approved" and self._is_current(record)]
         if not scope_id:
             return records
         ancestors = self.content.scope_ancestors(scope_id)
@@ -47,7 +47,7 @@ class ContextRepository:
         if not query.strip() or top_k <= 0:
             return []
         allowed = set(constructs or [])
-        records = [record for record in self.runtime_records() if record.criticality != "controlled" and self._is_current(record) and (not allowed or record.construct in allowed)]
+        records = [record for record in self.runtime_records() if record.criticality != "controlled" and self._is_current(record) and (not allowed or record.type in allowed)]
         if not records:
             return []
         doc_tokens = [tokenize(record.body) for record in records]
@@ -60,18 +60,12 @@ class ContextRepository:
         for record, tokens in zip(records, doc_tokens):
             score = self._cosine(query_vector, self._tfidf(Counter(tokens), idf))
             if score > 0:
-                scored.append(SearchPointer(record_id=record.id, kb_path=record.kb_path, score=round(score, 6), construct=record.construct))
+                scored.append(SearchPointer(record_id=record.id, kb_path=record.kb_path, score=round(score, 6), type=record.type))
         return sorted(scored, key=lambda item: item.score, reverse=True)[:top_k]
 
     def stats(self) -> dict:
         records = self.runtime_records(include_body=False)
         report = self.content.validation_report()
-        today = date.today()
-        stale = sum(
-            1
-            for record in records
-            if record.date_verified and (today - date.fromisoformat(record.date_verified)).days > record.staleness_threshold_days
-        )
         return {
             "total_records": report["total"],
             "valid_records": report["total"] - report["invalid"],
@@ -79,7 +73,6 @@ class ContextRepository:
             "controlled_records": sum(record.criticality == "controlled" for record in records),
             "hybrid_records": sum(record.criticality == "hybrid" for record in records),
             "flexible_records": sum(record.criticality == "flexible" for record in records),
-            "stale_records": stale,
             "git_sha": self.content.git.head(),
         }
 
@@ -87,9 +80,6 @@ class ContextRepository:
         metadata = document["effective_frontmatter"] | {"kb_glob": document["path"]}
         metadata.setdefault("id", document["path"].removesuffix(".md").replace("/", "."))
         metadata.setdefault("title", document["name"].replace("-", " ").title())
-        metadata.setdefault("construct", document["folder"] or "general")
-        metadata.setdefault("owner_role", "editor")
-        metadata["okf_type"] = metadata.pop("type")
         return ContextRecord.model_validate(metadata)
 
     def _runtime_record(self, definition: ContextRecord, document: dict) -> RuntimeRecord:
@@ -97,36 +87,25 @@ class ContextRepository:
         return RuntimeRecord(
             id=definition.id,
             title=definition.title,
-            construct=definition.construct,
+            type=definition.type,
             durability=definition.durability,
             provenance=definition.provenance,
             criticality=definition.criticality,
-            retrieval_policy=definition.retrieval_policy,
             status=definition.status,
-            exact_language=definition.exact_language,
             kb_path=document["path"],
             content_hash=__import__("hashlib").sha256(path.read_bytes()).hexdigest()[:16],
-            staleness_threshold_days=definition.staleness_threshold_days,
-            date_verified=definition.date_verified.isoformat() if definition.date_verified else None,
-            valid_from=definition.valid_from.isoformat() if definition.valid_from else None,
             valid_until=definition.valid_until.isoformat() if definition.valid_until else None,
-            owner_role=definition.owner_role,
-            approver_role=definition.approver_role,
-            read_roles=definition.read_roles,
             edit_roles=definition.edit_roles,
             scope=definition.scope.model_dump(exclude_none=True),
             scope_id=definition.scope_id,
             checks=definition.checks,
-            source_refs=[ref.model_dump(exclude_none=True) for ref in definition.source_refs],
-            okf={"type": definition.okf_type, "title": definition.title, "description": definition.description, "resource": definition.resource, "tags": definition.tags},
+            okf={"type": definition.type, "title": definition.title, "description": definition.description, "resource": definition.resource, "tags": definition.tags},
             body=document["body"],
         )
 
     @staticmethod
     def _is_current(record: RuntimeRecord) -> bool:
         today = date.today()
-        if record.valid_from and date.fromisoformat(record.valid_from) > today:
-            return False
         if record.valid_until and date.fromisoformat(record.valid_until) < today:
             return False
         return True

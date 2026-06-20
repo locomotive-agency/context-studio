@@ -1,5 +1,5 @@
 ---
-type: Playbook
+type: how-we-sound
 id: ctx.how-we-sound.playbook
 title: Content voice playbook
 description: Voice and structural guidance for authored content.

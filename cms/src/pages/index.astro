@@ -14,11 +14,12 @@ import "../styles/global.css";
     <section id="login" class="login-shell">
       <form id="login-form" class="login-panel">
         <div class="mark"><i data-lucide="braces"></i></div>
-        <div><h1>Context System</h1><p>Documentation workspace</p></div>
-        <div class="field"><label for="username">Username</label><input class="input" id="username" name="username" value="admin" autocomplete="username" /></div>
-        <div class="field"><label for="password">Password</label><input class="input" id="password" name="password" type="password" value="admin123" autocomplete="current-password" /></div>
+        <div><h1>Context System</h1><p id="login-copy">Documentation workspace</p></div>
+        <div class="field local-login-field"><label for="username">Username</label><input class="input" id="username" name="username" value="admin" autocomplete="username" /></div>
+        <div class="field local-login-field"><label for="password">Password</label><input class="input" id="password" name="password" type="password" value="admin123" autocomplete="current-password" /></div>
         <p id="login-error" class="form-error hidden"></p>
-        <button class="button primary login-button" type="submit">Sign in</button>
+        <button id="local-login-button" class="button primary login-button" type="submit">Sign in</button>
+        <button id="github-login-button" class="button primary login-button hidden" type="button"><i data-lucide="git-branch"></i>Sign in with GitHub</button>
       </form>
     </section>
 
@@ -63,7 +64,11 @@ import "../styles/global.css";
           <div id="document-browser" class="document-browser page">
             <div class="page-header documents-header">
               <div><span class="eyebrow">Repository</span><h2>Documents</h2><p id="browser-summary">Browse context files by folder.</p></div>
-              <button id="new-menu" class="button primary editor-only"><i data-lucide="file-plus-2"></i>New document</button>
+              <div class="document-actions">
+                <button id="delete-folder" class="button danger editor-only hidden" type="button"><i data-lucide="trash-2"></i>Delete folder</button>
+                <button id="new-folder-documents" class="button editor-only"><i data-lucide="folder-plus"></i>New folder</button>
+                <button id="new-menu" class="button primary editor-only"><i data-lucide="file-plus-2"></i>New document</button>
+              </div>
             </div>
             <div class="document-toolbar">
               <div class="search-wrap"><i data-lucide="search"></i><input id="document-search" placeholder="Search names, paths, and types" /></div>
@@ -84,8 +89,8 @@ import "../styles/global.css";
           <div id="document-editor" class="editor-layout hidden">
             <article class="editor-main">
               <div class="document-heading">
-                <div class="document-heading-main"><button id="back-to-documents" class="back-link"><i data-lucide="arrow-left"></i>Documents</button><span id="document-status" class="badge valid">Valid OKF</span><input id="document-title" class="title-input" aria-label="Document title" /></div>
-                <span id="document-path" class="path-label"></span>
+                <div class="document-heading-main"><button id="back-to-documents" class="back-link"><i data-lucide="arrow-left"></i>Documents</button><input id="document-title" class="title-input" aria-label="Document title" /></div>
+                <div class="document-heading-meta"><span id="document-status" class="badge certification-badge valid" title="OKF validation passed"><i data-lucide="shield-check"></i><span>OKF valid</span></span><span id="document-path" class="path-label"></span></div>
               </div>
               <div id="editor-mode-bar" class="editor-mode-bar hidden"><div class="editor-mode-bar-inner"><div id="editor-modes" class="segmented"><button class="active" data-editor-mode="raw">Raw</button><button data-editor-mode="preview">Preview</button><button data-editor-mode="split">Split</button></div></div></div>
               <div id="content-editor" class="content-editor mode-raw"><textarea id="document-body" class="body-editor" spellcheck="true" aria-label="Document content"></textarea><article id="document-preview" class="document-preview"></article></div>
@@ -93,7 +98,6 @@ import "../styles/global.css";
             <aside class="properties">
               <div class="inspector-header"><div><span class="eyebrow">Document</span><strong>Details</strong></div><button id="close-inspector" class="icon-button" title="Close details"><i data-lucide="x"></i></button></div>
               <div class="inspector-fields">
-                <div class="field"><label for="meta-type">Type</label><input id="meta-type" class="input" /></div>
                 <div class="field"><label for="meta-description">Description</label><textarea id="meta-description" class="textarea" rows="3"></textarea></div>
                 <div class="field"><label for="meta-tags">Tags</label><input id="meta-tags" class="input" placeholder="brand, writing" /></div>
               </div>
@@ -101,6 +105,7 @@ import "../styles/global.css";
               <div id="validation-errors" class="validation-errors hidden"></div>
               <div class="governance-section"><div class="panel-title"><strong>Resolved governance</strong><span>Inherited</span></div><div id="resolved-metadata" class="resolved-grid"></div></div>
               <details class="advanced-metadata"><summary>Advanced frontmatter</summary><textarea id="frontmatter-editor" class="metadata-editor" spellcheck="false" aria-label="YAML frontmatter"></textarea></details>
+              <div class="inspector-actions editor-only"><button id="delete-document" class="button danger" type="button"><i data-lucide="trash-2"></i>Delete document</button></div>
             </aside>
           </div>
         </section>
@@ -123,13 +128,13 @@ import "../styles/global.css";
 
     <script>
       // @ts-nocheck
-      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X, createIcons } from "lucide";
+      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GitBranch, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X, createIcons } from "lucide";
       import DOMPurify from "dompurify";
       import yaml from "js-yaml";
       import { marked } from "marked";
 
-      const API = "http://127.0.0.1:8001";
-      const state = { user: null, documents: [], folders: [], scopes: [], revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository" };
+      const API = "";
+      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository" };
       const byId = (id) => document.getElementById(id);
       const api = async (path, options = {}) => {
         const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
@@ -138,32 +143,25 @@ import "../styles/global.css";
       };
       const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
       const toast = (message, error = false) => { const el = byId("toast"); el.textContent = message; el.className = `toast${error ? " error" : ""}`; setTimeout(() => el.classList.add("hidden"), 2600); };
-      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
+      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GitBranch, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
+      const canEdit = () => Boolean(state.user?.can_edit ?? state.user?.role !== "viewer");
+      const canManage = () => state.user?.role === "admin" || (state.user?.auth_mode === "github" && canEdit());
       const refreshIcons = () => createIcons({ icons: iconSet });
+      const typeOptions = [["audience-profile","Audience Profile"],["brand-messaging","Brand Messaging"],["business-goals","Business Goals"],["case-study","Case Study"],["communication-preferences","Communication Preferences"],["competitive-landscape","Competitive Landscape"],["customer-journey","Customer Journey"],["how-we-look","How We Look"],["how-we-sound","How We Sound"],["how-we-write","How We Write"],["legal-and-compliance","Legal and Compliance"],["measurement-and-kpis","Measurement and KPIs"],["playbook","Playbook"],["product-and-offering","Product and Offering"],["proof-points","Proof Points"],["reference","Reference"],["sub-product","Sub-product"],["tech-stack","Tech Stack"],["use-cases-and-solutions","Use Cases and Solutions"],["value-proposition","Value Proposition"]];
       const metadataGroups = [
         {title:"Classification", fields:[
-          {key:"construct", label:"Construct", type:"select", options:[["audience-profile","Audience Profile"],["brand-messaging","Brand Messaging"],["business-goals","Business Goals"],["communication-preferences","Communication Preferences"],["competitive-landscape","Competitive Landscape"],["customer-journey","Customer Journey"],["how-we-look","How We Look"],["how-we-sound","How We Sound"],["how-we-write","How We Write"],["legal-and-compliance","Legal and Compliance"],["measurement-and-kpis","Measurement and KPIs"],["product-and-offering","Product and Offering"],["proof-points","Proof Points"],["tech-stack","Tech Stack"],["use-cases-and-solutions","Use Cases and Solutions"],["value-proposition","Value Proposition"]]},
+          {key:"type", label:"Type", type:"select", options:typeOptions},
           {key:"scope_id", label:"Scope", type:"scope"},
           {key:"durability", label:"Durability", type:"select", options:[["ephemeral","Ephemeral"],["time_bound","Time-bound"],["persistent","Persistent"]]},
           {key:"criticality", label:"Criticality", type:"select", options:[["flexible","Flexible"],["hybrid","Hybrid"],["controlled","Controlled"]]},
         ]},
         {title:"Governance and access", fields:[
           {key:"status", label:"Status", type:"select", options:[["draft","Draft"],["proposed","Proposed"],["approved","Approved"],["archived","Archived"]]},
-          {key:"owner_role", label:"Owner role", type:"text"},
-          {key:"approver_role", label:"Approver role", type:"text"},
-          {key:"read_roles", label:"Read roles", type:"list", placeholder:"viewer, editor, admin"},
           {key:"edit_roles", label:"Edit roles", type:"list", placeholder:"editor, admin"},
-          {key:"retrieval_policy", label:"Retrieval policy", type:"select", options:[["connector_search","Connector search"],["hybrid","Hybrid"],["deterministic","Deterministic"]]},
-          {key:"audit_required", label:"Audit required", type:"boolean"},
-          {key:"exact_language", label:"Exact language", type:"boolean"},
         ]},
         {title:"Sources and freshness", fields:[
           {key:"provenance", label:"Provenance", type:"text", placeholder:"Source URL, URI, or document name"},
-          {key:"provenance_type", label:"Source type", type:"select", options:[["original","Original"],["derived","Derived"],["outcome","Outcome"],["observed","Observed"]]},
-          {key:"valid_from", label:"Valid from", type:"date", temporal:true},
-          {key:"valid_until", label:"Valid until", type:"date", temporal:true},
-          {key:"date_verified", label:"Last verified", type:"date"},
-          {key:"staleness_threshold_days", label:"Freshness limit (days)", type:"number"},
+          {key:"valid_until", label:"Good until", type:"date", temporal:true},
         ]},
       ];
       const metadataKeys = metadataGroups.flatMap((group) => group.fields.map((field) => field.key));
@@ -173,7 +171,7 @@ import "../styles/global.css";
         container.innerHTML = metadataGroups.map((group) => `<section class="metadata-section"><div class="metadata-section-heading"><strong>${group.title}</strong></div><div class="metadata-grid">${group.fields.map((field) => metadataFieldMarkup(prefix, field, own, inherited, disabled)).join("")}</div></section>`).join("");
         const durability = byId(`${prefix}-meta-durability`);
         const updateTemporal = () => {
-          const show = (durability.value || inherited.durability) === "time_bound" || Boolean(own.valid_from || own.valid_until);
+          const show = (durability.value || inherited.durability) === "time_bound" || Boolean(own.valid_until);
           container.querySelectorAll("[data-temporal]").forEach((element) => element.classList.toggle("hidden", !show));
         };
         durability.addEventListener("change", updateTemporal); updateTemporal();
@@ -236,8 +234,23 @@ import "../styles/global.css";
 
       async function start() {
         refreshIcons();
+        state.auth = await api("/api/auth/config");
+        configureLogin();
+        const error = new URLSearchParams(window.location.search).get("auth_error");
+        if (error) { byId("login-error").textContent = error; byId("login-error").classList.remove("hidden"); }
         try { state.user = await api("/api/auth/me"); await enterWorkspace(); } catch { byId("login").classList.remove("hidden"); }
       }
+
+      function configureLogin() {
+        const githubMode = state.auth.mode === "github";
+        byId("login-copy").textContent = githubMode && state.auth.repository ? `Sign in with access to ${state.auth.repository}` : "Documentation workspace";
+        document.querySelectorAll(".local-login-field").forEach((element) => element.classList.toggle("hidden", githubMode));
+        byId("local-login-button").classList.toggle("hidden", githubMode);
+        byId("github-login-button").classList.toggle("hidden", !githubMode);
+        refreshIcons();
+      }
+
+      byId("github-login-button").addEventListener("click", () => { window.location.href = `${API}/api/auth/github/login`; });
 
       byId("login-form").addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -252,21 +265,23 @@ import "../styles/global.css";
         byId("login").classList.add("hidden"); byId("workspace").classList.remove("hidden");
         byId("user-initial").textContent = state.user.username.slice(0, 1).toUpperCase();
         byId("user-name").textContent = state.user.username;
-        byId("user-role").textContent = state.user.role;
-        document.querySelectorAll(".admin-only").forEach((el) => el.classList.toggle("hidden", state.user.role !== "admin"));
-        document.querySelectorAll(".editor-only").forEach((el) => el.classList.toggle("hidden", state.user.role === "viewer"));
+        byId("user-role").textContent = state.user.auth_mode === "github" ? `${state.user.role} via GitHub` : state.user.role;
+        document.querySelectorAll(".admin-only").forEach((el) => el.classList.toggle("hidden", !canManage()));
+        document.querySelectorAll(".editor-only").forEach((el) => el.classList.toggle("hidden", !canEdit()));
+        document.querySelector('[data-view="users"]')?.classList.toggle("hidden", state.user.auth_mode === "github");
         byId("save-document").classList.add("hidden");
         await Promise.all([loadDocuments(), loadValidation(), loadScopes()]);
       }
 
       async function loadDocuments() {
-        const [documents, stats] = await Promise.all([api("/api/documents"), api("/api/stats")]);
-        state.documents = documents; byId("git-sha").textContent = `Git ${stats.git_sha}`; byId("document-count").textContent = `${documents.length.toLocaleString()} documents`; renderBrowser();
+        const [documents, stats, folders] = await Promise.all([api("/api/documents"), api("/api/stats"), api("/api/folders")]);
+        state.documents = documents; state.folders = folders; byId("git-sha").textContent = `Git ${stats.git_sha}`; byId("document-count").textContent = `${documents.length.toLocaleString()} documents`; renderBrowser();
       }
 
       function renderBrowser() {
         const query = byId("document-search").value.toLowerCase();
-        const folderCounts = new Map([["", state.documents.length]]);
+        const folderCounts = new Map((state.folders.length ? state.folders : [{path: ""}]).map((folder) => [folder.path, 0]));
+        folderCounts.set("", state.documents.length);
         state.documents.forEach((doc) => {
           const parts = doc.folder ? doc.folder.split("/") : [];
           parts.forEach((_part, index) => {
@@ -280,7 +295,7 @@ import "../styles/global.css";
           const name = folder ? folder.split("/").at(-1) : "All documents";
           return `<button class="folder-row ${state.folder === folder ? "active" : ""}" data-folder="${escapeHtml(folder)}" style="--depth:${depth}"><i data-lucide="${folder ? "folder" : "files"}"></i><span>${escapeHtml(name)}</span><small>${count.toLocaleString()}</small></button>`;
         }).join("");
-        byId("folder-list").querySelectorAll("[data-folder]").forEach((button) => button.addEventListener("click", () => { state.folder = button.dataset.folder; state.page = 1; renderBrowser(); }));
+        byId("folder-list").querySelectorAll("[data-folder]").forEach((button) => button.addEventListener("click", () => { state.folder = button.dataset.folder; state.folderDeleteArmed = false; state.page = 1; renderBrowser(); }));
 
         const filtered = state.documents.filter((doc) => {
           const inFolder = !state.folder || doc.folder === state.folder || doc.folder.startsWith(`${state.folder}/`);
@@ -298,7 +313,17 @@ import "../styles/global.css";
         byId("previous-page").disabled = state.page === 1;
         byId("next-page").disabled = state.page === pages;
         byId("browser-summary").textContent = state.folder ? state.folder : "Browse context files by folder.";
+        updateFolderDeleteButton();
         refreshIcons();
+      }
+
+      function updateFolderDeleteButton() {
+        const button = byId("delete-folder");
+        const count = state.folder ? documentsInFolder(state.folder) : 0;
+        button.classList.toggle("hidden", !state.folder || !canEdit());
+        button.disabled = !state.folder || count > 0;
+        button.title = !state.folder ? "Select a folder to delete" : count > 0 ? "Folder must be empty before it can be deleted" : `Delete ${state.folder}`;
+        button.innerHTML = `<i data-lucide="trash-2"></i>${state.folderDeleteArmed ? "Confirm delete" : "Delete folder"}`;
       }
 
       async function openDocument(path) {
@@ -306,23 +331,25 @@ import "../styles/global.css";
         state.current = await api(`/api/documents/${path}`);
         byId("library").classList.remove("open");
         byId("document-browser").classList.add("hidden"); byId("document-editor").classList.remove("hidden");
-        byId("save-document").classList.toggle("hidden", state.user.role === "viewer");
+        byId("save-document").classList.toggle("hidden", !canEdit());
         byId("toggle-inspector").classList.toggle("hidden", state.current.format === "json");
         byId("document-history").classList.remove("hidden"); byId("editor-mode-bar").classList.remove("hidden");
         setInspectorOpen(false);
         byId("current-location").textContent = state.current.frontmatter.title || state.current.name;
         byId("document-title").value = state.current.frontmatter.title || state.current.name;
-        byId("document-title").readOnly = state.user.role === "viewer" || state.current.format === "json";
+        byId("document-title").readOnly = !canEdit() || state.current.format === "json";
         byId("document-path").textContent = state.current.path;
-        byId("document-body").value = state.current.body; byId("document-body").readOnly = state.user.role === "viewer";
+        byId("document-body").value = state.current.body; byId("document-body").readOnly = !canEdit();
         byId("frontmatter-editor").value = state.current.format === "markdown" ? yaml.dump(state.current.frontmatter, { lineWidth: -1, noRefs: true }) : "";
-        byId("frontmatter-editor").readOnly = state.user.role === "viewer";
-        byId("meta-type").value = state.current.frontmatter.type || "";
+        byId("frontmatter-editor").readOnly = !canEdit();
         byId("meta-description").value = state.current.frontmatter.description || "";
         byId("meta-tags").value = (state.current.frontmatter.tags || []).join(", ");
-        renderMetadataFields("document", state.current.frontmatter, state.current.inherited_frontmatter, state.user.role === "viewer");
-        ["meta-type", "meta-description", "meta-tags"].forEach((id) => byId(id).readOnly = state.user.role === "viewer");
+        renderMetadataFields("document", state.current.frontmatter, state.current.inherited_frontmatter, !canEdit());
+        ["meta-description", "meta-tags"].forEach((id) => byId(id).readOnly = !canEdit());
         renderGovernance(state.current.effective_frontmatter);
+        state.documentDeleteArmed = false;
+        byId("delete-document").innerHTML = `<i data-lucide="trash-2"></i>Delete document`;
+        byId("delete-document").classList.toggle("hidden", !canEdit());
         setEditorMode("preview");
         state.dirty = false;
         byId("save-state").textContent = "";
@@ -330,7 +357,7 @@ import "../styles/global.css";
       }
 
       function renderGovernance(metadata) {
-        const keys = ["scope_id", "construct", "durability", "criticality", "status", "owner_role", "approver_role", "retrieval_policy", "valid_from", "valid_until", "date_verified", "staleness_threshold_days"];
+        const keys = ["type", "scope_id", "durability", "criticality", "status", "edit_roles", "provenance", "valid_until"];
         byId("resolved-metadata").innerHTML = keys.filter((key) => metadata[key] !== undefined).map((key) => {
           const value = Array.isArray(metadata[key]) ? metadata[key].join(", ") : String(metadata[key]);
           return `<div><dt>${escapeHtml(key.replaceAll("_", " "))}</dt><dd>${escapeHtml(value)}</dd></div>`;
@@ -338,7 +365,10 @@ import "../styles/global.css";
       }
 
       function renderDocumentValidation(validation) {
-        const status = byId("document-status"); const kind = state.current?.format === "json" ? "JSON" : "OKF"; status.textContent = validation.valid ? `Valid ${kind}` : `Invalid ${kind}`; status.className = `badge ${validation.valid ? "valid" : "invalid"}`;
+        const status = byId("document-status"); const kind = state.current?.format === "json" ? "JSON" : "OKF"; const label = validation.valid ? `${kind} valid` : `${kind} issue`;
+        status.className = `badge certification-badge ${validation.valid ? "valid" : "invalid"}`;
+        status.title = validation.valid ? `${kind} validation passed` : `${kind} validation needs attention`;
+        status.innerHTML = `<i data-lucide="${validation.valid ? "shield-check" : "circle-alert"}"></i><span>${label}</span>`;
         const errors = byId("validation-errors"); errors.innerHTML = validation.errors.map((error) => `<div><i data-lucide="circle-alert"></i>${escapeHtml(error)}</div>`).join(""); errors.classList.toggle("hidden", validation.valid); refreshIcons();
       }
 
@@ -346,10 +376,42 @@ import "../styles/global.css";
         if (!state.current) return;
         try {
           const frontmatter = state.current.format === "json" ? {} : yaml.load(byId("frontmatter-editor").value) || {};
-          if (state.current.format === "markdown") { frontmatter.title = byId("document-title").value; frontmatter.type = byId("meta-type").value.trim(); frontmatter.description = byId("meta-description").value.trim(); frontmatter.tags = byId("meta-tags").value.split(",").map((tag) => tag.trim()).filter(Boolean); collectMetadataFields("document", frontmatter); }
+          if (state.current.format === "markdown") { frontmatter.title = byId("document-title").value; frontmatter.description = byId("meta-description").value.trim(); frontmatter.tags = byId("meta-tags").value.split(",").map((tag) => tag.trim()).filter(Boolean); collectMetadataFields("document", frontmatter); }
           state.current = await api(`/api/documents/${state.current.path}`, { method: "PUT", body: JSON.stringify({ frontmatter, body: byId("document-body").value }) });
           state.dirty = false; byId("save-state").textContent = "Saved"; await Promise.all([loadDocuments(), loadValidation()]); openDocument(state.current.path); toast("Document saved");
         } catch (error) { toast(error.message, true); }
+      });
+
+      byId("delete-document").addEventListener("click", async () => {
+        if (!state.current || !canEdit()) return;
+        if (!state.documentDeleteArmed) {
+          state.documentDeleteArmed = true;
+          byId("delete-document").innerHTML = `<i data-lucide="trash-2"></i>Confirm delete`;
+          refreshIcons();
+          return;
+        }
+        try {
+          const path = state.current.path;
+          await api(`/api/documents/${path}`, { method: "DELETE" });
+          state.current = null;
+          state.dirty = false;
+          setInspectorOpen(false);
+          byId("document-editor").classList.add("hidden");
+          byId("document-browser").classList.remove("hidden");
+          byId("document-history").classList.add("hidden");
+          byId("editor-mode-bar").classList.add("hidden");
+          byId("toggle-inspector").classList.add("hidden");
+          byId("save-document").classList.add("hidden");
+          byId("save-state").textContent = "";
+          byId("current-location").textContent = "Documents";
+          await Promise.all([loadDocuments(), loadValidation()]);
+          toast("Document deleted");
+        } catch (error) {
+          state.documentDeleteArmed = false;
+          byId("delete-document").innerHTML = `<i data-lucide="trash-2"></i>Delete document`;
+          refreshIcons();
+          toast(error.message, true);
+        }
       });
 
       document.querySelectorAll(".rail-button[data-view]").forEach((button) => button.addEventListener("click", async () => {
@@ -418,7 +480,7 @@ import "../styles/global.css";
         byId("diff-view").innerHTML = `<div class="diff-loading">Loading changes…</div>`;
         byId("diff-label").textContent = documentMode ? "Changes from the previous document revision" : "Changes in this repository revision";
         const restore = byId("restore-revision"); const currentRevision = index === 0;
-        restore.classList.toggle("hidden", !documentMode || state.user.role === "viewer"); restore.disabled = currentRevision;
+        restore.classList.toggle("hidden", !documentMode || !canEdit()); restore.disabled = currentRevision;
         restore.innerHTML = currentRevision ? `<i data-lucide="circle-check"></i>Current version` : `<i data-lucide="rotate-ccw"></i>Restore this version`;
         refreshIcons();
         try {
@@ -443,10 +505,17 @@ import "../styles/global.css";
 
       async function loadSchemas() {
         state.folders = await api("/api/folders");
-        byId("schema-list").innerHTML = state.folders.map((folder) => `<button class="list-row" data-schema-path="${escapeHtml(folder.path)}"><i data-lucide="folder-cog"></i><span><strong>${escapeHtml(folder.path || "Root")}</strong><small>${Object.keys(folder.schema).length} fields</small></span></button>`).join("");
+        byId("schema-list").innerHTML = state.folders.map((folder) => {
+          const count = documentsInFolder(folder.path);
+          return `<button class="list-row" data-schema-path="${escapeHtml(folder.path)}"><i data-lucide="folder-cog"></i><span><strong>${escapeHtml(folder.path || "Root")}</strong><small>${count.toLocaleString()} ${count === 1 ? "document" : "documents"}</small></span></button>`;
+        }).join("");
         byId("schema-list").querySelectorAll("[data-schema-path]").forEach((row) => row.addEventListener("click", () => selectSchema(row.dataset.schemaPath)));
         refreshIcons();
         if (state.folders.length) selectSchema(state.folders.some((folder) => folder.path === state.schemaPath) ? state.schemaPath : state.folders[0].path);
+      }
+
+      function documentsInFolder(folder) {
+        return state.documents.filter((doc) => !folder || doc.folder === folder || doc.folder.startsWith(`${folder}/`)).length;
       }
 
       function selectSchema(path) {
@@ -473,7 +542,7 @@ import "../styles/global.css";
         state.scopes = await api("/api/scopes");
         if (!byId("view-scopes").classList.contains("active")) return;
         const ordered = orderedScopes();
-        byId("scope-list").innerHTML = ordered.map(({scope, depth}) => `<div class="scope-row" style="--depth:${depth}" data-scope-id="${escapeHtml(scope.id)}" data-parent-id="${escapeHtml(scope.parent_id || "")}" ${state.user.role === "admin" ? "draggable=\"true\"" : ""}><span class="scope-branch"></span><span class="drag-handle" title="Reorder or change nesting"><i data-lucide="grip-vertical"></i></span><span class="scope-icon"><i data-lucide="${scope.level === "company" ? "building-2" : scope.level === "brand" ? "badge" : "box"}"></i></span><span class="scope-name"><strong>${escapeHtml(scope.name)}</strong><small>${escapeHtml(scope.id)}${scope.parent_id ? ` · inherits from ${escapeHtml(scope.parent_id)}` : ""}</small></span><span class="level-pill">${escapeHtml(scope.level)}</span>${state.user.role === "admin" ? `<button class="icon-button" data-edit-scope="${escapeHtml(scope.id)}" title="Edit scope"><i data-lucide="pencil"></i></button>` : ""}</div>`).join("") || `<div class="empty">No scopes</div>`;
+        byId("scope-list").innerHTML = ordered.map(({scope, depth}) => `<div class="scope-row" style="--depth:${depth}" data-scope-id="${escapeHtml(scope.id)}" data-parent-id="${escapeHtml(scope.parent_id || "")}" ${canManage() ? "draggable=\"true\"" : ""}><span class="scope-branch"></span><span class="drag-handle" title="Reorder or change nesting"><i data-lucide="grip-vertical"></i></span><span class="scope-icon"><i data-lucide="${scope.level === "company" ? "building-2" : scope.level === "brand" ? "badge" : "box"}"></i></span><span class="scope-name"><strong>${escapeHtml(scope.name)}</strong><small>${escapeHtml(scope.id)}${scope.parent_id ? ` · inherits from ${escapeHtml(scope.parent_id)}` : ""}</small></span><span class="level-pill">${escapeHtml(scope.level)}</span>${canManage() ? `<button class="icon-button" data-edit-scope="${escapeHtml(scope.id)}" title="Edit scope"><i data-lucide="pencil"></i></button>` : ""}</div>`).join("") || `<div class="empty">No scopes</div>`;
         byId("scope-list").querySelectorAll("[data-edit-scope]").forEach((button) => button.addEventListener("click", () => openDrawer("scope-edit", state.scopes.find((scope) => scope.id === button.dataset.editScope))));
         bindScopeDragging();
         refreshIcons();
@@ -489,7 +558,7 @@ import "../styles/global.css";
       }
 
       function bindScopeDragging() {
-        if (state.user.role !== "admin") return;
+        if (!canManage()) return;
         const rows = byId("scope-list").querySelectorAll("[data-scope-id]");
         rows.forEach((row) => {
           row.addEventListener("dragstart", (event) => { state.draggedScopeId = row.dataset.scopeId; row.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("text/plain", row.dataset.scopeId); });
@@ -535,6 +604,19 @@ import "../styles/global.css";
         return options + orderedScopes().map(({scope, depth}) => `<option value="${escapeHtml(scope.id)}" ${scope.id === selected ? "selected" : ""}>${"— ".repeat(depth)}${escapeHtml(scope.name)} (${escapeHtml(scope.level)})</option>`).join("");
       }
 
+      function folderOptions(selected = "") {
+        const folders = state.folders.length ? state.folders : [{path: ""}];
+        return folders
+          .slice()
+          .sort((left, right) => left.path.localeCompare(right.path))
+          .map((folder) => {
+            const depth = folder.path ? folder.path.split("/").length - 1 : 0;
+            const label = folder.path ? `${"— ".repeat(depth)}${folder.path}` : "Root";
+            return `<option value="${escapeHtml(folder.path)}" ${folder.path === selected ? "selected" : ""}>${escapeHtml(label)}</option>`;
+          })
+          .join("");
+      }
+
       async function loadUsers() {
         const users = await api("/api/users");
         byId("user-list").innerHTML = users.map((user) => `<div class="list-row"><div class="avatar">${user.username.slice(0,1).toUpperCase()}</div><span><strong>${escapeHtml(user.username)}</strong><small>Local account</small></span><span class="role-pill">${escapeHtml(user.role)}</span><button class="icon-button" data-edit-user="${escapeHtml(user.username)}" title="Edit user"><i data-lucide="pencil"></i></button></div>`).join("");
@@ -550,7 +632,7 @@ import "../styles/global.css";
         const titles = {document: "New document", folder: "New folder", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope", revision: "Restore document"};
         byId("drawer-eyebrow").textContent = restoring ? "History" : editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = restoring ? "Restore version" : editing ? "Save changes" : "Create";
         byId("delete-drawer-item").classList.toggle("hidden", !editing || !["user", "scope"].includes(kind));
-        if (kind === "document") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-format">Format</label><select id="drawer-format" class="select"><option value="markdown">Markdown / OKF</option><option value="json">JSON</option></select></div><div class="field"><label for="drawer-path">Path</label><input id="drawer-path" class="input" placeholder="folder/document.md" required /></div><div class="field"><label for="drawer-document-title">Title</label><input id="drawer-document-title" class="input" required /></div><div class="field markdown-option"><label for="drawer-type">Type</label><input id="drawer-type" class="input" value="Context Document" required /></div><div class="field markdown-option"><label for="drawer-scope">Scope</label><select id="drawer-scope" class="select">${scopeOptions("", true)}</select></div>`;
+        if (kind === "document") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-format">Format</label><select id="drawer-format" class="select"><option value="markdown">Markdown / OKF</option><option value="json">JSON</option></select></div><div class="field"><label for="drawer-folder">Folder</label><select id="drawer-folder" class="select">${folderOptions(state.folder)}</select></div><div class="field"><label for="drawer-filename">Filename</label><input id="drawer-filename" class="input" placeholder="document-name" pattern="[^/\\\\]+" required /></div><div class="field"><label for="drawer-document-title">Title</label><input id="drawer-document-title" class="input" required /></div><div class="field markdown-option"><label for="drawer-type">Type</label><select id="drawer-type" class="select" required>${typeOptions.map(([value,label]) => `<option value="${value}" ${value === "reference" ? "selected" : ""}>${label}</option>`).join("")}</select></div><div class="field markdown-option"><label for="drawer-scope">Scope</label><select id="drawer-scope" class="select">${scopeOptions("", true)}</select></div>`;
         if (kind === "folder") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-path">Folder path</label><input id="drawer-path" class="input" placeholder="products/platform" required /></div>`;
         if (kind === "user") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-username">Username</label><input id="drawer-username" class="input" value="${escapeHtml(data?.username || "")}" ${editing ? "readonly" : "required"} /></div><div class="field"><label for="drawer-password">${editing ? "New password" : "Password"}</label><input id="drawer-password" class="input" type="password" ${editing ? "" : "required"} /></div><div class="field"><label for="drawer-role">Role</label><select id="drawer-role" class="select"><option ${data?.role === "viewer" ? "selected" : ""}>viewer</option><option ${data?.role === "editor" ? "selected" : ""}>editor</option><option ${data?.role === "admin" ? "selected" : ""}>admin</option></select></div>`;
         if (kind === "scope") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-scope-id">Scope ID</label><input id="drawer-scope-id" class="input" value="${escapeHtml(data?.id || "")}" ${editing ? "readonly" : "required"} placeholder="product-a" /></div><div class="field"><label for="drawer-scope-name">Name</label><input id="drawer-scope-name" class="input" value="${escapeHtml(data?.name || "")}" required /></div><div class="field"><label for="drawer-scope-level">Level</label><select id="drawer-scope-level" class="select">${["company","brand","product","market","campaign","audience","channel","custom"].map((level) => `<option ${data?.level === level ? "selected" : ""}>${level}</option>`).join("")}</select></div><div class="field"><label for="drawer-parent">Parent</label><select id="drawer-parent" class="select">${scopeOptions(data?.parent_id || "")}</select></div>`;
@@ -560,15 +642,15 @@ import "../styles/global.css";
 
       function closeDrawer() { byId("drawer-scrim").classList.add("hidden"); state.drawerMode = ""; state.drawerData = null; }
 
-      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
+      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder-documents").addEventListener("click", () => openDrawer("folder")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
       byId("close-drawer").addEventListener("click", closeDrawer); byId("cancel-drawer").addEventListener("click", closeDrawer); byId("drawer-scrim").addEventListener("click", (event) => { if (event.target === byId("drawer-scrim")) closeDrawer(); });
 
       byId("drawer-form").addEventListener("submit", async (event) => {
         event.preventDefault();
         try {
           const kind = state.drawerMode.split("-")[0]; const editing = state.drawerMode.endsWith("-edit");
-          if (kind === "document") { const format = byId("drawer-format").value; const rawPath = byId("drawer-path").value.trim().replace(/\.(md|json)$/i, ""); const path = `${rawPath}.${format === "json" ? "json" : "md"}`; const title = byId("drawer-document-title").value.trim(); const frontmatter = format === "json" ? {} : {type:byId("drawer-type").value.trim(), title}; if (format !== "json" && byId("drawer-scope").value) frontmatter.scope_id = byId("drawer-scope").value; await api(`/api/documents/${path}`, {method:"PUT", body:JSON.stringify({frontmatter, body:format === "json" ? "{}" : `# ${title}`})}); closeDrawer(); await loadDocuments(); await openDocument(path); }
-          if (kind === "folder") { await api("/api/folders", {method:"POST", body:JSON.stringify({path:byId("drawer-path").value.trim()})}); closeDrawer(); await loadSchemas(); }
+          if (kind === "document") { const format = byId("drawer-format").value; const folder = byId("drawer-folder").value; const filename = byId("drawer-filename").value.trim().replace(/\.(md|json)$/i, ""); if (!filename || filename.includes("/") || filename.includes("\\")) throw new Error("Filename cannot include folders"); const path = `${folder ? `${folder}/` : ""}${filename}.${format === "json" ? "json" : "md"}`; const title = byId("drawer-document-title").value.trim(); const frontmatter = format === "json" ? {} : {type:byId("drawer-type").value.trim(), title}; if (format !== "json" && byId("drawer-scope").value) frontmatter.scope_id = byId("drawer-scope").value; await api(`/api/documents/${path}`, {method:"PUT", body:JSON.stringify({frontmatter, body:format === "json" ? "{}" : `# ${title}`})}); closeDrawer(); await loadDocuments(); await openDocument(path); }
+          if (kind === "folder") { const folder = await api("/api/folders", {method:"POST", body:JSON.stringify({path:byId("drawer-path").value.trim()})}); state.folder = folder.path; state.page = 1; closeDrawer(); await Promise.all([loadDocuments(), loadSchemas()]); }
           if (kind === "user") { const payload = {username:byId("drawer-username").value.trim(), password:byId("drawer-password").value, role:byId("drawer-role").value}; await api(editing ? `/api/users/${state.drawerData.username}` : "/api/users", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadUsers(); }
           if (kind === "scope") { const payload = {id:byId("drawer-scope-id").value.trim(), name:byId("drawer-scope-name").value.trim(), level:byId("drawer-scope-level").value, parent_id:byId("drawer-parent").value || null}; await api(editing ? `/api/scopes/${state.drawerData.id}` : "/api/scopes", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadScopes(); }
           if (kind === "revision") { const result = await api(`/api/history/${state.drawerData.hash}/restore`, {method:"POST", body:JSON.stringify({path:state.current.path})}); state.current = result.document; closeDrawer(); await Promise.all([loadDocuments(), loadValidation()]); await loadHistory(); toast("Document restored"); return; }
@@ -584,6 +666,28 @@ import "../styles/global.css";
       byId("document-search").addEventListener("input", () => { state.page = 1; renderBrowser(); });
       byId("previous-page").addEventListener("click", () => { if (state.page > 1) { state.page -= 1; renderBrowser(); } });
       byId("next-page").addEventListener("click", () => { state.page += 1; renderBrowser(); });
+      byId("delete-folder").addEventListener("click", async () => {
+        if (!state.folder || documentsInFolder(state.folder) > 0 || !canEdit()) return;
+        if (!state.folderDeleteArmed) {
+          state.folderDeleteArmed = true;
+          updateFolderDeleteButton();
+          refreshIcons();
+          return;
+        }
+        try {
+          const folder = state.folder;
+          await api(`/api/folders/${folder}`, { method: "DELETE" });
+          state.folder = "";
+          state.folderDeleteArmed = false;
+          await Promise.all([loadDocuments(), loadSchemas(), loadValidation()]);
+          toast("Folder deleted");
+        } catch (error) {
+          state.folderDeleteArmed = false;
+          updateFolderDeleteButton();
+          refreshIcons();
+          toast(error.message, true);
+        }
+      });
       byId("back-to-documents").addEventListener("click", showDocumentBrowser);
       byId("document-history").addEventListener("click", async () => { state.historyMode = "document"; showView("history"); await loadHistory(); });
       byId("editor-modes").querySelectorAll("[data-editor-mode]").forEach((button) => button.addEventListener("click", () => setEditorMode(button.dataset.editorMode)));
@@ -623,7 +727,7 @@ import "../styles/global.css";
       const setInspectorOpen = (open) => { byId("document-editor").classList.toggle("inspector-open", open); byId("toggle-inspector").setAttribute("aria-expanded", String(open)); };
       byId("toggle-inspector").addEventListener("click", () => setInspectorOpen(!byId("document-editor").classList.contains("inspector-open")));
       byId("close-inspector").addEventListener("click", () => setInspectorOpen(false));
-      ["document-title", "document-body", "meta-type", "meta-description", "meta-tags", "frontmatter-editor"].forEach((id) => byId(id).addEventListener("input", () => { markDocumentDirty(); if (id === "document-body") renderPreview(); }));
+      ["document-title", "document-body", "meta-description", "meta-tags", "frontmatter-editor"].forEach((id) => byId(id).addEventListener("input", () => { markDocumentDirty(); if (id === "document-body") renderPreview(); }));
       start();
     </script>
   </body>
@@ -698,6 +802,8 @@ import "../styles/global.css";
   .advanced-metadata summary { cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 700; }
   .advanced-metadata[open] summary { margin-bottom: 12px; }
   .metadata-editor { min-height: 260px; padding: 12px; border: 1px solid var(--line); border-radius: 5px; font-size: 12px; }
+  .inspector-actions { flex: 0 0 auto; padding: 0 20px 24px; }
+  .inspector-actions .button { width: 100%; justify-content: center; }
   .page { padding-top: 42px; }
   .page-header h2 { font-size: 26px; }
   .list-row strong { font-size: 13px; }
@@ -714,6 +820,7 @@ import "../styles/global.css";
     .editor-layout.inspector-open { grid-template-columns: 1fr; }
     .editor-layout { overflow: visible; }
     .document-heading { padding: 30px 24px 20px; align-items: start; flex-direction: column; }
+    .document-heading-meta { width: 100%; justify-items: start; }
     .title-input { font-size: 25px; }
     .body-editor { min-height: 520px; padding: 26px 24px 70px; font-size: 15px; }
     .inspector-open .properties { height: auto; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
@@ -738,6 +845,7 @@ import "../styles/global.css";
   .sidebar-footer { margin-top: auto; }
   .documents-header { align-items: end; }
   .documents-header p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  .document-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
   .document-browser { max-width: 1460px; }
   .document-toolbar { min-height: 58px; display: flex; align-items: center; gap: 16px; padding: 9px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 7px 7px 0 0; background: #fafbfa; }
   .document-toolbar .search-wrap { width: min(480px, 100%); margin: 0; }
@@ -782,6 +890,12 @@ import "../styles/global.css";
   .back-link:hover { color: var(--green); }
   .back-link svg { width: 15px; }
   .document-heading-main { min-width: 0; display: grid; gap: 13px; }
+  .document-heading-meta { flex: 0 0 auto; min-width: 180px; display: grid; justify-items: end; gap: 10px; }
+  .certification-badge { width: fit-content; min-height: 28px; gap: 7px; padding: 4px 10px 4px 8px; border: 1px solid currentColor; border-radius: 999px; letter-spacing: .02em; box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 1px 2px rgba(27, 41, 33, .06); }
+  .certification-badge svg { width: 15px; height: 15px; stroke-width: 2.2; }
+  .certification-badge.valid { color: #176447; background: #e7f4ed; border-color: #9fcdb4; }
+  .certification-badge.invalid { color: #96352f; background: #fff0ee; border-color: #e1aaa5; }
+  .certification-badge span { line-height: 1; }
   .segmented { display: inline-flex; align-items: center; padding: 2px; border: 1px solid var(--line); border-radius: 5px; background: #f4f6f4; }
   .segmented button { height: 28px; padding: 0 9px; border: 0; border-radius: 3px; color: var(--muted); background: transparent; font-size: 11px; font-weight: 700; }
   .segmented button.active { color: var(--ink); background: white; box-shadow: 0 1px 3px rgba(0,0,0,.09); }
@@ -895,6 +1009,7 @@ import "../styles/global.css";
   @media (max-width: 680px) {
     .document-browser.page { padding: 24px 14px 50px; }
     .documents-header { align-items: start; }
+    .document-actions { justify-content: flex-start; }
     .documents-header .button { font-size: 0; }
     .documents-header .button svg { margin: 0; }
     .document-toolbar { align-items: stretch; flex-direction: column; gap: 8px; }

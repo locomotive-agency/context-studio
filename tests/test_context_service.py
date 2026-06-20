@@ -6,14 +6,15 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from context_system.app import app
-from context_system.auth import UserStore
+from context_system.auth import UserStore, create_token, github_role_for_permission, verify_token
 from context_system.cms import ContentStore
 from context_system.config import Config
+from context_system.git_store import GitStore
 from context_system.repository import ContextRepository
 from context_system.service import ContextService
 
 
-def test_assemble_package_returns_controlled_exact_language():
+def test_assemble_package_returns_controlled_records():
     service = ContextService()
     package = service.assemble_context_package(
         task="landing-page",
@@ -23,7 +24,7 @@ def test_assemble_package_returns_controlled_exact_language():
 
     assert not package.blocked
     assert len(package.records) >= 2
-    assert "ctx.brand-messaging.terminology" in package.exact_language_map
+    assert any(record["criticality"] == "controlled" for record in package.records)
 
 
 def test_search_returns_hybrid_pointers_only():
@@ -31,7 +32,7 @@ def test_search_returns_hybrid_pointers_only():
     results = service.search("customer case study revenue operations", constructs=["proof-points"], top_k=3)
 
     assert results
-    assert all(result["construct"] == "proof-points" for result in results)
+    assert all(result["type"] == "proof-points" for result in results)
 
 
 def test_api_assemble_contract_for_content_improve():
@@ -60,16 +61,16 @@ def test_authenticated_records_list():
 
 def test_frontmatter_overrides_folder_schema(tmp_path: Path):
     store = ContentStore(tmp_path / "context")
-    store.save_schema("", {"criticality": "hybrid", "construct": "general"}, "admin")
-    store.save_schema("brand", {"criticality": "controlled", "construct": "brand", "approver_role": "admin"}, "admin")
+    store.save_schema("", {"criticality": "hybrid", "type": "general"}, "admin")
+    store.save_schema("brand", {"criticality": "controlled", "type": "brand-messaging"}, "admin")
     document = store.save_document(
         "brand/example.md",
-        {"type": "Reference", "title": "Example", "criticality": "flexible"},
+        {"type": "proof-points", "title": "Example", "criticality": "flexible"},
         "# Example",
         "editor",
     )
 
-    assert document["effective_frontmatter"]["construct"] == "brand"
+    assert document["effective_frontmatter"]["type"] == "proof-points"
     assert document["effective_frontmatter"]["criticality"] == "flexible"
     assert store.git.history("brand/example.md")[0]["author"] == "editor"
 
@@ -81,10 +82,9 @@ def test_folder_scope_and_dates_are_inherited_and_document_scope_can_override(tm
     store.save_schema(
         "campaigns",
         {
-            "construct": "business-goals",
+            "type": "business-goals",
             "scope_id": "campaign",
             "durability": "time_bound",
-            "valid_from": "2026-06-01",
             "valid_until": "2026-06-30",
         },
         "admin",
@@ -98,24 +98,24 @@ def test_folder_scope_and_dates_are_inherited_and_document_scope_can_override(tm
     assert overridden["effective_frontmatter"]["scope_id"] == "company"
 
 
-def test_time_bound_schema_requires_validity_dates(tmp_path: Path):
+def test_time_bound_schema_requires_good_until_date(tmp_path: Path):
     store = ContentStore(tmp_path / "context")
 
     try:
         store.save_schema("campaigns", {"durability": "time_bound"}, "admin")
     except ValueError as exc:
-        assert "valid_from and valid_until" in str(exc)
+        assert "valid_until" in str(exc)
     else:
-        raise AssertionError("time-bound schema should require validity dates")
+        raise AssertionError("time-bound schema should require a good-until date")
 
 
 def test_expired_context_is_excluded_from_retrieval(tmp_path: Path):
     repository_path = tmp_path / "context"
     store = ContentStore(repository_path)
     today = date.today()
-    base = {"type": "Brief", "construct": "business-goals", "owner_role": "editor", "status": "approved", "durability": "time_bound"}
-    store.save_document("expired.md", base | {"title": "Expired", "valid_from": today - timedelta(days=2), "valid_until": today - timedelta(days=1)}, "Expired", "admin")
-    store.save_document("current.md", base | {"title": "Current", "valid_from": today - timedelta(days=1), "valid_until": today + timedelta(days=1)}, "Current", "admin")
+    base = {"type": "business-goals", "status": "approved", "durability": "time_bound"}
+    store.save_document("expired.md", base | {"title": "Expired", "valid_until": today - timedelta(days=1)}, "Expired", "admin")
+    store.save_document("current.md", base | {"title": "Current", "valid_until": today + timedelta(days=1)}, "Current", "admin")
     config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users.sqlite"))
 
     records = ContextRepository(config).get_construct("business-goals")
@@ -162,6 +162,33 @@ def test_document_can_be_restored_as_a_new_revision(tmp_path: Path):
     assert store.git.history("example.md")[0]["subject"].startswith("Restore example.md")
 
 
+def test_document_can_be_deleted_as_a_git_revision(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    store.save_document("example.md", {"type": "Reference", "title": "Example"}, "Body", "editor")
+
+    store.delete_document("example.md", "editor")
+
+    assert not (tmp_path / "context" / "example.md").exists()
+    assert store.git.history()[0]["subject"] == "Delete example.md"
+
+
+def test_empty_folder_can_be_deleted_but_folder_with_documents_is_protected(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    store.create_folder("empty", "editor")
+    store.create_folder("occupied", "editor")
+    store.save_document("occupied/example.md", {"type": "Reference", "title": "Example"}, "Body", "editor")
+
+    store.delete_folder("empty", "editor")
+
+    assert not (tmp_path / "context" / "empty").exists()
+    try:
+        store.delete_folder("occupied", "editor")
+    except ValueError as exc:
+        assert "contains documents" in str(exc)
+    else:
+        raise AssertionError("folder with documents should not be deleted")
+
+
 def test_user_store_updates_password_role_and_removes_user(tmp_path: Path):
     users = UserStore(tmp_path / "users.sqlite")
 
@@ -182,17 +209,40 @@ def test_user_store_keeps_at_least_one_admin(tmp_path: Path):
         raise AssertionError("last admin removal should fail")
 
 
+def test_github_permissions_map_to_local_edit_roles():
+    assert github_role_for_permission("admin") == "admin"
+    assert github_role_for_permission("write") == "editor"
+    assert github_role_for_permission("maintain") == "editor"
+    assert github_role_for_permission("read") == "viewer"
+    assert github_role_for_permission("triage") == "viewer"
+    assert github_role_for_permission("none") is None
+
+
+def test_github_session_token_keeps_only_session_reference():
+    token = create_token("octocat", "editor", "github", "session-123")
+    payload = verify_token(token)
+
+    assert payload == {"username": "octocat", "role": "editor", "provider": "github", "session_id": "session-123"}
+
+
+def test_git_sync_and_push_skip_repositories_without_origin(tmp_path: Path):
+    git = GitStore(tmp_path / "context")
+
+    assert git.sync_with_remote() == {"synced": False, "reason": "no origin remote"}
+    assert git.push_to_remote() == {"pushed": False, "reason": "no origin remote"}
+
+
 def test_scope_hierarchy_prefers_most_specific_context(tmp_path: Path):
     repository_path = tmp_path / "context"
     store = ContentStore(repository_path)
     store.save_scope({"id": "company", "name": "Company", "level": "company"}, "admin")
     store.save_scope({"id": "product", "name": "Product", "level": "product", "parent_id": "company"}, "admin")
-    base = {"type": "Reference", "construct": "product-offering", "owner_role": "editor", "status": "approved", "criticality": "hybrid"}
+    base = {"type": "product-and-offering", "status": "approved", "criticality": "hybrid"}
     store.save_document("company.md", base | {"title": "Company offering", "scope_id": "company"}, "Company", "admin")
     store.save_document("product.md", base | {"title": "Product offering", "scope_id": "product"}, "Product", "admin")
     config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users-2.sqlite"))
 
-    records = ContextRepository(config).get_construct("product-offering", scope_id="product")
+    records = ContextRepository(config).get_construct("product-and-offering", scope_id="product")
 
     assert [record.title for record in records] == ["Product offering"]
 

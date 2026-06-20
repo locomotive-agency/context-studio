@@ -1,5 +1,5 @@
 ---
-type: sub-product
+type: competitive-landscape
 brand: 11x
 sub_product: Alice — Outbound AI SDR
 slug: 11x--alice

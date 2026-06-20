@@ -1,2 +1,1 @@
-construct: proof-points
-staleness_threshold_days: 180
+type: proof-points
