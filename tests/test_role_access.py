@@ -1,0 +1,122 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
+from context_system import app as app_module
+from context_system.auth import create_token
+from context_system.cms import ContentStore
+from context_system.config import Config
+from context_system.service import ContextService
+
+
+def _headers(role: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {create_token(role, role)}"}
+
+
+def _temp_service(tmp_path: Path) -> tuple[Config, ContentStore, ContextService]:
+    cfg = Config(
+        context_repository_path=str(tmp_path / "context_repo"),
+        audit_path=str(tmp_path / "audit.sqlite"),
+        users_path=str(tmp_path / "users.sqlite"),
+        collections_root_path=str(tmp_path / "collections"),
+        collections_db_path=str(tmp_path / "collections.sqlite"),
+    )
+    store = ContentStore(cfg.context_repo)
+    service = ContextService(cfg)
+    return cfg, store, service
+
+
+def test_context_and_semantic_routes_require_login() -> None:
+    with TestClient(app_module.app) as client:
+        responses = [
+            client.get("/api/stats"),
+            client.get("/api/constructs/brand-messaging"),
+            client.get("/api/search", params={"query": "brand"}),
+            client.post("/api/assemble_context_package", json={"task": "brand", "constructs": ["brand-messaging"]}),
+            client.post(
+                "/api/context-package",
+                json={"task": "brand", "requests": [{"type": "brand-messaging"}]},
+            ),
+            client.post("/mcp/"),
+        ]
+
+    assert {response.status_code for response in responses} == {401}
+
+
+def test_viewer_can_request_context_but_cannot_write() -> None:
+    client = TestClient(app_module.app)
+
+    read = client.post(
+        "/api/context-package",
+        headers=_headers("viewer"),
+        json={"task": "brand", "requests": [{"type": "brand-messaging"}]},
+    )
+    write = client.put(
+        "/api/documents/viewer-test.md",
+        headers=_headers("viewer"),
+        json={"frontmatter": {"type": "test", "title": "Test"}, "body": "Body"},
+    )
+
+    assert read.status_code == 200
+    assert write.status_code == 403
+
+
+def test_editor_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, monkeypatch) -> None:
+    _cfg, store, service = _temp_service(tmp_path)
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "example.md").write_text("---\ntype: test\ntitle: Test\nstatus: approved\n---\n\nBody\n", encoding="utf-8")
+    monkeypatch.setattr(app_module, "content", store)
+    monkeypatch.setattr(app_module, "service", service)
+    client = TestClient(app_module.app)
+
+    schema = client.put(
+        "/api/schemas",
+        headers=_headers("editor"),
+        json={"path": "", "schema": {"type": "test", "criticality": "flexible"}},
+    )
+    imported = client.post(
+        "/api/imports/okf-folder/apply",
+        headers=_headers("editor"),
+        json={"source_folder": str(source)},
+    )
+
+    assert schema.status_code == 200
+    assert imported.status_code == 200
+    assert (store.repository / "example.md").is_file()
+
+
+def test_editor_cannot_manage_users_or_scopes() -> None:
+    client = TestClient(app_module.app)
+
+    user_response = client.post(
+        "/api/users",
+        headers=_headers("editor"),
+        json={"username": "role-test", "password": "pw", "role": "viewer"},
+    )
+    scope_response = client.post(
+        "/api/scopes",
+        headers=_headers("editor"),
+        json={"id": "role-test", "name": "Role Test", "level": "company"},
+    )
+
+    assert user_response.status_code == 403
+    assert scope_response.status_code == 403
+
+
+def test_github_editor_cannot_use_admin_write_paths(monkeypatch) -> None:
+    monkeypatch.setattr(
+        app_module.github_auth,
+        "refresh_user_permission",
+        lambda user, users: {"username": "octocat", "role": "editor", "provider": "github", "permission": "write"},
+    )
+
+    try:
+        app_module._prepare_write({"username": "octocat", "role": "editor", "provider": "github"}, ["admin"])
+    except HTTPException as exc:
+        assert exc.status_code == 403
+    else:
+        raise AssertionError("GitHub editor should not pass admin-only write paths")

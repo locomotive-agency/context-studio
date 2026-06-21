@@ -32,7 +32,7 @@ Later values override earlier values. Every concept document must still contain 
 
 `context_repo/_scopes.yaml` stores the parent-linked scope hierarchy. Documents use a `scope_id`; context retrieval inherits from parent scopes and prefers the most specific matching records.
 
-CMS creation and editing actions use right-side drawers. Documents can be added, edited, deleted, restored, and reviewed through Git history. Folders can be added and deleted when empty. In local mode, administrators can add, edit, and remove users and scopes. The active user and final administrator account cannot be removed. In GitHub mode, user access is managed in GitHub repository settings.
+CMS creation and editing actions use right-side drawers. Documents can be added, edited, deleted, restored, and inspected through Git history. Folders can be added and deleted when empty. Admins can edit users and everything else. Editors can edit Folders, Documents, and Collections. Viewers can request context and semantic data. In GitHub mode, user access is managed in GitHub repository settings.
 
 Markdown files are validated as OKF records. JSON files are supported as structured source documents. Both formats provide Raw, Preview, and Split editor modes. Representative case study, competitive, and ICP examples live under `context_repo/examples/`.
 
@@ -100,7 +100,7 @@ Access maps directly from GitHub:
 - `read` or `triage` -> CMS viewer
 - `none` or no collaborator record -> no CMS access
 
-In GitHub mode, all git-backed write actions verify the user's current GitHub permission before saving. Users with GitHub edit access can edit documents, folder metadata, scopes, and revisions. Users without edit access can browse and review.
+In GitHub mode, all git-backed write actions verify the user's current GitHub permission before saving. Repository admins can edit scopes and content in the app, while user access is managed in GitHub. GitHub users with `write` or `maintain` access can edit Folders, Documents, and Collections. GitHub users with `read` or `triage` access can request context and semantic data.
 
 Set these environment variables before starting the FastAPI service:
 
@@ -128,11 +128,11 @@ For a hosted deployment, run the FastAPI service and Astro frontend together wit
 - `var/users.sqlite` for sessions and local fallback users
 - Git credentials that can pull and push the configured repository when GitHub mode is enabled
 
-Use direct commits to the configured branch for the first implementation. Branch protection and pull-request workflows can be added later if we need review gates.
+Use direct commits to the configured branch for the first implementation.
 
 ## MCP
 
-The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. Available tools retrieve constructs, assemble context packages, and validate the bundle. The legacy search tool is retained for compatibility but no longer searches OKF records.
+The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. MCP access requires a valid local or GitHub login. Available tools retrieve constructs, assemble context packages, and validate the bundle.
 
 ## API Highlights
 

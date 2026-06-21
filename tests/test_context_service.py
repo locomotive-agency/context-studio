@@ -38,6 +38,7 @@ def test_api_assemble_contract_for_content_improve():
     client = TestClient(app)
     response = client.post(
         "/api/assemble_context_package",
+        headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
         json={"task": "brand_terms", "constructs": ["brand-messaging"]},
     )
 

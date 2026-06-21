@@ -39,7 +39,7 @@ supporting_sources:
     - https://example.com/mcp
 ```
 
-These pointers are not canonical truth. Controlled context ignores them. MCP sources are filtered through RBAC before being returned.
+These pointers are not canonical truth. Controlled context ignores them. MCP sources require authenticated access before being returned.
 
 Repository history shows structural and application changes. Document history filters the same Git graph by file path. Markdown and JSON editors share Raw, Preview, and Split views.
 
@@ -63,42 +63,32 @@ The current sprint is implemented in code and CMS surfaces:
 - OKF folder import scan/apply endpoints and CMS import panel.
 - Collections storage, source document retention, MarkItDown parsing path, retrieval units, FTS index, embedding table, and cited retrieval.
 - Supporting-source pointers for documents and folder schemas.
-- MCP supporting-source RBAC filtering.
+- MCP supporting-source authentication filtering.
 - Tool Test Bench CMS screen that calls the real context package endpoint.
-- Backend tests covering controlled blocking, Collection routing, MCP RBAC, OKF import, no OKF semantic retrieval, and no Collection summarization API.
+- Backend tests covering controlled blocking, Collection routing, MCP source filtering, OKF import, no OKF semantic retrieval, and no Collection summarization API.
 
-The next implementation priority is the approval workflow for controlled context.
+The next implementation priority is user permissions.
 
 ## Roadmap
 
-### 1. Approval workflow for controlled context
+### 1. User permissions
 
-The record status values `draft`, `proposed`, `approved`, and `archived` already exist as metadata. The next step is to make those values drive an actual workflow without adding owner or approver metadata back into the document model.
+The next step is to make the app, API, MCP server, CMS controls, and tests follow the same permissions.
 
 Goals:
 
-- Keep approved controlled records stable until a reviewer explicitly accepts a change.
-- Let editors propose controlled-context changes without silently replacing approved truth.
-- Use the existing role model: editors can draft and propose, admins can approve and archive.
-- Keep the document model simple. Workflow state that is not part of durable OKF context should live in local application state, not in new document metadata fields.
-
-Proposed behavior:
-
-- New controlled records can be created as `draft` or `proposed`.
-- Only admins can transition a controlled record to `approved` or `archived`.
-- Editors can update flexible and hybrid records directly, subject to existing validation and edit permissions.
-- When an editor edits an `approved` controlled record, the CMS creates a pending proposal instead of overwriting the approved file.
-- The approved record remains the version returned by retrieval, context packages, and MCP until the proposal is approved.
-- If a proposal is approved, the service applies the proposed frontmatter and body to the original document path as a normal Git-backed commit.
-- If a proposal is rejected, the approved document remains unchanged and the rejected proposal stays visible in review history.
+- All access requires login through local username/password or GitHub.
+- Admins can edit users and everything else.
+- Editors can edit Folders, Documents, and Collections.
+- Viewers can request context and semantic data.
 
 Implementation shape:
 
-- Add a small SQLite-backed review table for pending document changes. Store the document path, base Git SHA, proposed frontmatter, proposed body, proposer, status, timestamps, and reviewer notes.
-- Add API endpoints for listing, reading, approving, and rejecting proposals.
-- Add a CMS Review Queue view that shows pending proposals, diffs against the current approved version, validation results, and approve/reject actions.
-- Block approval if the base document changed since the proposal was created, unless the admin explicitly refreshes the proposal against the new version.
-- Add tests for editor proposed edits, admin-only approvals, conflict handling, and retrieval continuing to return the approved version before approval.
+- Add direct route-level tests for missing-login, Viewer, Editor, and Admin behavior.
+- Require logged-in user context for API and MCP data access.
+- Align Folder, Document, and Collection write permissions with the Editor role.
+- Keep user management admin-only.
+- Make CMS controls match the same permissions as the API.
 
 ### 2. Productionize Collection Retrieval
 
@@ -114,7 +104,7 @@ Next improvements:
 
 ### 3. MCP Source Registry
 
-Supporting-source metadata can point to MCP servers. The next step is a small registry of supported MCP servers and RBAC policy.
+Supporting-source metadata can point to MCP servers. The next step is a small registry of supported MCP servers and access policy.
 
 Next improvements:
 

@@ -6,6 +6,7 @@ from subprocess import CalledProcessError
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .auth import GitHubAuth, UserStore, current_user, login_response, require_role
 from .cms import ContentStore
@@ -57,8 +58,7 @@ def _public_user(user: dict) -> dict:
 def _prepare_write(user: dict, local_roles: list[str]) -> dict:
     if user.get("provider") == "github":
         refreshed = github_auth.refresh_user_permission(user, users)
-        if refreshed["role"] == "viewer":
-            raise HTTPException(status_code=403, detail="GitHub write access is required")
+        require_role(refreshed, local_roles)
         try:
             content.git.sync_with_remote()
         except CalledProcessError as exc:
@@ -79,13 +79,23 @@ def _finish_write(user: dict) -> None:
         raise HTTPException(status_code=409, detail=detail) from exc
 
 
+@app.middleware("http")
+async def require_login_for_mcp(request: Request, call_next):
+    if request.url.path.startswith("/mcp"):
+        try:
+            await current_user(request)
+        except HTTPException as exc:
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+    return await call_next(request)
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "service": cfg.context_server_name, "mcp_url": "/mcp/"}
 
 
 @app.get("/api/stats")
-def stats() -> dict:
+def stats(user: dict = Depends(current_user)) -> dict:
     return service.stats()
 
 
@@ -307,7 +317,7 @@ def delete_folder(folder_path: str, user: dict = Depends(current_user)) -> dict:
 
 @app.put("/api/schemas")
 def save_schema(data: dict, user: dict = Depends(current_user)) -> dict:
-    user = _prepare_write(user, ["admin"])
+    user = _prepare_write(user, ["editor", "admin"])
     try:
         result = content.save_schema(data.get("path", ""), data.get("schema", {}), user["username"])
         _finish_write(user)
@@ -351,12 +361,12 @@ def list_records(user: dict = Depends(current_user)) -> list[dict]:
 
 
 @app.get("/api/constructs/{construct}")
-def get_construct(construct: str, scope_id: str | None = None) -> list[dict]:
+def get_construct(construct: str, scope_id: str | None = None, user: dict = Depends(current_user)) -> list[dict]:
     return service.get_construct(construct, scope_id=scope_id)
 
 
 @app.get("/api/search")
-def search_context(query: str, constructs: str | None = None, top_k: int = 5) -> list[dict]:
+def search_context(query: str, constructs: str | None = None, top_k: int = 5, user: dict = Depends(current_user)) -> list[dict]:
     construct_list = [item.strip() for item in constructs.split(",") if item.strip()] if constructs else None
     return service.search(query=query, constructs=construct_list, top_k=top_k)
 
@@ -373,13 +383,14 @@ def context_package(data: ContextPackageV1Request, user: dict = Depends(current_
 
 
 @app.post("/api/assemble_context_package")
-def assemble_context_package(data: dict) -> dict:
+def assemble_context_package(data: dict, user: dict = Depends(current_user)) -> dict:
     if isinstance(data.get("requests"), list):
         return service.assemble_context_package_v1(
             task=data.get("task", ""),
             scope_id=data.get("scope_id"),
             requests=data.get("requests", []),
             run_id=data.get("run_id"),
+            user=user,
         )
     task, constructs = data.get("task"), data.get("constructs", [])
     if not task or not isinstance(constructs, list):
@@ -396,7 +407,7 @@ def assemble_context_package(data: dict) -> dict:
 
 @app.post("/api/imports/okf-folder/scan")
 def scan_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["admin"])
+    require_role(user, ["editor", "admin"])
     source_folder = data.get("source_folder", "")
     if not source_folder:
         raise HTTPException(status_code=400, detail="source_folder is required")
@@ -405,7 +416,7 @@ def scan_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
 
 @app.post("/api/imports/okf-folder/apply")
 def apply_okf_folder_import(data: dict, user: dict = Depends(current_user)) -> dict:
-    user = _prepare_write(user, ["admin"])
+    user = _prepare_write(user, ["editor", "admin"])
     source_folder = data.get("source_folder", "")
     if not source_folder:
         raise HTTPException(status_code=400, detail="source_folder is required")
