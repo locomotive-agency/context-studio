@@ -31,6 +31,8 @@ import "../styles/global.css";
         </header>
         <nav class="primary-nav" aria-label="Workspace">
           <button class="rail-button active" data-view="documents"><i data-lucide="files"></i><span>Documents</span></button>
+          <button class="rail-button" data-view="collections"><i data-lucide="database"></i><span>Collections</span></button>
+          <button class="rail-button" data-view="test-bench"><i data-lucide="test-tube-2"></i><span>Tool Test Bench</span></button>
           <button class="rail-button" data-view="validation"><i data-lucide="shield-check"></i><span>Validation</span><span id="validation-dot" class="dot hidden"></span></button>
           <button class="rail-button" data-view="history"><i data-lucide="history"></i><span>History</span></button>
           <button class="rail-button" data-view="scopes"><i data-lucide="network"></i><span>Scopes</span></button>
@@ -66,9 +68,18 @@ import "../styles/global.css";
               <div><span class="eyebrow">Repository</span><h2>Documents</h2><p id="browser-summary">Browse context files by folder.</p></div>
               <div class="document-actions">
                 <button id="delete-folder" class="button danger editor-only hidden" type="button"><i data-lucide="trash-2"></i>Delete folder</button>
+                <button id="toggle-okf-import" class="button admin-only"><i data-lucide="upload"></i>Import OKF folder</button>
                 <button id="new-folder-documents" class="button editor-only"><i data-lucide="folder-plus"></i>New folder</button>
                 <button id="new-menu" class="button primary editor-only"><i data-lucide="file-plus-2"></i>New document</button>
               </div>
+            </div>
+            <div id="okf-import-panel" class="import-panel hidden">
+              <div class="field"><label for="okf-import-path">Folder path</label><input id="okf-import-path" class="input" placeholder="C:\path\to\okf-folder" /></div>
+              <div class="import-actions">
+                <button id="scan-okf-import" class="button" type="button"><i data-lucide="file-search"></i>Scan</button>
+                <button id="apply-okf-import" class="button primary" type="button" disabled><i data-lucide="upload"></i>Import</button>
+              </div>
+              <pre id="okf-import-report" class="json-output">No scan yet.</pre>
             </div>
             <div class="document-toolbar">
               <div class="search-wrap"><i data-lucide="search"></i><input id="document-search" placeholder="Search names, paths, and types" /></div>
@@ -110,6 +121,56 @@ import "../styles/global.css";
           </div>
         </section>
 
+        <section id="view-collections" class="view">
+          <div class="page">
+            <div class="page-header">
+              <div><span class="eyebrow">Supporting sources</span><h2>Collections</h2><p class="page-subtitle">Buckets of source files indexed for retrieval through OKF supporting sources.</p></div>
+              <button id="new-collection" class="button primary editor-only"><i data-lucide="plus"></i>New collection</button>
+            </div>
+            <div class="collection-layout">
+              <aside>
+                <div id="collection-list" class="list"></div>
+              </aside>
+              <section class="collection-detail">
+                <div class="collection-detail-header">
+                  <div><span class="eyebrow">Selected collection</span><strong id="collection-title">No collection selected</strong><small id="collection-description"></small></div>
+                  <div>
+                    <input id="collection-files" class="hidden" type="file" multiple />
+                    <button id="upload-collection-files" class="button editor-only" type="button"><i data-lucide="upload"></i>Add files</button>
+                  </div>
+                </div>
+                <div id="collection-documents" class="file-table"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-test-bench" class="view">
+          <div class="page">
+            <div class="page-header">
+              <div><span class="eyebrow">Tool calls</span><h2>Tool Test Bench</h2><p class="page-subtitle">Call the same context package endpoint an AI workflow uses.</p></div>
+            </div>
+            <form id="bench-form" class="bench-form">
+              <div class="field"><label for="bench-task">Task</label><input id="bench-task" class="input" value="campaign brief" /></div>
+              <div class="field"><label for="bench-scope">Scope</label><select id="bench-scope" class="select"></select></div>
+              <div class="field"><label for="bench-type">Context type</label><select id="bench-type" class="select"></select></div>
+              <div class="field"><label for="bench-query">Query</label><input id="bench-query" class="input" placeholder="buyer pains for sales leaders" /></div>
+              <button class="button primary" type="submit"><i data-lucide="file-search"></i>Run request</button>
+            </form>
+            <div class="bench-output">
+              <section>
+                <div class="section-label">Request JSON</div>
+                <pre id="bench-request" class="json-output">{}</pre>
+              </section>
+              <section>
+                <div class="section-label">Response JSON</div>
+                <pre id="bench-response" class="json-output">{}</pre>
+              </section>
+            </div>
+            <div id="bench-results" class="bench-results"></div>
+          </div>
+        </section>
+
         <section id="view-validation" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Quality</span><h2>OKF validation</h2></div><button id="refresh-validation" class="icon-button" title="Refresh"><i data-lucide="refresh-cw"></i></button></div><div id="validation-summary" class="metric-row"></div><div id="validation-list" class="list"></div></div></section>
         <section id="view-history" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Local Git</span><h2>History</h2><p id="history-context" class="page-subtitle">Repository changes</p></div></div><div class="history-layout"><div id="history-list" class="list"></div><section class="revision-view"><div id="revision-empty" class="revision-empty">Select a revision</div><div id="revision-detail" class="hidden"><header class="revision-header"><div><span id="revision-hash" class="commit"></span><strong id="revision-title"></strong><small id="revision-meta"></small></div><button id="restore-revision" class="button hidden"><i data-lucide="rotate-ccw"></i>Restore this version</button></header><div id="diff-label" class="diff-label">Changes from the previous revision</div><div id="diff-view" class="diff-view"></div></div></section></div></div></section>
         <section id="view-scopes" class="view"><div class="page"><div class="page-header"><div><span class="eyebrow">Hierarchy</span><h2>Context scopes</h2></div><button id="new-scope" class="button primary admin-only"><i data-lucide="plus"></i>Add scope</button></div><div id="scope-list" class="scope-list"></div></div></section>
@@ -128,13 +189,13 @@ import "../styles/global.css";
 
     <script>
       // @ts-nocheck
-      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GitBranch, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X, createIcons } from "lucide";
+      import { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Database, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GitBranch, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, TestTube2, Trash2, Upload, UserPlus, Users, X, createIcons } from "lucide";
       import DOMPurify from "dompurify";
       import yaml from "js-yaml";
       import { marked } from "marked";
 
       const API = "";
-      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository" };
+      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], collections: [], collectionDocuments: [], selectedCollection: "", revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository", okfImportScan: null };
       const byId = (id) => document.getElementById(id);
       const api = async (path, options = {}) => {
         const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
@@ -143,7 +204,7 @@ import "../styles/global.css";
       };
       const escapeHtml = (value = "") => value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char]);
       const toast = (message, error = false) => { const el = byId("toast"); el.textContent = message; el.className = `toast${error ? " error" : ""}`; setTimeout(() => el.classList.add("hidden"), 2600); };
-      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GitBranch, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, Trash2, UserPlus, Users, X };
+      const iconSet = { ArrowLeft, Badge, Box, Braces, Brackets, Building2, ChevronLeft, ChevronRight, CircleAlert, CircleCheck, Database, FilePlus2, FileSearch, FileText, Files, Folder, FolderCog, FolderPlus, GitBranch, GripVertical, History, Menu, Network, PanelRight, Pencil, Plus, RefreshCw, RotateCcw, Save, Search, ShieldCheck, TestTube2, Trash2, Upload, UserPlus, Users, X };
       const canEdit = () => Boolean(state.user?.can_edit ?? state.user?.role !== "viewer");
       const canManage = () => state.user?.role === "admin" || (state.user?.auth_mode === "github" && canEdit());
       const refreshIcons = () => createIcons({ icons: iconSet });
@@ -163,6 +224,11 @@ import "../styles/global.css";
           {key:"provenance", label:"Provenance", type:"text", placeholder:"Source URL, URI, or document name"},
           {key:"valid_until", label:"Good until", type:"date", temporal:true},
         ]},
+        {title:"Supporting sources", fields:[
+          {key:"supporting_sources.collections", label:"Collections", type:"list", placeholder:"collection-1, collection-2"},
+          {key:"supporting_sources.web", label:"Web", type:"list", placeholder:"https://example.com/page"},
+          {key:"supporting_sources.mcp", label:"MCP servers", type:"list", placeholder:"sales-calls, https://example.com/mcp"},
+        ]},
       ];
       const metadataKeys = metadataGroups.flatMap((group) => group.fields.map((field) => field.key));
 
@@ -179,11 +245,12 @@ import "../styles/global.css";
       }
 
       function metadataFieldMarkup(prefix, field, own, inherited, disabled) {
-        const hasOwn = Object.prototype.hasOwnProperty.call(own, field.key) && own[field.key] !== null;
-        const value = hasOwn ? metadataInputValue(own[field.key], field.type) : "";
-        const inheritedValue = inherited[field.key];
+        const ownValue = getPathValue(own, field.key);
+        const inheritedValue = getPathValue(inherited, field.key);
+        const hasOwn = ownValue !== undefined && ownValue !== null;
+        const value = hasOwn ? metadataInputValue(ownValue, field.type) : "";
         const inheritedText = inheritedValue === undefined || inheritedValue === null ? "Not set" : `Inherited: ${metadataDisplayValue(field.key, inheritedValue)}`;
-        const id = `${prefix}-meta-${field.key.replaceAll("_", "-")}`;
+        const id = metadataElementId(prefix, field.key);
         let control;
         if (field.type === "select" || field.type === "boolean") {
           const options = field.type === "boolean" ? [["true","Yes"],["false","No"]] : field.options;
@@ -216,15 +283,38 @@ import "../styles/global.css";
       function collectMetadataFields(prefix, target) {
         for (const key of metadataKeys) {
           const field = metadataGroups.flatMap((group) => group.fields).find((item) => item.key === key);
-          const element = byId(`${prefix}-meta-${key.replaceAll("_", "-")}`);
+          const element = byId(metadataElementId(prefix, key));
           const value = element.value.trim();
-          if (!value) { delete target[key]; continue; }
-          if (field.type === "list") target[key] = value.split(",").map((item) => item.trim()).filter(Boolean);
-          else if (field.type === "boolean") target[key] = value === "true";
-          else if (field.type === "number") target[key] = Number(value);
-          else target[key] = value;
+          if (!value) { deletePathValue(target, key); continue; }
+          if (field.type === "list") setPathValue(target, key, value.split(",").map((item) => item.trim()).filter(Boolean));
+          else if (field.type === "boolean") setPathValue(target, key, value === "true");
+          else if (field.type === "number") setPathValue(target, key, Number(value));
+          else setPathValue(target, key, value);
         }
+        if (target.supporting_sources && !Object.values(target.supporting_sources).some((value) => Array.isArray(value) && value.length)) delete target.supporting_sources;
         return target;
+      }
+
+      function metadataElementId(prefix, key) {
+        return `${prefix}-meta-${key.replaceAll("_", "-").replaceAll(".", "-")}`;
+      }
+
+      function getPathValue(source, path) {
+        return path.split(".").reduce((current, part) => current?.[part], source);
+      }
+
+      function setPathValue(target, path, value) {
+        const parts = path.split(".");
+        let current = target;
+        parts.slice(0, -1).forEach((part) => { current[part] = current[part] || {}; current = current[part]; });
+        current[parts.at(-1)] = value;
+      }
+
+      function deletePathValue(target, path) {
+        const parts = path.split(".");
+        let current = target;
+        parts.slice(0, -1).forEach((part) => { current = current?.[part]; });
+        if (current) delete current[parts.at(-1)];
       }
 
       function markDocumentDirty() {
@@ -270,12 +360,38 @@ import "../styles/global.css";
         document.querySelectorAll(".editor-only").forEach((el) => el.classList.toggle("hidden", !canEdit()));
         document.querySelector('[data-view="users"]')?.classList.toggle("hidden", state.user.auth_mode === "github");
         byId("save-document").classList.add("hidden");
-        await Promise.all([loadDocuments(), loadValidation(), loadScopes()]);
+        await Promise.all([loadDocuments(), loadValidation(), loadScopes(), loadCollections()]);
+        renderToolBenchOptions();
       }
 
       async function loadDocuments() {
         const [documents, stats, folders] = await Promise.all([api("/api/documents"), api("/api/stats"), api("/api/folders")]);
         state.documents = documents; state.folders = folders; byId("git-sha").textContent = `Git ${stats.git_sha}`; byId("document-count").textContent = `${documents.length.toLocaleString()} documents`; renderBrowser();
+      }
+
+      async function loadCollections() {
+        state.collections = await api("/api/collections");
+        if (!state.selectedCollection && state.collections.length) state.selectedCollection = state.collections[0].id;
+        if (state.selectedCollection && !state.collections.some((collection) => collection.id === state.selectedCollection)) state.selectedCollection = state.collections[0]?.id || "";
+        if (state.selectedCollection) state.collectionDocuments = await api(`/api/collections/${encodeURIComponent(state.selectedCollection)}/documents`);
+        else state.collectionDocuments = [];
+        renderCollections();
+      }
+
+      function renderCollections() {
+        const selected = state.collections.find((collection) => collection.id === state.selectedCollection);
+        byId("collection-list").innerHTML = state.collections.map((collection) => `<button class="list-row ${collection.id === state.selectedCollection ? "active" : ""}" data-collection-id="${escapeHtml(collection.id)}"><i data-lucide="database"></i><span><strong>${escapeHtml(collection.name)}</strong><small>${escapeHtml(collection.id)}</small></span></button>`).join("") || `<div class="empty">No collections</div>`;
+        byId("collection-list").querySelectorAll("[data-collection-id]").forEach((row) => row.addEventListener("click", async () => { state.selectedCollection = row.dataset.collectionId; await loadCollections(); }));
+        byId("collection-title").textContent = selected ? selected.name : "No collection selected";
+        byId("collection-description").textContent = selected?.description || (selected ? selected.id : "");
+        byId("upload-collection-files").disabled = !selected;
+        byId("collection-documents").innerHTML = state.collectionDocuments.map((doc) => `<div class="file-row"><span class="file-name"><i data-lucide="file-text"></i><span><strong>${escapeHtml(doc.source_title)}</strong><small>${escapeHtml(doc.source_path)}</small></span></span><span class="file-type">${escapeHtml(doc.mime_type || "file")}</span><span><span class="status-pill ${doc.index_status === "indexed" ? "valid" : "invalid"}"><i data-lucide="${doc.index_status === "indexed" ? "circle-check" : "circle-alert"}"></i>${escapeHtml(doc.index_status)}</span></span><span class="row-action"></span></div>`).join("") || `<div class="table-empty"><i data-lucide="file-search"></i><strong>No source files</strong></div>`;
+        refreshIcons();
+      }
+
+      function renderToolBenchOptions() {
+        byId("bench-scope").innerHTML = scopeOptions("", true);
+        byId("bench-type").innerHTML = typeOptions.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
       }
 
       function renderBrowser() {
@@ -418,6 +534,8 @@ import "../styles/global.css";
         showView(button.dataset.view);
         byId("library").classList.remove("open");
         if (button.dataset.view === "documents") showDocumentBrowser();
+        if (button.dataset.view === "collections") await loadCollections();
+        if (button.dataset.view === "test-bench") renderToolBenchOptions();
         if (button.dataset.view === "validation") await loadValidation();
         if (button.dataset.view === "history") { state.historyMode = "repository"; await loadHistory(); }
         if (button.dataset.view === "scopes") await loadScopes();
@@ -629,11 +747,12 @@ import "../styles/global.css";
         const editing = mode.endsWith("-edit");
         const kind = mode.split("-")[0];
         const restoring = kind === "revision";
-        const titles = {document: "New document", folder: "New folder", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope", revision: "Restore document"};
+        const titles = {document: "New document", folder: "New folder", collection: "New collection", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope", revision: "Restore document"};
         byId("drawer-eyebrow").textContent = restoring ? "History" : editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = restoring ? "Restore version" : editing ? "Save changes" : "Create";
         byId("delete-drawer-item").classList.toggle("hidden", !editing || !["user", "scope"].includes(kind));
         if (kind === "document") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-format">Format</label><select id="drawer-format" class="select"><option value="markdown">Markdown / OKF</option><option value="json">JSON</option></select></div><div class="field"><label for="drawer-folder">Folder</label><select id="drawer-folder" class="select">${folderOptions(state.folder)}</select></div><div class="field"><label for="drawer-filename">Filename</label><input id="drawer-filename" class="input" placeholder="document-name" pattern="[^/\\\\]+" required /></div><div class="field"><label for="drawer-document-title">Title</label><input id="drawer-document-title" class="input" required /></div><div class="field markdown-option"><label for="drawer-type">Type</label><select id="drawer-type" class="select" required>${typeOptions.map(([value,label]) => `<option value="${value}" ${value === "reference" ? "selected" : ""}>${label}</option>`).join("")}</select></div><div class="field markdown-option"><label for="drawer-scope">Scope</label><select id="drawer-scope" class="select">${scopeOptions("", true)}</select></div>`;
         if (kind === "folder") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-path">Folder path</label><input id="drawer-path" class="input" placeholder="products/platform" required /></div>`;
+        if (kind === "collection") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-collection-id">Collection ID</label><input id="drawer-collection-id" class="input" placeholder="sales-calls" required /></div><div class="field"><label for="drawer-collection-name">Name</label><input id="drawer-collection-name" class="input" placeholder="Sales calls" required /></div><div class="field"><label for="drawer-collection-description">Description</label><textarea id="drawer-collection-description" class="textarea" rows="3"></textarea></div>`;
         if (kind === "user") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-username">Username</label><input id="drawer-username" class="input" value="${escapeHtml(data?.username || "")}" ${editing ? "readonly" : "required"} /></div><div class="field"><label for="drawer-password">${editing ? "New password" : "Password"}</label><input id="drawer-password" class="input" type="password" ${editing ? "" : "required"} /></div><div class="field"><label for="drawer-role">Role</label><select id="drawer-role" class="select"><option ${data?.role === "viewer" ? "selected" : ""}>viewer</option><option ${data?.role === "editor" ? "selected" : ""}>editor</option><option ${data?.role === "admin" ? "selected" : ""}>admin</option></select></div>`;
         if (kind === "scope") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-scope-id">Scope ID</label><input id="drawer-scope-id" class="input" value="${escapeHtml(data?.id || "")}" ${editing ? "readonly" : "required"} placeholder="product-a" /></div><div class="field"><label for="drawer-scope-name">Name</label><input id="drawer-scope-name" class="input" value="${escapeHtml(data?.name || "")}" required /></div><div class="field"><label for="drawer-scope-level">Level</label><select id="drawer-scope-level" class="select">${["company","brand","product","market","campaign","audience","channel","custom"].map((level) => `<option ${data?.level === level ? "selected" : ""}>${level}</option>`).join("")}</select></div><div class="field"><label for="drawer-parent">Parent</label><select id="drawer-parent" class="select">${scopeOptions(data?.parent_id || "")}</select></div>`;
         if (kind === "revision") byId("drawer-fields").innerHTML = `<div class="restore-summary"><span class="commit">${escapeHtml(data.short_hash)}</span><strong>${escapeHtml(data.subject)}</strong><small>${escapeHtml(state.current.path)}</small><p>The selected version will replace the current document and be saved as a new Git revision. Existing history will remain available.</p></div>`;
@@ -642,7 +761,7 @@ import "../styles/global.css";
 
       function closeDrawer() { byId("drawer-scrim").classList.add("hidden"); state.drawerMode = ""; state.drawerData = null; }
 
-      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder-documents").addEventListener("click", () => openDrawer("folder")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
+      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder-documents").addEventListener("click", () => openDrawer("folder")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-collection").addEventListener("click", () => openDrawer("collection")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
       byId("close-drawer").addEventListener("click", closeDrawer); byId("cancel-drawer").addEventListener("click", closeDrawer); byId("drawer-scrim").addEventListener("click", (event) => { if (event.target === byId("drawer-scrim")) closeDrawer(); });
 
       byId("drawer-form").addEventListener("submit", async (event) => {
@@ -651,6 +770,7 @@ import "../styles/global.css";
           const kind = state.drawerMode.split("-")[0]; const editing = state.drawerMode.endsWith("-edit");
           if (kind === "document") { const format = byId("drawer-format").value; const folder = byId("drawer-folder").value; const filename = byId("drawer-filename").value.trim().replace(/\.(md|json)$/i, ""); if (!filename || filename.includes("/") || filename.includes("\\")) throw new Error("Filename cannot include folders"); const path = `${folder ? `${folder}/` : ""}${filename}.${format === "json" ? "json" : "md"}`; const title = byId("drawer-document-title").value.trim(); const frontmatter = format === "json" ? {} : {type:byId("drawer-type").value.trim(), title}; if (format !== "json" && byId("drawer-scope").value) frontmatter.scope_id = byId("drawer-scope").value; await api(`/api/documents/${path}`, {method:"PUT", body:JSON.stringify({frontmatter, body:format === "json" ? "{}" : `# ${title}`})}); closeDrawer(); await loadDocuments(); await openDocument(path); }
           if (kind === "folder") { const folder = await api("/api/folders", {method:"POST", body:JSON.stringify({path:byId("drawer-path").value.trim()})}); state.folder = folder.path; state.page = 1; closeDrawer(); await Promise.all([loadDocuments(), loadSchemas()]); }
+          if (kind === "collection") { const created = await api("/api/collections", {method:"POST", body:JSON.stringify({id:byId("drawer-collection-id").value.trim(), name:byId("drawer-collection-name").value.trim(), description:byId("drawer-collection-description").value.trim()})}); state.selectedCollection = created.id; closeDrawer(); await loadCollections(); showView("collections"); }
           if (kind === "user") { const payload = {username:byId("drawer-username").value.trim(), password:byId("drawer-password").value, role:byId("drawer-role").value}; await api(editing ? `/api/users/${state.drawerData.username}` : "/api/users", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadUsers(); }
           if (kind === "scope") { const payload = {id:byId("drawer-scope-id").value.trim(), name:byId("drawer-scope-name").value.trim(), level:byId("drawer-scope-level").value, parent_id:byId("drawer-parent").value || null}; await api(editing ? `/api/scopes/${state.drawerData.id}` : "/api/scopes", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadScopes(); }
           if (kind === "revision") { const result = await api(`/api/history/${state.drawerData.hash}/restore`, {method:"POST", body:JSON.stringify({path:state.current.path})}); state.current = result.document; closeDrawer(); await Promise.all([loadDocuments(), loadValidation()]); await loadHistory(); toast("Document restored"); return; }
@@ -662,6 +782,101 @@ import "../styles/global.css";
         if (!state.deleteArmed) { state.deleteArmed = true; byId("delete-drawer-item").textContent = "Confirm remove"; return; }
         try { const kind = state.drawerMode.split("-")[0]; await api(kind === "user" ? `/api/users/${state.drawerData.username}` : `/api/scopes/${state.drawerData.id}`, {method:"DELETE"}); closeDrawer(); if (kind === "user") await loadUsers(); else await loadScopes(); toast("Removed"); } catch (error) { state.deleteArmed = false; byId("delete-drawer-item").textContent = "Remove"; toast(error.message, true); }
       });
+
+      byId("toggle-okf-import").addEventListener("click", () => {
+        byId("okf-import-panel").classList.toggle("hidden");
+      });
+
+      byId("scan-okf-import").addEventListener("click", async () => {
+        try {
+          const source_folder = byId("okf-import-path").value.trim();
+          const scan = await api("/api/imports/okf-folder/scan", {method:"POST", body:JSON.stringify({source_folder})});
+          state.okfImportScan = scan;
+          renderOkfImportReport(scan);
+          byId("apply-okf-import").disabled = Boolean(scan.blockers?.length);
+        } catch (error) {
+          byId("okf-import-report").textContent = error.message;
+          byId("apply-okf-import").disabled = true;
+          toast(error.message, true);
+        }
+      });
+
+      byId("apply-okf-import").addEventListener("click", async () => {
+        try {
+          const source_folder = byId("okf-import-path").value.trim();
+          const result = await api("/api/imports/okf-folder/apply", {method:"POST", body:JSON.stringify({source_folder})});
+          byId("okf-import-report").textContent = JSON.stringify(result, null, 2);
+          byId("apply-okf-import").disabled = true;
+          await Promise.all([loadDocuments(), loadValidation(), loadSchemas()]);
+          toast("OKF folder imported");
+        } catch (error) { toast(error.message, true); }
+      });
+
+      function renderOkfImportReport(scan) {
+        const report = {
+          blockers: scan.blockers || [],
+          warnings: scan.warnings || [],
+          files: scan.files || [],
+        };
+        byId("okf-import-report").textContent = JSON.stringify(report, null, 2);
+      }
+
+      byId("upload-collection-files").addEventListener("click", () => byId("collection-files").click());
+      byId("collection-files").addEventListener("change", async (event) => {
+        const files = [...event.target.files];
+        if (!state.selectedCollection || !files.length) return;
+        try {
+          for (const file of files) {
+            const content_base64 = await fileToBase64(file);
+            await api(`/api/collections/${encodeURIComponent(state.selectedCollection)}/documents`, {method:"POST", body:JSON.stringify({filename:file.name, content_base64})});
+          }
+          event.target.value = "";
+          await loadCollections();
+          toast("Files indexed");
+        } catch (error) { toast(error.message, true); }
+      });
+
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error("Could not read file"));
+          reader.onload = () => resolve(String(reader.result).split(",", 2)[1] || "");
+          reader.readAsDataURL(file);
+        });
+      }
+
+      byId("bench-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const request = {
+          task: byId("bench-task").value.trim() || "context request",
+          scope_id: byId("bench-scope").value || null,
+          requests: [{type: byId("bench-type").value, query: byId("bench-query").value.trim() || null}],
+        };
+        byId("bench-request").textContent = JSON.stringify(request, null, 2);
+        try {
+          const response = await api("/api/context-package", {method:"POST", body:JSON.stringify(request)});
+          byId("bench-response").textContent = JSON.stringify(response, null, 2);
+          renderBenchResults(response);
+        } catch (error) {
+          byId("bench-response").textContent = error.message;
+          byId("bench-results").innerHTML = "";
+          toast(error.message, true);
+        }
+      });
+
+      function renderBenchResults(response) {
+        byId("bench-results").innerHTML = (response.results || []).map((result) => `
+          <section class="bench-result ${result.missing?.some((item) => item.blocks_workflow) ? "blocked" : ""}">
+            <div class="bench-result-header"><strong>${escapeHtml(result.type)}</strong><span>${escapeHtml(result.resolved_criticality)}</span></div>
+            ${result.missing?.length ? `<div class="attention-list">${result.missing.map((item) => `<div><i data-lucide="circle-alert"></i><span>${escapeHtml(item.reason)}</span></div>`).join("")}</div>` : ""}
+            ${result.okf_records?.length ? `<div class="result-section"><div class="section-label">Approved context</div>${result.okf_records.map((record) => `<article><strong>${escapeHtml(record.title)}</strong><small>${escapeHtml(record.kb_path)}</small><p>${escapeHtml((record.body || "").slice(0, 360))}</p></article>`).join("")}</div>` : ""}
+            ${result.collection_results?.length ? `<div class="result-section"><div class="section-label">Collection passages</div>${result.collection_results.map((item) => `<article><strong>${escapeHtml(item.citation.source_title)}</strong><small>${escapeHtml(item.citation.collection_id)} Â· ${escapeHtml(item.citation.location)}</small><p>${escapeHtml(item.text)}</p></article>`).join("")}</div>` : ""}
+            ${result.suggested_sources?.length ? `<div class="result-section"><div class="section-label">Suggested sources</div>${result.suggested_sources.map((item) => `<article><strong>${escapeHtml(item.kind)}</strong><small>${escapeHtml(item.value)}</small></article>`).join("")}</div>` : ""}
+            ${result.access_issues?.length ? `<div class="attention-list">${result.access_issues.map((item) => `<div><i data-lucide="circle-alert"></i><span>${escapeHtml(item.value)}: ${escapeHtml(item.reason)}</span></div>`).join("")}</div>` : ""}
+          </section>
+        `).join("") || `<div class="empty">No results</div>`;
+        refreshIcons();
+      }
 
       byId("document-search").addEventListener("input", () => { state.page = 1; renderBrowser(); });
       byId("previous-page").addEventListener("click", () => { if (state.page > 1) { state.page -= 1; renderBrowser(); } });
@@ -825,6 +1040,8 @@ import "../styles/global.css";
     .body-editor { min-height: 520px; padding: 26px 24px 70px; font-size: 15px; }
     .inspector-open .properties { height: auto; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
     .history-layout, .schema-layout { grid-template-columns: 1fr; }
+    .collection-layout, .bench-output { grid-template-columns: 1fr; }
+    .bench-form { grid-template-columns: 1fr 1fr; }
   }
 
   @media (max-width: 560px) {
@@ -959,6 +1176,34 @@ import "../styles/global.css";
   .diff-line.hunk { color: #53615a; background: #f3f5f3; }
   .diff-loading { min-height: 180px; display: grid; place-items: center; padding: 20px; color: var(--muted); font: 12px/1.5 Inter, ui-sans-serif, system-ui, sans-serif; text-align: center; }
   .diff-loading.error { color: var(--red); }
+  .import-panel { display: grid; grid-template-columns: minmax(260px, 1fr) auto; gap: 12px; align-items: end; margin: 0 0 14px; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: #fafbfa; }
+  .import-panel.hidden { display: none; }
+  .import-actions { display: flex; gap: 8px; }
+  .import-panel .json-output { grid-column: 1 / -1; }
+  .collection-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
+  .collection-detail { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
+  .collection-detail-header { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .collection-detail-header > div:first-child { min-width: 0; display: grid; gap: 4px; }
+  .collection-detail-header strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+  .collection-detail-header small { color: var(--muted); font-size: 11px; }
+  .bench-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 14px; align-items: end; margin-bottom: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: #fafbfa; }
+  .bench-output { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
+  .json-output { min-height: 180px; max-height: 380px; overflow: auto; margin: 0; padding: 13px; border: 1px solid var(--line); border-radius: 5px; background: #26312b; color: #edf4ef; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  .bench-results { display: grid; gap: 12px; }
+  .bench-result { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
+  .bench-result.blocked { border-color: #e4b1aa; }
+  .bench-result-header { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fafbfa; }
+  .bench-result-header span { padding: 4px 7px; border-radius: 4px; color: #315b45; background: var(--green-soft); font-size: 11px; font-weight: 750; }
+  .attention-list { display: grid; gap: 6px; padding: 10px 14px; color: var(--red); background: var(--red-soft); font-size: 12px; }
+  .attention-list div { display: flex; align-items: center; gap: 7px; }
+  .attention-list svg { width: 14px; }
+  .result-section { display: grid; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); }
+  .result-section:first-child { border-top: 0; }
+  .result-section article { display: grid; gap: 4px; padding: 9px 0; border-bottom: 1px solid #edf0ed; }
+  .result-section article:last-child { border-bottom: 0; }
+  .result-section strong { font-size: 13px; }
+  .result-section small { color: var(--muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+  .result-section p { margin: 0; color: #424b46; font-size: 12px; line-height: 1.55; }
   .restore-summary { display: grid; justify-items: start; gap: 9px; }
   .restore-summary strong { font-size: 15px; }
   .restore-summary small { color: var(--muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
@@ -1018,6 +1263,7 @@ import "../styles/global.css";
     .folder-browser { max-height: 205px; overflow: auto; border-right: 0; border-bottom: 1px solid var(--line); }
     .file-table-header, .file-row { grid-template-columns: minmax(0, 1fr) 76px 18px; gap: 8px; padding-left: 11px; padding-right: 11px; }
     .file-table-header > :nth-child(2), .file-type { display: none; }
+    .import-panel, .bench-form { grid-template-columns: 1fr; }
     .pagination { justify-content: center; }
     .content-editor.mode-split { grid-template-columns: 1fr; }
     .content-editor.mode-split .body-editor { border-right: 0; border-bottom: 1px solid var(--line); }

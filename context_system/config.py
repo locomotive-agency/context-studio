@@ -18,10 +18,14 @@ class Config(BaseModel):
     context_repository_path: str = "context_repo"
     audit_path: str = "var/audit.sqlite"
     users_path: str = "var/users.sqlite"
+    collections_root_path: str = "var/collections"
+    collections_db_path: str = "var/collections.sqlite"
     connectors: list[str] = Field(default_factory=lambda: ["local"])
+    mcp_servers: list[str | dict] = Field(default_factory=list)
     default_remote_url: str = "http://localhost:8000"
     secret_key: str = "change-me-in-production"
     embedding_model: Optional[str] = None
+    vector_store: str = "sqlite"
     public_app_url: str = "http://127.0.0.1:4321"
     github_owner: Optional[str] = None
     github_repo: Optional[str] = None
@@ -52,6 +56,14 @@ class Config(BaseModel):
     @property
     def users_db(self) -> Path:
         return self.path(self.users_path)
+
+    @property
+    def collections_root(self) -> Path:
+        return self.path(self.collections_root_path)
+
+    @property
+    def collections_db(self) -> Path:
+        return self.path(self.collections_db_path)
 
     @property
     def github_enabled(self) -> bool:

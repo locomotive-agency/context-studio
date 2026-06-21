@@ -68,6 +68,7 @@ class ContextRecord(BaseModel):
     checks: dict = Field(default_factory=dict)
     resource: Optional[str] = None
     tags: list[str] = Field(default_factory=list)
+    supporting_sources: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class RuntimeRecord(BaseModel):
@@ -86,6 +87,7 @@ class RuntimeRecord(BaseModel):
     scope_id: Optional[str] = None
     checks: dict = Field(default_factory=dict)
     okf: dict = Field(default_factory=dict)
+    supporting_sources: dict[str, list[str]] = Field(default_factory=dict)
     body: str = ""
 
 
@@ -100,6 +102,55 @@ class MissingContextBlock(BaseModel):
     type: str
     reason: str
     blocks_workflow: bool = True
+
+
+class ContextPackageItemRequest(BaseModel):
+    type: str = Field(min_length=1)
+    query: Optional[str] = None
+
+
+class ContextPackageV1Request(BaseModel):
+    task: str = Field(min_length=1)
+    scope_id: Optional[str] = None
+    requests: list[ContextPackageItemRequest] = Field(default_factory=list)
+    run_id: Optional[str] = None
+
+
+class CollectionCitation(BaseModel):
+    collection_id: str
+    source_document_id: str
+    source_title: str
+    source_path: str
+    location: str
+    unit_id: str
+    content_hash: str
+
+
+class CollectionResult(BaseModel):
+    text: str
+    score: float
+    citation: CollectionCitation
+
+
+class SuggestedSource(BaseModel):
+    kind: Literal["web", "mcp"]
+    value: str
+
+
+class AccessIssue(BaseModel):
+    kind: Literal["mcp"]
+    value: str
+    reason: str
+
+
+class ContextPackageV1Result(BaseModel):
+    type: str
+    resolved_criticality: Criticality
+    okf_records: list[dict] = Field(default_factory=list)
+    collection_results: list[dict] = Field(default_factory=list)
+    suggested_sources: list[SuggestedSource] = Field(default_factory=list)
+    missing: list[MissingContextBlock] = Field(default_factory=list)
+    access_issues: list[AccessIssue] = Field(default_factory=list)
 
 
 class ContextPackage(BaseModel):

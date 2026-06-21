@@ -11,6 +11,7 @@ from .okf import (
     RESERVED_DOCUMENTS,
     SCHEMA_FILE,
     load_effective_schema,
+    merge_metadata,
     parse_document,
     render_document,
     validate_frontmatter,
@@ -55,8 +56,8 @@ class ContentStore:
         try:
             parsed = parse_document(path.read_text(encoding="utf-8"))
             schema = load_effective_schema(self.repository, relative_path)
-            effective = schema | parsed.frontmatter
-            okf_validation = validate_frontmatter(parsed.frontmatter)
+            effective = merge_metadata(schema, parsed.frontmatter)
+            okf_validation = validate_frontmatter(effective)
             governance_errors = self._governance_errors(effective)
             validation = {"valid": okf_validation.valid and not governance_errors, "errors": okf_validation.errors + governance_errors}
             frontmatter = parsed.frontmatter
@@ -95,10 +96,11 @@ class ContentStore:
             return self.read_document(relative_path)
         if Path(relative_path).name in RESERVED_DOCUMENTS:
             raise ValueError(f"{Path(relative_path).name} is reserved by OKF")
-        validation = validate_frontmatter(frontmatter)
+        effective = merge_metadata(load_effective_schema(self.repository, relative_path), frontmatter)
+        validation = validate_frontmatter(effective)
         if not validation.valid:
             raise ValueError("; ".join(validation.errors))
-        governance_errors = self._governance_errors(load_effective_schema(self.repository, relative_path) | frontmatter)
+        governance_errors = self._governance_errors(effective)
         if governance_errors:
             raise ValueError("; ".join(governance_errors))
         path.write_text(render_document(frontmatter, body), encoding="utf-8")
@@ -119,10 +121,11 @@ class ContentStore:
                 raise ValueError(f"historical revision contains invalid JSON: {exc.msg}") from exc
         else:
             parsed = parse_document(raw)
-            validation = validate_frontmatter(parsed.frontmatter)
+            effective = merge_metadata(load_effective_schema(self.repository, relative_path), parsed.frontmatter)
+            validation = validate_frontmatter(effective)
             if not validation.valid:
                 raise ValueError("historical revision is not valid OKF: " + "; ".join(validation.errors))
-            governance_errors = self._governance_errors(load_effective_schema(self.repository, relative_path) | parsed.frontmatter)
+            governance_errors = self._governance_errors(effective)
             if governance_errors:
                 raise ValueError("historical revision has invalid governance: " + "; ".join(governance_errors))
         path = self.repository / relative_path
@@ -225,7 +228,7 @@ class ContentStore:
                 data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
                 if not isinstance(data, dict):
                     raise ValueError(f"{path.relative_to(self.repository)} must contain a YAML mapping")
-                merged.update(data)
+                merged = merge_metadata(merged, data)
         return merged
 
     def _governance_errors(self, metadata: dict[str, Any]) -> list[str]:

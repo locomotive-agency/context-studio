@@ -22,13 +22,22 @@ def get_construct(construct: str, scope_id: str | None = None) -> list[dict]:
 
 @mcp.tool()
 def search_context(query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[dict]:
-    """Search valid hybrid and flexible context documents."""
+    """Deprecated: OKF records are no longer searched semantically."""
     return service.search(query=query, constructs=constructs, top_k=top_k)
 
 
 @mcp.tool()
-def assemble_context_package(task: str, constructs: list[str], icp: str | None = None) -> dict:
+def assemble_context_package(
+    task: str,
+    constructs: list[str] | None = None,
+    icp: str | None = None,
+    scope_id: str | None = None,
+    requests: list[dict] | None = None,
+) -> dict:
     """Assemble governed context for an AI task."""
+    if requests is not None:
+        return service.assemble_context_package_v1(task=task, scope_id=scope_id, requests=requests)
+    constructs = constructs or []
     return service.assemble_context_package(task=task, constructs=constructs, icp=icp).to_response()
 
 

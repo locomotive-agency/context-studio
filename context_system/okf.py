@@ -10,6 +10,7 @@ from .models import GovernanceMetadata
 
 SCHEMA_FILE = "_schema.yaml"
 RESERVED_DOCUMENTS = {"index.md", "log.md"}
+SUPPORTING_SOURCE_KEYS = ("collections", "web", "mcp")
 
 
 class OKFFrontmatter(BaseModel):
@@ -60,6 +61,47 @@ def render_document(frontmatter: dict[str, Any], body: str) -> str:
     return f"---\n{yaml_text}\n---\n\n{body.rstrip()}\n"
 
 
+def normalize_supporting_sources(value: Any) -> dict[str, list[str]]:
+    if not isinstance(value, dict):
+        return {}
+    normalized: dict[str, list[str]] = {}
+    for key in SUPPORTING_SOURCE_KEYS:
+        items = value.get(key, [])
+        if isinstance(items, str):
+            items = [items]
+        if not isinstance(items, list):
+            continue
+        cleaned = []
+        for item in items:
+            if isinstance(item, str) and item.strip():
+                cleaned.append(item.strip())
+        if cleaned:
+            normalized[key] = cleaned
+    return normalized
+
+
+def merge_supporting_sources(left: Any, right: Any) -> dict[str, list[str]]:
+    merged: dict[str, list[str]] = {}
+    for source in (normalize_supporting_sources(left), normalize_supporting_sources(right)):
+        for key, values in source.items():
+            bucket = merged.setdefault(key, [])
+            for value in values:
+                if value not in bucket:
+                    bucket.append(value)
+    return merged
+
+
+def merge_metadata(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    base_sources = base.get("supporting_sources")
+    override_sources = override.get("supporting_sources")
+    merged.update(override)
+    sources = merge_supporting_sources(base_sources, override_sources)
+    if sources:
+        merged["supporting_sources"] = sources
+    return merged
+
+
 def validate_frontmatter(frontmatter: dict[str, Any]) -> DocumentValidation:
     try:
         OKFFrontmatter.model_validate(frontmatter)
@@ -105,5 +147,5 @@ def load_effective_schema(repository: Path, document_path: str) -> dict[str, Any
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         if not isinstance(data, dict):
             raise ValueError(f"{path.relative_to(repository)} must contain a YAML mapping")
-        merged.update(data)
+        merged = merge_metadata(merged, data)
     return merged

@@ -1,19 +1,10 @@
 from __future__ import annotations
 
-import math
-import re
-from collections import Counter
 from datetime import date
 
 from .cms import ContentStore
 from .config import Config, get_config
-from .models import ContextRecord, RuntimeRecord, SearchPointer
-
-TOKEN_RE = re.compile(r"[a-z0-9]+")
-
-
-def tokenize(text: str) -> list[str]:
-    return TOKEN_RE.findall(text.lower())
+from .models import ContextRecord, Criticality, RuntimeRecord, SearchPointer
 
 
 class ContextRepository:
@@ -44,24 +35,34 @@ class ContextRepository:
         return [record for record in eligible if rank.get(record.scope_id, 0) == highest]
 
     def search(self, query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[SearchPointer]:
-        if not query.strip() or top_k <= 0:
-            return []
-        allowed = set(constructs or [])
-        records = [record for record in self.runtime_records() if record.criticality != "controlled" and self._is_current(record) and (not allowed or record.type in allowed)]
-        if not records:
-            return []
-        doc_tokens = [tokenize(record.body) for record in records]
-        frequencies: Counter[str] = Counter()
-        for tokens in doc_tokens:
-            frequencies.update(set(tokens))
-        idf = {term: math.log((1 + len(records)) / (1 + count)) + 1 for term, count in frequencies.items()}
-        query_vector = self._tfidf(Counter(tokenize(query)), idf)
-        scored = []
-        for record, tokens in zip(records, doc_tokens):
-            score = self._cosine(query_vector, self._tfidf(Counter(tokens), idf))
-            if score > 0:
-                scored.append(SearchPointer(record_id=record.id, kb_path=record.kb_path, score=round(score, 6), type=record.type))
-        return sorted(scored, key=lambda item: item.score, reverse=True)[:top_k]
+        return []
+
+    def resolve_criticality(self, construct: str, scope_id: str | None = None) -> Criticality:
+        candidates: list[Criticality] = [record.criticality for record in self.get_construct(construct, include_body=False, scope_id=scope_id)]
+        for folder in self.content.list_folders():
+            schema = folder["effective_schema"]
+            if schema.get("type") != construct:
+                continue
+            if not self._scope_matches(schema.get("scope_id"), scope_id):
+                continue
+            criticality = schema.get("criticality")
+            if criticality in {"controlled", "hybrid", "flexible"}:
+                candidates.append(criticality)
+        if not candidates:
+            return "flexible"
+        rank = {"flexible": 0, "hybrid": 1, "controlled": 2}
+        return max(candidates, key=lambda value: rank[value])
+
+    def supporting_sources_for(self, construct: str, scope_id: str | None = None) -> dict[str, list[str]]:
+        merged: dict[str, list[str]] = {}
+        for folder in self.content.list_folders():
+            schema = folder["effective_schema"]
+            if schema.get("type") != construct or not self._scope_matches(schema.get("scope_id"), scope_id):
+                continue
+            self._extend_sources(merged, schema.get("supporting_sources", {}))
+        for record in self.get_construct(construct, include_body=False, scope_id=scope_id):
+            self._extend_sources(merged, record.supporting_sources)
+        return merged
 
     def stats(self) -> dict:
         records = self.runtime_records(include_body=False)
@@ -100,6 +101,7 @@ class ContextRepository:
             scope_id=definition.scope_id,
             checks=definition.checks,
             okf={"type": definition.type, "title": definition.title, "description": definition.description, "resource": definition.resource, "tags": definition.tags},
+            supporting_sources=definition.supporting_sources,
             body=document["body"],
         )
 
@@ -110,12 +112,27 @@ class ContextRepository:
             return False
         return True
 
-    def _tfidf(self, counts: Counter[str], idf: dict[str, float]) -> dict[str, float]:
-        total = sum(counts.values()) or 1
-        return {term: count / total * idf.get(term, 0) for term, count in counts.items()}
+    def _scope_matches(self, record_scope_id: str | None, requested_scope_id: str | None) -> bool:
+        if not record_scope_id:
+            return True
+        if not requested_scope_id:
+            return True
+        try:
+            return record_scope_id in self.content.scope_ancestors(requested_scope_id)
+        except ValueError:
+            return False
 
-    def _cosine(self, left: dict[str, float], right: dict[str, float]) -> float:
-        dot = sum(weight * right.get(term, 0) for term, weight in left.items())
-        if not dot:
-            return 0
-        return dot / (math.sqrt(sum(value * value for value in left.values())) * math.sqrt(sum(value * value for value in right.values())))
+    @staticmethod
+    def _extend_sources(target: dict[str, list[str]], sources: dict) -> None:
+        if not isinstance(sources, dict):
+            return
+        for key in ("collections", "web", "mcp"):
+            values = sources.get(key, [])
+            if isinstance(values, str):
+                values = [values]
+            if not isinstance(values, list):
+                continue
+            bucket = target.setdefault(key, [])
+            for value in values:
+                if isinstance(value, str) and value and value not in bucket:
+                    bucket.append(value)

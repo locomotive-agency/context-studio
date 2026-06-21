@@ -27,12 +27,11 @@ def test_assemble_package_returns_controlled_records():
     assert any(record["criticality"] == "controlled" for record in package.records)
 
 
-def test_search_returns_hybrid_pointers_only():
+def test_search_no_longer_runs_over_okf_records():
     service = ContextService()
     results = service.search("customer case study revenue operations", constructs=["proof-points"], top_k=3)
 
-    assert results
-    assert all(result["type"] == "proof-points" for result in results)
+    assert results == []
 
 
 def test_api_assemble_contract_for_content_improve():

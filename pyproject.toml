@@ -7,6 +7,7 @@ dependencies = [
     "fastapi",
     "httpx",
     "mcp>=1.27,<2",
+    "markitdown",
     "pydantic>=2.6",
     "pytest",
     "pyyaml",
@@ -15,6 +16,9 @@ dependencies = [
 
 [tool.uv]
 package = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,6 +1,6 @@
 # Context Documentation System Prototype
 
-This prototype is a file-based context CMS for OKF context documents. Astro provides the CMS interface. FastAPI and Pydantic handle authentication, filesystem operations, OKF validation, scoped retrieval, Git history, and MCP access. FastMCP exposes valid context to AI tools.
+This prototype is a file-based context CMS for OKF context documents plus searchable supporting Collections. Astro provides the CMS interface. FastAPI and Pydantic handle authentication, filesystem operations, OKF validation, scoped retrieval, Git history, Collection indexing, context package assembly, and MCP access. FastMCP exposes valid context to AI tools.
 
 ## What It Does
 
@@ -10,6 +10,11 @@ This prototype is a file-based context CMS for OKF context documents. Astro prov
 - Lets document frontmatter override folder metadata
 - Validates documents for OKF and governance rules
 - Provides Raw, Preview, and Split document views
+- Imports OKF folders into `context_repo/`
+- Stores supporting source files in Collections
+- Indexes Collection passages with SQLite FTS5 and a local deterministic embedding vector
+- Returns cited Collection passages for hybrid and flexible context when routed by OKF supporting sources
+- Provides a Tool Test Bench for calling the real context package endpoint
 - Exposes MCP tools at `/mcp/`
 - Supports local demo users or GitHub-backed access control
 
@@ -30,6 +35,30 @@ Later values override earlier values. Every concept document must still contain 
 CMS creation and editing actions use right-side drawers. Documents can be added, edited, deleted, restored, and reviewed through Git history. Folders can be added and deleted when empty. In local mode, administrators can add, edit, and remove users and scopes. The active user and final administrator account cannot be removed. In GitHub mode, user access is managed in GitHub repository settings.
 
 Markdown files are validated as OKF records. JSON files are supported as structured source documents. Both formats provide Raw, Preview, and Split editor modes. Representative case study, competitive, and ICP examples live under `context_repo/examples/`.
+
+## Context Model
+
+The project separates curated context from supporting source material.
+
+- **Documents** are OKF records in `context_repo/`. They are retrieved deterministically by fields like `type`, `scope_id`, `status`, `criticality`, and `valid_until`.
+- **Collections** are local buckets of source files under `var/collections/`. They store original source documents and indexed retrieval units. They are not OKF records.
+- **Tool Test Bench** calls the same context package endpoint used by AI workflows and MCP clients.
+
+OKF records are never retrieved with semantic embeddings. Collection retrieval is available only when a matching OKF document or inherited folder schema points to that Collection through `supporting_sources.collections`.
+
+Supporting source shape:
+
+```yaml
+supporting_sources:
+  collections:
+    - collection-1
+  web:
+    - https://example.com/page
+  mcp:
+    - sales-calls
+```
+
+Controlled context ignores supporting sources. Hybrid and flexible context can include approved OKF records, cited Collection passages, and suggested web/MCP sources.
 
 ## Run Locally
 
@@ -103,7 +132,16 @@ Use direct commits to the configured branch for the first implementation. Branch
 
 ## MCP
 
-The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. Available tools retrieve constructs, search context, assemble context packages, and validate the bundle.
+The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. Available tools retrieve constructs, assemble context packages, and validate the bundle. The legacy search tool is retained for compatibility but no longer searches OKF records.
+
+## API Highlights
+
+- `POST /api/context-package` assembles the v1 context package contract.
+- `POST /api/imports/okf-folder/scan` scans an OKF folder before import.
+- `POST /api/imports/okf-folder/apply` imports an OKF folder as one Git-backed operation.
+- `GET /api/collections` lists Collections.
+- `POST /api/collections` creates a Collection with only ID, name, and description.
+- `POST /api/collections/{collection_id}/documents` stores and indexes a source document.
 
 ## CLI
 

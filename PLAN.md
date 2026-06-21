@@ -2,17 +2,18 @@
 
 ## Components
 
-The prototype keeps five logical components in one deployable application:
+The prototype keeps six logical components in one deployable application:
 
 1. Document database: OKF Markdown records and JSON source documents under `context_repo/` in the project Git repository.
 2. Schema model: Pydantic record models, inherited `_schema.yaml` governance, and the `_scopes.yaml` hierarchy.
 3. CMS: Astro document, scope, schema, history, validation, and user management with RBAC.
-4. Context service: FastAPI and FastMCP retrieval and management endpoints, mounted at `/mcp/`.
-5. Unstructured retrieval: local lexical search over valid flexible and hybrid documents. This is the prototype boundary for a future semantic retrieval implementation; it is not embedding-based today.
+4. Context service: FastAPI and FastMCP retrieval, import, package assembly, and management endpoints, mounted at `/mcp/`.
+5. Collections: local buckets of stored source files under `var/collections/`, indexed in SQLite for supporting retrieval.
+6. Tool Test Bench: CMS screen that calls the real context package endpoint so users can inspect what an AI workflow would receive.
 
 Keeping these as code boundaries rather than separate deployments avoids unnecessary operational complexity.
 
-The custom Astro CMS is the documentation layer. GitBook and Docusaurus are not dependencies. SQLite is limited to users, sessions, audit events, and other local state that does not belong in versioned documents.
+The custom Astro CMS is the documentation layer. GitBook and Docusaurus are not dependencies. SQLite is used for users, sessions, audit events, Collections, and other local state that does not belong in versioned OKF documents.
 
 ## Format Rules
 
@@ -22,14 +23,104 @@ Folder schemas are a system convention layered on OKF. Schemas merge from the bu
 
 Each governed record may reference one `scope_id`. Scope nodes use parent relationships. Retrieval includes records assigned to the requested scope or its ancestors, then returns records at the most specific matching level for each construct.
 
+Governance metadata should stay minimal. Do not add `owner_role`, `approver_role`, `audit_required`, `source_refs`, `retrieval_policy`, `exact_language_required`, or similar per-record workflow fields back into the model. Use the existing axes: `criticality`, `status`, `durability`, `scope_id`, `provenance`, `valid_until`, and `edit_roles` only if lightweight folder or document edit hints are still useful. Runtime audit should be service behavior, not per-record metadata.
+
+Documents and folders may define supporting-source pointers for hybrid and flexible context:
+
+```yaml
+supporting_sources:
+  collections:
+    - collection-1
+    - collection-2
+  web:
+    - https://example.com/page
+  mcp:
+    - sales-calls
+    - https://example.com/mcp
+```
+
+These pointers are not canonical truth. Controlled context ignores them. MCP sources are filtered through RBAC before being returned.
+
 Repository history shows structural and application changes. Document history filters the same Git graph by file path. Markdown and JSON editors share Raw, Preview, and Split views.
 
 ## Retrieval Rules
 
 - Invalid OKF documents remain visible in the CMS validation report.
 - Invalid documents are excluded from search, context packages, and MCP retrieval.
-- Controlled documents use deterministic retrieval and audit logging.
-- Hybrid and flexible documents can use local text search.
+- OKF documents use deterministic retrieval only.
+- Controlled requests return approved OKF records or block when required context is missing.
+- Controlled requests never search Collections, web pointers, or MCP pointers.
+- Hybrid and flexible requests return approved OKF records when available.
+- Hybrid and flexible requests may search only the Collections named by matching OKF document or folder supporting-source pointers.
+- Collection retrieval combines SQLite FTS5 keyword matching with a local deterministic embedding vector and returns cited passages.
+- Collection files are never summarized and are never promoted into OKF records automatically.
+
+## Current Sprint State
+
+The current sprint is implemented in code and CMS surfaces:
+
+- Context package v1 contract at `/api/context-package`.
+- OKF folder import scan/apply endpoints and CMS import panel.
+- Collections storage, source document retention, MarkItDown parsing path, retrieval units, FTS index, embedding table, and cited retrieval.
+- Supporting-source pointers for documents and folder schemas.
+- MCP supporting-source RBAC filtering.
+- Tool Test Bench CMS screen that calls the real context package endpoint.
+- Backend tests covering controlled blocking, Collection routing, MCP RBAC, OKF import, no OKF semantic retrieval, and no Collection summarization API.
+
+The next implementation priority is the approval workflow for controlled context.
+
+## Roadmap
+
+### 1. Approval workflow for controlled context
+
+The record status values `draft`, `proposed`, `approved`, and `archived` already exist as metadata. The next step is to make those values drive an actual workflow without adding owner or approver metadata back into the document model.
+
+Goals:
+
+- Keep approved controlled records stable until a reviewer explicitly accepts a change.
+- Let editors propose controlled-context changes without silently replacing approved truth.
+- Use the existing role model: editors can draft and propose, admins can approve and archive.
+- Keep the document model simple. Workflow state that is not part of durable OKF context should live in local application state, not in new document metadata fields.
+
+Proposed behavior:
+
+- New controlled records can be created as `draft` or `proposed`.
+- Only admins can transition a controlled record to `approved` or `archived`.
+- Editors can update flexible and hybrid records directly, subject to existing validation and edit permissions.
+- When an editor edits an `approved` controlled record, the CMS creates a pending proposal instead of overwriting the approved file.
+- The approved record remains the version returned by retrieval, context packages, and MCP until the proposal is approved.
+- If a proposal is approved, the service applies the proposed frontmatter and body to the original document path as a normal Git-backed commit.
+- If a proposal is rejected, the approved document remains unchanged and the rejected proposal stays visible in review history.
+
+Implementation shape:
+
+- Add a small SQLite-backed review table for pending document changes. Store the document path, base Git SHA, proposed frontmatter, proposed body, proposer, status, timestamps, and reviewer notes.
+- Add API endpoints for listing, reading, approving, and rejecting proposals.
+- Add a CMS Review Queue view that shows pending proposals, diffs against the current approved version, validation results, and approve/reject actions.
+- Block approval if the base document changed since the proposal was created, unless the admin explicitly refreshes the proposal against the new version.
+- Add tests for editor proposed edits, admin-only approvals, conflict handling, and retrieval continuing to return the approved version before approval.
+
+### 2. Productionize Collection Retrieval
+
+The current Collection retrieval implementation is local and deterministic. It establishes the product boundary and citation behavior without introducing remote infrastructure.
+
+Next improvements:
+
+- Add an adapter for a stronger local embedding model.
+- Add an adapter for a local vector store if the deterministic embedding table becomes too limited.
+- Add indexing progress for large file batches.
+- Add reindex controls for individual documents and whole Collections.
+- Keep all usage routing in OKF supporting-source pointers, not Collection metadata.
+
+### 3. MCP Source Registry
+
+Supporting-source metadata can point to MCP servers. The next step is a small registry of supported MCP servers and RBAC policy.
+
+Next improvements:
+
+- Add config validation for MCP server IDs and URLs.
+- Show unavailable MCP sources clearly in the Tool Test Bench.
+- Keep MCP references at the server level, not the tool level.
 
 ## Sources
 

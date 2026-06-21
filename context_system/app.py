@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from contextlib import asynccontextmanager
 from subprocess import CalledProcessError
 
@@ -10,6 +11,7 @@ from .auth import GitHubAuth, UserStore, current_user, login_response, require_r
 from .cms import ContentStore
 from .config import get_config
 from .mcp_server import mcp
+from .models import ContextPackageV1Request
 from .service import ContextService
 
 cfg = get_config()
@@ -359,8 +361,26 @@ def search_context(query: str, constructs: str | None = None, top_k: int = 5) ->
     return service.search(query=query, constructs=construct_list, top_k=top_k)
 
 
+@app.post("/api/context-package")
+def context_package(data: ContextPackageV1Request, user: dict = Depends(current_user)) -> dict:
+    return service.assemble_context_package_v1(
+        task=data.task,
+        scope_id=data.scope_id,
+        requests=[item.model_dump() for item in data.requests],
+        run_id=data.run_id,
+        user=user,
+    )
+
+
 @app.post("/api/assemble_context_package")
 def assemble_context_package(data: dict) -> dict:
+    if isinstance(data.get("requests"), list):
+        return service.assemble_context_package_v1(
+            task=data.get("task", ""),
+            scope_id=data.get("scope_id"),
+            requests=data.get("requests", []),
+            run_id=data.get("run_id"),
+        )
     task, constructs = data.get("task"), data.get("constructs", [])
     if not task or not isinstance(constructs, list):
         raise HTTPException(status_code=400, detail="task and a constructs list are required")
@@ -372,6 +392,70 @@ def assemble_context_package(data: dict) -> dict:
         run_id=data.get("run_id"),
         query=data.get("query"),
     ).to_response()
+
+
+@app.post("/api/imports/okf-folder/scan")
+def scan_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
+    require_role(user, ["admin"])
+    source_folder = data.get("source_folder", "")
+    if not source_folder:
+        raise HTTPException(status_code=400, detail="source_folder is required")
+    return service.scan_okf_folder(source_folder)
+
+
+@app.post("/api/imports/okf-folder/apply")
+def apply_okf_folder_import(data: dict, user: dict = Depends(current_user)) -> dict:
+    user = _prepare_write(user, ["admin"])
+    source_folder = data.get("source_folder", "")
+    if not source_folder:
+        raise HTTPException(status_code=400, detail="source_folder is required")
+    try:
+        result = service.import_okf_folder(source_folder, user["username"])
+        _finish_write(user)
+        return result
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/collections")
+def list_collections(user: dict = Depends(current_user)) -> list[dict]:
+    return service.collections.list_collections()
+
+
+@app.post("/api/collections")
+def create_collection(data: dict, user: dict = Depends(current_user)) -> dict:
+    require_role(user, ["editor", "admin"])
+    try:
+        return service.collections.create_collection(
+            data.get("id") or data.get("name", ""),
+            data.get("name") or data.get("id", ""),
+            data.get("description", ""),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/collections/{collection_id}/documents")
+def list_collection_documents(collection_id: str, user: dict = Depends(current_user)) -> list[dict]:
+    try:
+        return service.collections.list_documents(collection_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/collections/{collection_id}/documents")
+def add_collection_document(collection_id: str, data: dict, user: dict = Depends(current_user)) -> dict:
+    require_role(user, ["editor", "admin"])
+    filename = data.get("filename", "")
+    if not filename:
+        raise HTTPException(status_code=400, detail="filename is required")
+    try:
+        if data.get("content_base64"):
+            content = base64.b64decode(data["content_base64"])
+            return service.collections.add_document_bytes(collection_id, filename, content)
+        return service.collections.add_document_text(collection_id, filename, data.get("content", ""))
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 app.mount("/mcp", mcp.streamable_http_app())
