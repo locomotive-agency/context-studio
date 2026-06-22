@@ -3,12 +3,18 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = PROJECT_DIR / "config.json"
+
+
+class LocalDemoUser(BaseModel):
+    username: str
+    password: str
+    role: Literal["viewer", "editor", "admin"]
 
 
 class Config(BaseModel):
@@ -24,6 +30,7 @@ class Config(BaseModel):
     mcp_servers: list[str | dict] = Field(default_factory=list)
     default_remote_url: str = "http://localhost:8000"
     secret_key: str = "change-me-in-production"
+    local_demo_users: list[LocalDemoUser] = Field(default_factory=list)
     embedding_model: Optional[str] = None
     vector_store: str = "sqlite"
     public_app_url: str = "http://127.0.0.1:4321"

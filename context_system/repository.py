@@ -96,7 +96,6 @@ class ContextRepository:
             kb_path=document["path"],
             content_hash=__import__("hashlib").sha256(path.read_bytes()).hexdigest()[:16],
             valid_until=definition.valid_until.isoformat() if definition.valid_until else None,
-            edit_roles=definition.edit_roles,
             scope=definition.scope.model_dump(exclude_none=True),
             scope_id=definition.scope_id,
             checks=definition.checks,

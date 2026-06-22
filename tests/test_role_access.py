@@ -64,7 +64,32 @@ def test_viewer_can_request_context_but_cannot_write() -> None:
     assert write.status_code == 403
 
 
-def test_editor_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, monkeypatch) -> None:
+def test_admin_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, monkeypatch) -> None:
+    _cfg, store, service = _temp_service(tmp_path)
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "example.md").write_text("---\ntype: test\ntitle: Test\nstatus: approved\n---\n\nBody\n", encoding="utf-8")
+    monkeypatch.setattr(app_module, "content", store)
+    monkeypatch.setattr(app_module, "service", service)
+    client = TestClient(app_module.app)
+
+    schema = client.put(
+        "/api/schemas",
+        headers=_headers("admin"),
+        json={"path": "", "schema": {"type": "test", "criticality": "flexible"}},
+    )
+    imported = client.post(
+        "/api/imports/okf-folder/apply",
+        headers=_headers("admin"),
+        json={"source_folder": str(source)},
+    )
+
+    assert schema.status_code == 200
+    assert imported.status_code == 200
+    assert (store.repository / "example.md").is_file()
+
+
+def test_editor_cannot_edit_schema_or_import_okf_folder(tmp_path: Path, monkeypatch) -> None:
     _cfg, store, service = _temp_service(tmp_path)
     source = tmp_path / "source"
     source.mkdir()
@@ -78,15 +103,21 @@ def test_editor_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, m
         headers=_headers("editor"),
         json={"path": "", "schema": {"type": "test", "criticality": "flexible"}},
     )
+    scanned = client.post(
+        "/api/imports/okf-folder/scan",
+        headers=_headers("editor"),
+        json={"source_folder": str(source)},
+    )
     imported = client.post(
         "/api/imports/okf-folder/apply",
         headers=_headers("editor"),
         json={"source_folder": str(source)},
     )
 
-    assert schema.status_code == 200
-    assert imported.status_code == 200
-    assert (store.repository / "example.md").is_file()
+    assert schema.status_code == 403
+    assert scanned.status_code == 403
+    assert imported.status_code == 403
+    assert not (store.repository / "example.md").exists()
 
 
 def test_editor_can_upload_text_collection_document(tmp_path: Path, monkeypatch) -> None:

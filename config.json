@@ -5,5 +5,10 @@
   "context_server_name": "marketing-context",
   "context_repository_path": "context_repo",
   "index_path": "var/index.sqlite",
-  "audit_path": "var/audit.sqlite"
+  "audit_path": "var/audit.sqlite",
+  "local_demo_users": [
+    {"username": "admin", "password": "admin123", "role": "admin"},
+    {"username": "editor", "password": "editor123", "role": "editor"},
+    {"username": "viewer", "password": "viewer123", "role": "viewer"}
+  ]
 }

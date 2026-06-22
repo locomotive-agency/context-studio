@@ -218,7 +218,6 @@ import "../styles/global.css";
         ]},
         {title:"Governance and access", fields:[
           {key:"status", label:"Status", type:"select", options:[["draft","Draft"],["proposed","Proposed"],["approved","Approved"],["archived","Archived"]]},
-          {key:"edit_roles", label:"Edit roles", type:"list", placeholder:"editor, admin"},
         ]},
         {title:"Sources and freshness", fields:[
           {key:"provenance", label:"Provenance", type:"text", placeholder:"Source URL, URI, or document name"},
@@ -473,7 +472,7 @@ import "../styles/global.css";
       }
 
       function renderGovernance(metadata) {
-        const keys = ["type", "scope_id", "durability", "criticality", "status", "edit_roles", "provenance", "valid_until"];
+        const keys = ["type", "scope_id", "durability", "criticality", "status", "provenance", "valid_until"];
         byId("resolved-metadata").innerHTML = keys.filter((key) => metadata[key] !== undefined).map((key) => {
           const value = Array.isArray(metadata[key]) ? metadata[key].join(", ") : String(metadata[key]);
           return `<div><dt>${escapeHtml(key.replaceAll("_", " "))}</dt><dd>${escapeHtml(value)}</dd></div>`;

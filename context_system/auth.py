@@ -13,7 +13,7 @@ import httpx
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 
-from .config import get_config
+from .config import Config, LocalDemoUser, get_config
 
 COOKIE_NAME = "context_system_session"
 OAUTH_STATE_COOKIE = "context_system_oauth_state"
@@ -46,23 +46,24 @@ def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
 
 
 class UserStore:
-    def __init__(self, db_path: Path | None = None):
-        self.db_path = db_path or get_config().users_db
+    def __init__(self, db_path: Path | None = None, config: Config | None = None):
+        self.config = config or get_config()
+        self.db_path = db_path or self.config.users_db
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with sqlite3.connect(self.db_path) as conn:
             conn.executescript(SCHEMA)
             count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
             if count == 0:
-                for username, password, role in [
-                    ("admin", "admin123", "admin"),
-                    ("editor", "editor123", "editor"),
-                    ("viewer", "viewer123", "viewer"),
-                ]:
-                    password_hash, salt = hash_password(password)
-                    conn.execute(
-                        "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
-                        (username, password_hash, salt, role),
-                    )
+                self._seed_local_demo_users(conn, self.config.local_demo_users)
+
+    @staticmethod
+    def _seed_local_demo_users(conn: sqlite3.Connection, users: list[LocalDemoUser]) -> None:
+        for user in users:
+            password_hash, salt = hash_password(user.password)
+            conn.execute(
+                "INSERT INTO users (username, password_hash, salt, role) VALUES (?, ?, ?, ?)",
+                (user.username, password_hash, salt, user.role),
+            )
 
     def get_user(self, username: str) -> dict | None:
         with sqlite3.connect(self.db_path) as conn:

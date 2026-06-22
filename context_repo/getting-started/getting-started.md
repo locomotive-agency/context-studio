@@ -37,7 +37,7 @@ Open `http://127.0.0.1:4321`.
 
 ## Sign in locally
 
-When GitHub mode is not configured, the CMS uses local demo accounts:
+When GitHub mode is not configured, the CMS uses the local demo accounts configured in `config.json`:
 
 - `admin` / `admin123`
 - `editor` / `editor123`
@@ -53,7 +53,7 @@ History shows Git revisions. Repository history shows structural changes. Docume
 
 Scopes defines the hierarchy used to align context to company, brand, product, campaign, audience, and similar levels.
 
-Schemas manages folder metadata. Documents inherit folder metadata, and document frontmatter can override it.
+Schemas manages folder metadata. Documents inherit folder metadata, and document frontmatter can override it. Schema editing is an Admin action.
 
 Users is available in local mode. In GitHub mode, access is managed from GitHub repository permissions.
 
@@ -69,6 +69,6 @@ The CMS writes the file, validates it as OKF, and commits the change to Git.
 
 ## Create a folder
 
-Use New folder from Documents or Folder metadata. A folder is represented by a folder-level `_schema.yaml` file, so it can hold inherited metadata even before it has documents.
+Use New folder from Documents. A folder is represented by a folder-level `_schema.yaml` file, so it can hold inherited metadata even before it has documents.
 
 Folders can be deleted only when they contain no documents.

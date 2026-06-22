@@ -37,7 +37,6 @@ class GovernanceMetadata(BaseModel):
     durability: Optional[Durability] = None
     provenance: Optional[str] = None
     criticality: Optional[Criticality] = None
-    edit_roles: Optional[list[str]] = None
     status: Optional[RecordStatus] = None
     valid_until: Optional[date] = None
 
@@ -60,7 +59,6 @@ class ContextRecord(BaseModel):
     durability: Durability = "persistent"
     provenance: Optional[str] = None
     criticality: Criticality = "hybrid"
-    edit_roles: list[str] = Field(default_factory=list)
     status: RecordStatus = "approved"
     valid_until: Optional[date] = None
     precedence: list[str] = Field(default_factory=list)
@@ -82,7 +80,6 @@ class RuntimeRecord(BaseModel):
     kb_path: str
     content_hash: str
     valid_until: Optional[str] = None
-    edit_roles: list[str] = Field(default_factory=list)
     scope: dict = Field(default_factory=dict)
     scope_id: Optional[str] = None
     checks: dict = Field(default_factory=dict)

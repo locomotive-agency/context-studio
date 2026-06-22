@@ -32,7 +32,7 @@ Later values override earlier values. Every concept document must still contain 
 
 `context_repo/_scopes.yaml` stores the parent-linked scope hierarchy. Documents use a `scope_id`; context retrieval inherits from parent scopes and prefers the most specific matching records.
 
-CMS creation and editing actions use right-side drawers. Documents can be added, edited, deleted, restored, and inspected through Git history. Folders can be added and deleted when empty. Admins can edit users and everything else. Editors can edit Folders, Documents, and Collections. Viewers can request context and semantic data. In GitHub mode, user access is managed in GitHub repository settings.
+CMS creation and editing actions use right-side drawers. Documents can be added, edited, deleted, restored, and inspected through Git history. Folders can be added and deleted when empty. Admins can edit users, scopes, folder metadata schemas, folders, documents, imports, and Collections. Editors can edit Folders, Documents, and Collections. Viewers can review and request context. In GitHub mode, user access is managed in GitHub repository settings.
 
 Markdown files are validated as OKF records. JSON files are supported as structured source documents. Both formats provide Raw, Preview, and Split editor modes. Representative case study, competitive, and ICP examples live under `context_repo/examples/`.
 
@@ -79,7 +79,7 @@ npm run dev
 
 Open `http://127.0.0.1:4321`.
 
-Default local users are used when GitHub mode is not configured:
+Default local users are configured in `config.json` and used when GitHub mode is not configured:
 
 - `admin` / `admin123`
 - `editor` / `editor123`
@@ -100,7 +100,7 @@ Access maps directly from GitHub:
 - `read` or `triage` -> CMS viewer
 - `none` or no collaborator record -> no CMS access
 
-In GitHub mode, all git-backed write actions verify the user's current GitHub permission before saving. Repository admins can edit scopes and content in the app, while user access is managed in GitHub. GitHub users with `write` or `maintain` access can edit Folders, Documents, and Collections. GitHub users with `read` or `triage` access can request context and semantic data.
+In GitHub mode, all git-backed write actions verify the user's current GitHub permission before saving. Repository admins can edit scopes, folder metadata schemas, imports, and content in the app, while user access is managed in GitHub. GitHub users with `write` or `maintain` access can edit Folders, Documents, and Collections. GitHub users with `read` or `triage` access can review and request context.
 
 Set these environment variables before starting the FastAPI service:
 

@@ -12,7 +12,7 @@ tags:
 
 In hosted mode, GitHub is the source of truth for CMS access.
 
-Users cannot enter the CMS unless they have access to the configured GitHub repository. Users with GitHub edit-level access can edit content. Users with read-level access can review content without editing.
+Users cannot enter the CMS unless they have access to the configured GitHub repository. Repository admins can manage governed structure and content. Users with GitHub edit-level access can edit document folders, documents, and Collections. Users with read-level access can review and request context without editing.
 
 ## Permission mapping
 
@@ -48,15 +48,22 @@ Remove the user's repository access in GitHub. The next permission check will pr
 
 ## Edit access
 
-Before each write action, the CMS re-checks the user's GitHub permission. Write actions include:
+Before each write action, the CMS re-checks the user's GitHub permission.
+
+Admin write actions include:
+
+- Editing folder metadata schemas
+- Creating, editing, moving, or deleting scopes
+- Importing OKF folders
+
+Editor write actions include:
 
 - Creating, editing, deleting, or restoring documents
 - Creating or deleting folders
-- Editing folder metadata
-- Creating, editing, moving, or deleting scopes
+- Creating Collections and uploading Collection source files
 
 If GitHub no longer grants edit access, the write is blocked.
 
 ## Local mode
 
-When GitHub settings are not configured, the CMS uses local demo users stored in SQLite. Local mode is useful for development and review, but GitHub mode is the intended hosted access model.
+When GitHub settings are not configured, the CMS uses the local demo users configured in `config.json` and stored in SQLite. Local mode is useful for development and review, but GitHub mode is the intended hosted access model.

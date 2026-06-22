@@ -19,7 +19,7 @@ from .service import ContextService
 cfg = get_config()
 service = ContextService(cfg)
 content = ContentStore(cfg.context_repo)
-users = UserStore(cfg.users_db)
+users = UserStore(config=cfg)
 github_auth = GitHubAuth()
 
 
@@ -318,7 +318,7 @@ def delete_folder(folder_path: str, user: dict = Depends(current_user)) -> dict:
 
 @app.put("/api/schemas")
 def save_schema(data: dict, user: dict = Depends(current_user)) -> dict:
-    user = _prepare_write(user, ["editor", "admin"])
+    user = _prepare_write(user, ["admin"])
     try:
         result = content.save_schema(data.get("path", ""), data.get("schema", {}), user["username"])
         _finish_write(user)
@@ -408,7 +408,7 @@ def assemble_context_package(data: dict, user: dict = Depends(current_user)) -> 
 
 @app.post("/api/imports/okf-folder/scan")
 def scan_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
-    require_role(user, ["editor", "admin"])
+    require_role(user, ["admin"])
     source_folder = data.get("source_folder", "")
     if not source_folder:
         raise HTTPException(status_code=400, detail="source_folder is required")
@@ -417,7 +417,7 @@ def scan_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
 
 @app.post("/api/imports/okf-folder/apply")
 def apply_okf_folder_import(data: dict, user: dict = Depends(current_user)) -> dict:
-    user = _prepare_write(user, ["editor", "admin"])
+    user = _prepare_write(user, ["admin"])
     source_folder = data.get("source_folder", "")
     if not source_folder:
         raise HTTPException(status_code=400, detail="source_folder is required")

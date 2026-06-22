@@ -198,6 +198,22 @@ def test_user_store_updates_password_role_and_removes_user(tmp_path: Path):
     assert users.get_user("viewer") is None
 
 
+def test_user_store_seeds_local_demo_users_from_config(tmp_path: Path):
+    cfg = Config(
+        users_path=str(tmp_path / "users.sqlite"),
+        local_demo_users=[
+            {"username": "owner", "password": "owner-password", "role": "admin"},
+            {"username": "reviewer", "password": "reviewer-password", "role": "viewer"},
+        ],
+    )
+
+    users = UserStore(config=cfg)
+
+    assert users.get_user("owner")["role"] == "admin"
+    assert users.get_user("reviewer")["role"] == "viewer"
+    assert users.get_user("admin") is None
+
+
 def test_user_store_keeps_at_least_one_admin(tmp_path: Path):
     users = UserStore(tmp_path / "users.sqlite")
 
@@ -209,13 +225,29 @@ def test_user_store_keeps_at_least_one_admin(tmp_path: Path):
         raise AssertionError("last admin removal should fail")
 
 
-def test_github_permissions_map_to_local_edit_roles():
+def test_github_permissions_map_to_local_roles():
     assert github_role_for_permission("admin") == "admin"
     assert github_role_for_permission("write") == "editor"
     assert github_role_for_permission("maintain") == "editor"
     assert github_role_for_permission("read") == "viewer"
     assert github_role_for_permission("triage") == "viewer"
     assert github_role_for_permission("none") is None
+
+
+def test_runtime_records_do_not_expose_edit_roles(tmp_path: Path):
+    repository_path = tmp_path / "context"
+    store = ContentStore(repository_path)
+    store.save_document(
+        "example.md",
+        {"type": "Reference", "title": "Example", "status": "approved"},
+        "Body",
+        "admin",
+    )
+    config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users.sqlite"))
+
+    record = ContextRepository(config).runtime_records()[0].model_dump()
+
+    assert "edit_roles" not in record
 
 
 def test_github_session_token_keeps_only_session_reference():

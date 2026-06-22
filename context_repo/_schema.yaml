@@ -1,6 +1,3 @@
-edit_roles:
-- editor
-- admin
 durability: persistent
 criticality: hybrid
 scope_id: zoominfo
