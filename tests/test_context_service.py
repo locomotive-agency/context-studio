@@ -123,6 +123,29 @@ def test_expired_context_is_excluded_from_retrieval(tmp_path: Path):
     assert [record.title for record in records] == ["Current"]
 
 
+def test_construct_lookup_reuses_runtime_records(tmp_path: Path, monkeypatch):
+    repository_path = tmp_path / "context"
+    store = ContentStore(repository_path)
+    store.save_document("goals.md", {"type": "business-goals", "title": "Goals"}, "Goals", "admin")
+    store.save_document("brand.md", {"type": "brand-messaging", "title": "Brand"}, "Brand", "admin")
+    config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users.sqlite"))
+    repository = ContextRepository(config)
+    calls: list[tuple[str, bool]] = []
+    original_read_document = repository.content.read_document
+
+    def counted_read_document(relative_path: str, include_body: bool = True):
+        calls.append((relative_path, include_body))
+        return original_read_document(relative_path, include_body=include_body)
+
+    monkeypatch.setattr(repository.content, "read_document", counted_read_document)
+
+    assert [record.title for record in repository.get_construct("business-goals")] == ["Goals"]
+    first_lookup_calls = len(calls)
+    assert [record.title for record in repository.get_construct("brand-messaging")] == ["Brand"]
+
+    assert len(calls) == first_lookup_calls
+
+
 def test_invalid_okf_document_is_visible_in_report(tmp_path: Path):
     repository = tmp_path / "context"
     repository.mkdir()
@@ -318,6 +341,36 @@ def test_scope_hierarchy_prefers_most_specific_context(tmp_path: Path):
     records = ContextRepository(config).get_construct("product-and-offering", scope_id="product")
 
     assert [record.title for record in records] == ["Product offering"]
+
+
+def test_document_listing_reuses_scope_metadata(tmp_path: Path, monkeypatch):
+    repository_path = tmp_path / "context"
+    store = ContentStore(repository_path)
+    store.save_scope({"id": "company", "name": "Company", "level": "company"}, "admin")
+    for index in range(3):
+        store.save_document(
+            f"doc-{index}.md",
+            {"type": "business-goals", "title": f"Doc {index}", "scope_id": "company"},
+            "Body",
+            "admin",
+        )
+
+    scope_reads = 0
+    original_read_text = Path.read_text
+
+    def counted_read_text(path: Path, *args, **kwargs):
+        nonlocal scope_reads
+        if path.name == "_scopes.yaml":
+            scope_reads += 1
+        return original_read_text(path, *args, **kwargs)
+
+    store = ContentStore(repository_path)
+    monkeypatch.setattr(Path, "read_text", counted_read_text)
+
+    documents = store.list_documents()
+
+    assert len(documents) == 3
+    assert scope_reads == 1
 
 
 def test_scope_siblings_can_be_reordered(tmp_path: Path):

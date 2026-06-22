@@ -1,3 +1,4 @@
 durability: persistent
 criticality: hybrid
 scope_id: zoominfo
+status: approved

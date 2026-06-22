@@ -29,6 +29,7 @@ class ContentStore:
     def __init__(self, repository: Path):
         self.repository = repository
         self.git = GitStore(repository)
+        self._scopes_cache: tuple[int | None, list[dict[str, Any]]] | None = None
 
     def list_documents(self) -> list[dict[str, Any]]:
         documents = []
@@ -383,9 +384,14 @@ class ContentStore:
 
     def list_scopes(self) -> list[dict[str, Any]]:
         path = self.repository / SCOPES_FILE
+        signature = path.stat().st_mtime_ns if path.exists() else None
+        if self._scopes_cache and self._scopes_cache[0] == signature:
+            return [dict(item) for item in self._scopes_cache[1]]
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {} if path.exists() else {}
         nodes = [ScopeNode.model_validate(item) for item in data.get("scopes", [])]
-        return [node.model_dump() for node in nodes]
+        scopes = [node.model_dump() for node in nodes]
+        self._scopes_cache = (signature, scopes)
+        return [dict(item) for item in scopes]
 
     def save_scope(self, data: dict[str, Any], author: str, existing_id: str | None = None) -> dict[str, Any]:
         scopes = self.list_scopes()
@@ -499,3 +505,4 @@ class ContentStore:
     def _write_scopes(self, scopes: list[dict[str, Any]]) -> None:
         path = self.repository / SCOPES_FILE
         path.write_text(yaml.safe_dump({"scopes": scopes}, sort_keys=False), encoding="utf-8")
+        self._scopes_cache = (path.stat().st_mtime_ns, [dict(item) for item in scopes])

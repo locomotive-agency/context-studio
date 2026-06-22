@@ -12,8 +12,13 @@ class ContextRepository:
     def __init__(self, config: Config | None = None):
         self.config = config or get_config()
         self.content = ContentStore(self.config.context_repo)
+        self._runtime_cache: dict[bool, tuple[tuple[tuple[str, int, int], ...], list[RuntimeRecord]]] = {}
 
     def runtime_records(self, include_body: bool = True) -> list[RuntimeRecord]:
+        signature = self._content_signature()
+        cached = self._runtime_cache.get(include_body)
+        if cached and cached[0] == signature:
+            return list(cached[1])
         records = []
         for document in self.content.list_documents():
             if document.get("format") != "markdown" or not document["validation"]["valid"]:
@@ -21,6 +26,7 @@ class ContextRepository:
             full_document = self.content.read_document(document["path"], include_body=include_body)
             definition = self._definition(full_document)
             records.append(self._runtime_record(definition, full_document))
+        self._runtime_cache[include_body] = (signature, records)
         return records
 
     def get_construct(self, construct: str, include_body: bool = True, scope_id: str | None = None) -> list[RuntimeRecord]:
@@ -83,6 +89,15 @@ class ContextRepository:
         metadata.setdefault("id", document["path"].removesuffix(".md").replace("/", "."))
         metadata.setdefault("title", document["name"].replace("-", " ").title())
         return ContextRecord.model_validate(metadata)
+
+    def _content_signature(self) -> tuple[tuple[str, int, int], ...]:
+        items = []
+        for path in sorted([*self.config.context_repo.rglob("*.md"), *self.config.context_repo.rglob("*.json")]):
+            if ".git" in path.parts:
+                continue
+            stat = path.stat()
+            items.append((path.relative_to(self.config.context_repo).as_posix(), stat.st_mtime_ns, stat.st_size))
+        return tuple(items)
 
     def _runtime_record(self, definition: ContextRecord, document: dict) -> RuntimeRecord:
         path = self.config.context_repo / document["path"]
