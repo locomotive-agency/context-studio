@@ -1,5 +1,5 @@
 ---
-type: proof-points
+type: case-study
 company: Shorter Ramp Times and Faster Scaling with Chorus
 slug: procore
 source_url: https://www.zoominfo.com/about/case-studies/procore
