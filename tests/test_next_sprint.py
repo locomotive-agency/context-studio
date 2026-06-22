@@ -26,7 +26,7 @@ def test_context_package_blocks_missing_controlled_context_from_schema(tmp_path:
     store.save_schema("", {"type": "legal-and-compliance", "criticality": "controlled"}, "admin")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package_v1(
+    package = service.assemble_context_package(
         task="ad copy",
         scope_id=None,
         requests=[{"type": "legal-and-compliance", "query": "required disclaimer"}],
@@ -61,7 +61,7 @@ def test_hybrid_context_searches_only_collections_named_by_okf_sources(tmp_path:
     collections.add_document_text("excluded", "excluded.txt", "renewal risk should not appear from this collection")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package_v1(
+    package = service.assemble_context_package(
         task="campaign brief",
         scope_id=None,
         requests=[{"type": "audience-profile", "query": "renewal risk"}],
@@ -95,7 +95,7 @@ def test_controlled_context_never_searches_collections(tmp_path: Path):
     collections.add_document_text("legal-notes", "notes.txt", "renewal risk language in notes")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package_v1(
+    package = service.assemble_context_package(
         task="ad copy",
         scope_id=None,
         requests=[{"type": "legal-and-compliance", "query": "renewal risk"}],
@@ -183,7 +183,7 @@ def test_mcp_suggested_sources_are_filtered_by_rbac(tmp_path: Path):
     )
     service = ContextService(cfg)
 
-    package = service.assemble_context_package_v1(
+    package = service.assemble_context_package(
         task="campaign brief",
         scope_id=None,
         requests=[{"type": "audience-profile"}],

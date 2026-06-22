@@ -106,7 +106,7 @@ class ContextPackageItemRequest(BaseModel):
     query: Optional[str] = None
 
 
-class ContextPackageV1Request(BaseModel):
+class ContextPackageRequest(BaseModel):
     task: str = Field(min_length=1)
     scope_id: Optional[str] = None
     requests: list[ContextPackageItemRequest] = Field(default_factory=list)
@@ -140,7 +140,7 @@ class AccessIssue(BaseModel):
     reason: str
 
 
-class ContextPackageV1Result(BaseModel):
+class ContextPackageResult(BaseModel):
     type: str
     resolved_criticality: Criticality
     okf_records: list[dict] = Field(default_factory=list)

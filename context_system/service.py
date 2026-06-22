@@ -24,7 +24,7 @@ class ContextService:
     def search(self, query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[dict]:
         return [pointer.model_dump() for pointer in self.repository.search(query, constructs, top_k)]
 
-    def assemble_context_package_v1(
+    def assemble_context_package(
         self,
         task: str,
         scope_id: str | None,
@@ -102,7 +102,7 @@ class ContextService:
             )
         return package
 
-    def assemble_context_package(
+    def assemble_construct_context_package(
         self,
         task: str,
         constructs: list[str],

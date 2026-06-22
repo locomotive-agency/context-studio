@@ -23,7 +23,7 @@
 - The earlier "canonical label or alias resolver" item is removed. It was a solution looking for a problem. For now, skills and MCP callers should use the OKF `type` values defined in folder and file schema.
 - Supplying user context to MCP is not meant to personalize the AI session. Its value is authorization and auditability: MCP should not become a way to bypass Admin, Editor, and Viewer permissions. If a deployment intentionally runs MCP as one local trusted user, that should be represented as an explicit configured service account role, not as missing identity defaulting to Admin.
 - Collections must be reached only through OKF governance. MCP should not list Collections, list Collection documents, or accept arbitrary Collection IDs for search. The service may search Collection evidence only after resolving the OKF folder/file schema for the requested context type and scope.
-- Avoid `v1`, `v2`, `v3` function names unless there is a concrete compatibility need. Use one current context-package contract and keep versioning at the API/schema boundary only if a real migration requires it.
+- Do not use version numbers in function names. Use one current context-package contract and keep compatibility handling at the API/schema boundary only if a real migration requires it.
 - Required MCP request fields should either affect retrieval or be required for traceability. Do not require fields that the service ignores.
 - Do not add server-generated run workflows or a broader audit subsystem in this sprint. Keep existing explicit `run_id` audit behavior unless a concrete audit workflow is defined.
 
@@ -169,9 +169,9 @@ The previous plan overexposed Collections by proposing MCP tools that could list
 
 ### Problem
 
-`ContextPackageV1Request` is typed, but `assemble_context_package_v1()` returns a raw dict. `ContextPackageV1Result` exists but is only a result item model, not the full response envelope.
+The context package request is typed, but the service response is still a raw dict. The result item model is not the full response envelope.
 
-The typing gap is real, but the `v1` naming creates avoidable complexity. We do not need `v1`, `v2`, and `v3` service functions unless there is a real compatibility migration.
+The typing gap is real, but function names should describe behavior. Compatibility handling belongs at the API or schema boundary, not in service method names.
 
 ### Required Changes
 

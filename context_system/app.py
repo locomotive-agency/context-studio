@@ -13,7 +13,7 @@ from .auth import GitHubAuth, UserStore, current_user, login_response, require_r
 from .cms import ContentStore
 from .config import get_config
 from .mcp_server import mcp
-from .models import ContextPackageV1Request
+from .models import ContextPackageRequest
 from .service import ContextService
 
 cfg = get_config()
@@ -373,8 +373,8 @@ def search_context(query: str, constructs: str | None = None, top_k: int = 5, us
 
 
 @app.post("/api/context-package")
-def context_package(data: ContextPackageV1Request, user: dict = Depends(current_user)) -> dict:
-    return service.assemble_context_package_v1(
+def context_package(data: ContextPackageRequest, user: dict = Depends(current_user)) -> dict:
+    return service.assemble_context_package(
         task=data.task,
         scope_id=data.scope_id,
         requests=[item.model_dump() for item in data.requests],
@@ -386,7 +386,7 @@ def context_package(data: ContextPackageV1Request, user: dict = Depends(current_
 @app.post("/api/assemble_context_package")
 def assemble_context_package(data: dict, user: dict = Depends(current_user)) -> dict:
     if isinstance(data.get("requests"), list):
-        return service.assemble_context_package_v1(
+        return service.assemble_context_package(
             task=data.get("task", ""),
             scope_id=data.get("scope_id"),
             requests=data.get("requests", []),
@@ -396,7 +396,7 @@ def assemble_context_package(data: dict, user: dict = Depends(current_user)) -> 
     task, constructs = data.get("task"), data.get("constructs", [])
     if not task or not isinstance(constructs, list):
         raise HTTPException(status_code=400, detail="task and a constructs list are required")
-    return service.assemble_context_package(
+    return service.assemble_construct_context_package(
         task=task,
         constructs=constructs,
         scope=data.get("scope"),

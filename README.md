@@ -197,7 +197,7 @@ The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. MCP access requires
 
 ## API Highlights
 
-- `POST /api/context-package` assembles the v1 context package contract.
+- `POST /api/context-package` assembles the current context package contract.
 - `POST /api/imports/okf-folder/scan` scans an OKF folder before import.
 - `POST /api/imports/okf-folder/apply` imports an OKF folder as one Git-backed operation.
 - `GET /api/collections` lists Collections.

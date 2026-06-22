@@ -16,7 +16,7 @@ from context_system.service import ContextService
 
 def test_assemble_package_returns_controlled_records():
     service = ContextService()
-    package = service.assemble_context_package(
+    package = service.assemble_construct_context_package(
         task="landing-page",
         constructs=["brand-messaging", "how-we-sound"],
         run_id="test-run",

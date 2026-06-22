@@ -36,9 +36,9 @@ def assemble_context_package(
 ) -> dict:
     """Assemble governed context for an AI task."""
     if requests is not None:
-        return service.assemble_context_package_v1(task=task, scope_id=scope_id, requests=requests)
+        return service.assemble_context_package(task=task, scope_id=scope_id, requests=requests)
     constructs = constructs or []
-    return service.assemble_context_package(task=task, constructs=constructs, icp=icp).to_response()
+    return service.assemble_construct_context_package(task=task, constructs=constructs, icp=icp).to_response()
 
 
 @mcp.tool()
