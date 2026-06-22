@@ -89,6 +89,35 @@ def test_editor_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, m
     assert (store.repository / "example.md").is_file()
 
 
+def test_editor_can_upload_text_collection_document(tmp_path: Path, monkeypatch) -> None:
+    _cfg, store, service = _temp_service(tmp_path)
+    monkeypatch.setattr(app_module, "content", store)
+    monkeypatch.setattr(app_module, "service", service)
+    client = TestClient(app_module.app)
+
+    collection = client.post(
+        "/api/collections",
+        headers=_headers("editor"),
+        json={"id": "sales-calls", "name": "Sales Calls"},
+    )
+    uploaded = client.post(
+        "/api/collections/sales-calls/documents",
+        headers=_headers("editor"),
+        json={"filename": "call.md", "content": "renewal risk and approved truth came up repeatedly"},
+    )
+    malformed = client.post(
+        "/api/collections/sales-calls/documents",
+        headers=_headers("editor"),
+        json={"filename": "bad.md", "content": {"value": "not a string"}},
+    )
+
+    assert collection.status_code == 200
+    assert uploaded.status_code == 200
+    assert uploaded.json()["index_status"] == "indexed"
+    assert malformed.status_code == 400
+    assert malformed.json()["detail"] == "content must be a string"
+
+
 def test_editor_cannot_manage_users_or_scopes() -> None:
     client = TestClient(app_module.app)
 

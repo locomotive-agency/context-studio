@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 from contextlib import asynccontextmanager
 from subprocess import CalledProcessError
 
@@ -462,9 +463,18 @@ def add_collection_document(collection_id: str, data: dict, user: dict = Depends
         raise HTTPException(status_code=400, detail="filename is required")
     try:
         if data.get("content_base64"):
-            content = base64.b64decode(data["content_base64"])
+            encoded = data["content_base64"]
+            if not isinstance(encoded, str):
+                raise HTTPException(status_code=400, detail="content_base64 must be a string")
+            try:
+                content = base64.b64decode(encoded, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise HTTPException(status_code=400, detail="content_base64 must be valid base64") from exc
             return service.collections.add_document_bytes(collection_id, filename, content)
-        return service.collections.add_document_text(collection_id, filename, data.get("content", ""))
+        content_text = data.get("content", "")
+        if not isinstance(content_text, str):
+            raise HTTPException(status_code=400, detail="content must be a string")
+        return service.collections.add_document_text(collection_id, filename, content_text)
     except (ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
