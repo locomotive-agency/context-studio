@@ -14,6 +14,7 @@ from .cms import ContentStore
 from .config import get_config
 from .mcp_server import mcp
 from .models import ContextPackageRequest
+from .request_context import clear_request_user, set_request_user
 from .service import ContextService
 
 cfg = get_config()
@@ -83,10 +84,16 @@ def _finish_write(user: dict) -> None:
 @app.middleware("http")
 async def require_login_for_mcp(request: Request, call_next):
     if request.url.path.startswith("/mcp"):
+        token = None
         try:
-            await current_user(request)
+            user = await current_user(request)
+            token = set_request_user(_public_user(user))
         except HTTPException as exc:
             return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        try:
+            return await call_next(request)
+        finally:
+            clear_request_user(token)
     return await call_next(request)
 
 

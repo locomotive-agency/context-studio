@@ -5,7 +5,7 @@ from pathlib import Path
 from .audit import AuditLog
 from .collections import CollectionManager
 from .config import Config, get_config
-from .models import ContextPackage, MissingContextBlock
+from .models import ContextPackage, ContextPackageResponse, MissingContextBlock
 from .importer import OKFImporter
 from .repository import ContextRepository
 
@@ -39,6 +39,8 @@ class ContextService:
             "blocked": False,
             "kb_git_sha": self.repository.content.git.head(),
         }
+        if run_id:
+            package["run_id"] = run_id
         controlled_used: list[dict] = []
         for item in requests:
             construct = str(item.get("type", "")).strip()
@@ -100,7 +102,7 @@ class ContextService:
                 record_ids=[record["id"] for record in controlled_used],
                 hashes=[record["content_hash"] for record in controlled_used],
             )
-        return package
+        return ContextPackageResponse.model_validate(package).model_dump(exclude_none=True)
 
     def assemble_construct_context_package(
         self,
@@ -165,7 +167,9 @@ class ContextService:
     def _rbac_mcp_sources(self, sources: list[str], user: dict | None) -> tuple[list[str], list[dict]]:
         allowed: list[str] = []
         denied: list[dict] = []
-        role = (user or {}).get("role", "admin")
+        if user is None and not self.config.mcp_service_account_role:
+            return [], [{"kind": "mcp", "value": source, "reason": "missing authenticated user"} for source in sources]
+        role = (user or {"role": self.config.mcp_service_account_role}).get("role")
         configured = self.config.mcp_servers
         for source in sources:
             policy = self._mcp_policy(source, configured)

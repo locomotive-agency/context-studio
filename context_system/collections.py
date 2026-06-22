@@ -129,7 +129,7 @@ class CollectionManager:
                 """,
                 (slugify(collection_id),),
             ).fetchall()
-        return [dict(row) for row in rows]
+        return [self._with_logical_source_path(dict(row)) for row in rows]
 
     def add_document_text(self, collection_id: str, filename: str, text: str) -> dict:
         return self.add_document_bytes(collection_id, filename, text.encode("utf-8"))
@@ -224,7 +224,7 @@ class CollectionManager:
                         "collection_id": unit["collection_id"],
                         "source_document_id": unit["document_id"],
                         "source_title": unit["source_title"],
-                        "source_path": unit["source_path"],
+                        "source_path": self._logical_source_path(unit["source_path"], unit["collection_id"]),
                         "location": unit["location"],
                         "unit_id": unit["id"],
                         "content_hash": unit["content_hash"],
@@ -251,7 +251,7 @@ class CollectionManager:
             ).fetchone()
         if not row:
             raise ValueError("document not found")
-        return dict(row)
+        return self._with_logical_source_path(dict(row))
 
     def _units(self, unit_ids: list[str]) -> list[dict]:
         placeholders = ",".join("?" for _ in unit_ids)
@@ -267,6 +267,21 @@ class CollectionManager:
                 unit_ids,
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def _with_logical_source_path(self, row: dict) -> dict:
+        if "source_path" in row and "collection_id" in row:
+            row = dict(row)
+            row["source_path"] = self._logical_source_path(row["source_path"], row["collection_id"])
+        return row
+
+    def _logical_source_path(self, source_path: str, collection_id: str) -> str:
+        path = Path(source_path)
+        clean_id = slugify(collection_id)
+        try:
+            relative = path.resolve().relative_to((self.root / clean_id).resolve())
+            return PurePosixPath(clean_id, relative.as_posix()).as_posix()
+        except (OSError, ValueError):
+            return PurePosixPath(clean_id, "sources", path.name).as_posix()
 
     def _bm25_scores(self, collection_ids: list[str], query: str) -> dict[str, float]:
         terms = tokenize(query)

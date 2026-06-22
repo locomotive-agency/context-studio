@@ -85,6 +85,10 @@ class RuntimeRecord(BaseModel):
     checks: dict = Field(default_factory=dict)
     okf: dict = Field(default_factory=dict)
     supporting_sources: dict[str, list[str]] = Field(default_factory=dict)
+    links: list[dict] = Field(default_factory=list)
+    external_links: list[dict] = Field(default_factory=list)
+    citations: list[dict] = Field(default_factory=list)
+    headings: list[dict] = Field(default_factory=list)
     body: str = ""
 
 
@@ -109,7 +113,7 @@ class ContextPackageItemRequest(BaseModel):
 class ContextPackageRequest(BaseModel):
     task: str = Field(min_length=1)
     scope_id: Optional[str] = None
-    requests: list[ContextPackageItemRequest] = Field(default_factory=list)
+    requests: list[ContextPackageItemRequest] = Field(min_length=1)
     run_id: Optional[str] = None
 
 
@@ -148,6 +152,15 @@ class ContextPackageResult(BaseModel):
     suggested_sources: list[SuggestedSource] = Field(default_factory=list)
     missing: list[MissingContextBlock] = Field(default_factory=list)
     access_issues: list[AccessIssue] = Field(default_factory=list)
+
+
+class ContextPackageResponse(BaseModel):
+    task: str
+    scope_id: Optional[str] = None
+    results: list[ContextPackageResult] = Field(default_factory=list)
+    blocked: bool = False
+    kb_git_sha: str = "uncommitted"
+    run_id: Optional[str] = None
 
 
 class ContextPackage(BaseModel):

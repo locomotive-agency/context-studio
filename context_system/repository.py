@@ -5,6 +5,7 @@ from datetime import date
 from .cms import ContentStore
 from .config import Config, get_config
 from .models import ContextRecord, Criticality, RuntimeRecord, SearchPointer
+from .okf import parse_markdown_metadata
 
 
 class ContextRepository:
@@ -85,6 +86,7 @@ class ContextRepository:
 
     def _runtime_record(self, definition: ContextRecord, document: dict) -> RuntimeRecord:
         path = self.config.context_repo / document["path"]
+        markdown = parse_markdown_metadata(document["body"], document["path"])
         return RuntimeRecord(
             id=definition.id,
             title=definition.title,
@@ -101,6 +103,10 @@ class ContextRepository:
             checks=definition.checks,
             okf={"type": definition.type, "title": definition.title, "description": definition.description, "resource": definition.resource, "tags": definition.tags},
             supporting_sources=definition.supporting_sources,
+            links=markdown.internal_links,
+            external_links=markdown.external_links,
+            citations=markdown.citations,
+            headings=markdown.headings,
             body=document["body"],
         )
 

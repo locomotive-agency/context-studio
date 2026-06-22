@@ -28,6 +28,7 @@ class Config(BaseModel):
     collections_db_path: str = "var/collections.sqlite"
     connectors: list[str] = Field(default_factory=lambda: ["local"])
     mcp_servers: list[str | dict] = Field(default_factory=list)
+    mcp_service_account_role: Optional[Literal["viewer", "editor", "admin"]] = None
     default_remote_url: str = "http://localhost:8000"
     secret_key: str = "change-me-in-production"
     local_demo_users: list[LocalDemoUser] = Field(default_factory=list)

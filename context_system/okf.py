@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
+import re
 from typing import Any
 
 import yaml
@@ -41,6 +42,17 @@ class ParsedDocument(BaseModel):
     body: str
 
 
+class MarkdownMetadata(BaseModel):
+    headings: list[dict[str, Any]] = Field(default_factory=list)
+    internal_links: list[dict[str, str]] = Field(default_factory=list)
+    external_links: list[dict[str, str]] = Field(default_factory=list)
+    citations: list[dict[str, str]] = Field(default_factory=list)
+
+
+HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+
+
 def parse_document(text: str) -> ParsedDocument:
     if not text.startswith("---\n"):
         raise ValueError("document must start with YAML frontmatter delimited by ---")
@@ -59,6 +71,65 @@ def parse_document(text: str) -> ParsedDocument:
 def render_document(frontmatter: dict[str, Any], body: str) -> str:
     yaml_text = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=False).strip()
     return f"---\n{yaml_text}\n---\n\n{body.rstrip()}\n"
+
+
+def parse_markdown_metadata(body: str, base_path: str | None = None) -> MarkdownMetadata:
+    headings: list[dict[str, Any]] = []
+    internal_links: list[dict[str, str]] = []
+    external_links: list[dict[str, str]] = []
+    citations: list[dict[str, str]] = []
+    in_citations = False
+    citation_level = 7
+
+    for line in body.splitlines():
+        heading = HEADING_RE.match(line.strip())
+        if heading:
+            level = len(heading.group(1))
+            text = heading.group(2).strip()
+            headings.append({"level": level, "text": text})
+            if text.lower() == "citations":
+                in_citations = True
+                citation_level = level
+            elif in_citations and level <= citation_level:
+                in_citations = False
+        for match in LINK_RE.finditer(line):
+            item = {"text": match.group(1).strip(), "target": match.group(2).strip()}
+            if _is_external_target(item["target"]):
+                external_links.append(item)
+                if in_citations:
+                    citations.append(item)
+            elif item["target"] and not item["target"].startswith("#"):
+                internal_links.append({"text": item["text"], "target": normalize_markdown_target(item["target"], base_path)})
+    return MarkdownMetadata(
+        headings=headings,
+        internal_links=internal_links,
+        external_links=external_links,
+        citations=citations,
+    )
+
+
+def normalize_markdown_target(target: str, base_path: str | None = None) -> str:
+    target = target.split("#", 1)[0].strip()
+    if not target:
+        return target
+    if base_path:
+        path = PurePosixPath(base_path).parent / PurePosixPath(target)
+    else:
+        path = PurePosixPath(target)
+    parts: list[str] = []
+    for part in path.parts:
+        if part in {"", "."}:
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(part)
+    return PurePosixPath(*parts).as_posix()
+
+
+def _is_external_target(target: str) -> bool:
+    return bool(re.match(r"^[a-z][a-z0-9+.-]*://", target, flags=re.IGNORECASE))
 
 
 def normalize_supporting_sources(value: Any) -> dict[str, list[str]]:

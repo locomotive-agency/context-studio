@@ -12,6 +12,7 @@ from .okf import (
     SCHEMA_FILE,
     load_effective_schema,
     merge_metadata,
+    parse_markdown_metadata,
     parse_document,
     render_document,
     validate_frontmatter,
@@ -77,6 +78,89 @@ class ContentStore:
             "body": body,
             "validation": validation_data,
         }
+
+    def list_okf_entries(self, folder: str | None = None) -> list[dict[str, Any]]:
+        clean = validate_relative_path(folder or "") if folder else ""
+        root = self.repository / clean
+        if not root.exists():
+            raise FileNotFoundError(clean)
+        paths = sorted(path for path in root.rglob("*.md") if ".git" not in path.parts)
+        return [self.read_okf_entry(path.relative_to(self.repository).as_posix(), include_body=False) for path in paths]
+
+    def read_okf_entry(self, relative_path: str, include_body: bool = True) -> dict[str, Any]:
+        relative_path = validate_relative_path(relative_path, suffix=".md")
+        path = self.repository / relative_path
+        if not path.is_file():
+            raise FileNotFoundError(relative_path)
+        kind = self._okf_kind(path.name)
+        if kind == "concept":
+            raw = path.read_text(encoding="utf-8")
+            entry = self.read_document(relative_path, include_body=include_body)
+            try:
+                metadata_body = parse_document(raw).body
+            except ValueError:
+                metadata_body = entry["body"]
+            metadata = parse_markdown_metadata(metadata_body, relative_path)
+            entry.update(
+                {
+                    "kind": kind,
+                    "title": entry["effective_frontmatter"].get("title"),
+                    "type": entry["effective_frontmatter"].get("type"),
+                    "scope_id": entry["effective_frontmatter"].get("scope_id"),
+                    "status": entry["effective_frontmatter"].get("status"),
+                    "description": entry["effective_frontmatter"].get("description"),
+                    "links": metadata.internal_links,
+                    "external_links": metadata.external_links,
+                    "citations": metadata.citations,
+                    "headings": metadata.headings,
+                    "content_hash": self._content_hash(relative_path),
+                }
+            )
+            return entry
+        raw = path.read_text(encoding="utf-8")
+        body = raw if include_body else ""
+        metadata = parse_markdown_metadata(raw, relative_path)
+        return {
+            "path": relative_path,
+            "format": "markdown",
+            "kind": kind,
+            "name": path.stem,
+            "folder": "" if Path(relative_path).parent == Path(".") else Path(relative_path).parent.as_posix(),
+            "frontmatter": {},
+            "inherited_frontmatter": {},
+            "effective_frontmatter": {},
+            "body": body,
+            "validation": {"valid": True, "errors": []},
+            "title": metadata.headings[0]["text"] if metadata.headings else path.stem,
+            "type": None,
+            "scope_id": None,
+            "status": None,
+            "description": None,
+            "links": metadata.internal_links,
+            "external_links": metadata.external_links,
+            "citations": metadata.citations,
+            "headings": metadata.headings,
+            "content_hash": self._content_hash(relative_path),
+        }
+
+    def read_okf_index(self, folder: str | None = None) -> dict[str, Any]:
+        path = Path(validate_relative_path(folder or "") if folder else "") / "index.md"
+        return self.read_okf_entry(path.as_posix())
+
+    def read_okf_log(self, folder: str | None = None) -> dict[str, Any]:
+        path = Path(validate_relative_path(folder or "") if folder else "") / "log.md"
+        return self.read_okf_entry(path.as_posix())
+
+    @staticmethod
+    def _okf_kind(name: str) -> str:
+        if name == "index.md":
+            return "index"
+        if name == "log.md":
+            return "log"
+        return "concept"
+
+    def _content_hash(self, relative_path: str) -> str:
+        return __import__("hashlib").sha256((self.repository / relative_path).read_bytes()).hexdigest()[:16]
 
     def save_document(self, relative_path: str, frontmatter: dict[str, Any], body: str, author: str) -> dict[str, Any]:
         relative_path = validate_relative_path(relative_path)
