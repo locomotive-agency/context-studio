@@ -90,6 +90,7 @@ def test_mcp_context_package_uses_explicit_service_account_role(tmp_path: Path, 
 
 
 def test_mcp_tools_do_not_expose_direct_collection_listing_or_search():
+    assert not hasattr(mcp_server, "search_context")
     assert not hasattr(mcp_server, "list_collections")
     assert not hasattr(mcp_server, "list_collection_documents")
     assert not hasattr(mcp_server, "search_collection")

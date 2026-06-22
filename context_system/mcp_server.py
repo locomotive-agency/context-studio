@@ -23,13 +23,6 @@ def get_construct(construct: str, scope_id: str | None = None) -> list[dict]:
 
 
 @mcp.tool()
-def search_context(query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[dict]:
-    """Deprecated: OKF records are no longer searched semantically."""
-    mcp_user_or_service_account(service.config)
-    return service.search(query=query, constructs=constructs, top_k=top_k)
-
-
-@mcp.tool()
 def assemble_context_package(
     task: str,
     requests: list[dict],
