@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -231,6 +232,31 @@ class ContentStore:
         path.unlink()
         self.git.commit([relative_path], f"Delete {relative_path}", author)
 
+    def move_document(self, relative_path: str, target_folder: str, author: str) -> dict[str, Any]:
+        relative_path = validate_relative_path(relative_path)
+        suffix = Path(relative_path).suffix.lower()
+        if suffix not in {".md", ".json"}:
+            raise ValueError("document path must end in .md or .json")
+        if Path(relative_path).name in RESERVED_DOCUMENTS:
+            raise ValueError(f"{Path(relative_path).name} is reserved by OKF")
+        clean_folder = validate_relative_path(target_folder) if target_folder else ""
+        source = self.repository / relative_path
+        if not source.is_file():
+            raise FileNotFoundError(relative_path)
+        destination_folder = self.repository / clean_folder if clean_folder else self.repository
+        if not destination_folder.is_dir():
+            raise FileNotFoundError(clean_folder)
+        destination_relative = (Path(clean_folder) / source.name).as_posix() if clean_folder else source.name
+        destination = self.repository / destination_relative
+        if destination == source:
+            return self.read_document(relative_path)
+        if destination.exists():
+            raise FileExistsError(destination_relative)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        source.rename(destination)
+        self.git.commit([relative_path, destination_relative], f"Move {relative_path} to {destination_relative}", author)
+        return self.read_document(destination_relative)
+
     def create_folder(self, relative_path: str, author: str) -> dict[str, str]:
         relative_path = validate_relative_path(relative_path)
         schema_path = f"{relative_path}/{SCHEMA_FILE}"
@@ -265,6 +291,33 @@ class ContentStore:
             self.git.commit([clean], f"Delete folder {clean}", author)
         else:
             self.git.commit(removed_paths, f"Delete folder {clean}", author)
+
+    def move_folder(self, relative_path: str, target_parent: str, author: str) -> dict[str, str]:
+        clean = validate_relative_path(relative_path)
+        if not clean:
+            raise ValueError("root folder cannot be moved")
+        parent = validate_relative_path(target_parent) if target_parent else ""
+        if parent == clean:
+            raise ValueError("folder cannot be moved into itself")
+        if parent.startswith(f"{clean}/"):
+            raise ValueError("folder cannot be moved into one of its descendants")
+        source = self.repository / clean
+        if not source.is_dir():
+            raise FileNotFoundError(clean)
+        destination_relative = (Path(parent) / source.name).as_posix() if parent else source.name
+        destination = self.repository / destination_relative
+        if destination == source:
+            return {"path": clean}
+        if destination.exists():
+            raise FileExistsError(destination_relative)
+        if parent and not (self.repository / parent).is_dir():
+            raise FileNotFoundError(parent)
+        old_paths = [path.relative_to(self.repository).as_posix() for path in source.rglob("*") if path.is_file()]
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(source), str(destination))
+        new_paths = [f"{destination_relative}/{Path(path).relative_to(clean).as_posix()}" for path in old_paths]
+        self.git.commit([*old_paths, *new_paths], f"Move folder {clean} to {destination_relative}", author)
+        return {"path": destination_relative}
 
     def list_folders(self) -> list[dict[str, Any]]:
         folders = {""}

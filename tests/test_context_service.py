@@ -189,6 +189,47 @@ def test_empty_folder_can_be_deleted_but_folder_with_documents_is_protected(tmp_
         raise AssertionError("folder with documents should not be deleted")
 
 
+def test_document_can_be_moved_to_an_existing_folder(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    store.create_folder("products", "editor")
+    store.save_document("example.md", {"type": "Reference", "title": "Example"}, "Body", "editor")
+
+    moved = store.move_document("example.md", "products", "editor")
+
+    assert moved["path"] == "products/example.md"
+    assert (tmp_path / "context" / "products/example.md").is_file()
+    assert not (tmp_path / "context" / "example.md").exists()
+
+
+def test_folder_can_be_moved_under_another_folder(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    store.create_folder("archive", "editor")
+    store.create_folder("products", "editor")
+    store.save_schema("products", {"type": "Reference"}, "admin")
+    store.save_document("products/example.md", {"title": "Example"}, "Body", "editor")
+
+    moved = store.move_folder("products", "archive", "editor")
+
+    assert moved["path"] == "archive/products"
+    assert (tmp_path / "context" / "archive/products/example.md").is_file()
+    assert (tmp_path / "context" / "archive/products/_schema.yaml").is_file()
+    assert not (tmp_path / "context" / "products").exists()
+
+
+def test_folder_cannot_be_moved_into_itself_or_descendant(tmp_path: Path):
+    store = ContentStore(tmp_path / "context")
+    store.create_folder("products", "editor")
+    store.create_folder("products/enterprise", "editor")
+
+    for destination in ["products", "products/enterprise"]:
+        try:
+            store.move_folder("products", destination, "editor")
+        except ValueError as exc:
+            assert "descendant" in str(exc) or "itself" in str(exc)
+        else:
+            raise AssertionError(f"moving products to {destination} should fail")
+
+
 def test_user_store_updates_password_role_and_removes_user(tmp_path: Path):
     users = UserStore(tmp_path / "users.sqlite")
 

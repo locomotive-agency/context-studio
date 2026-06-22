@@ -194,6 +194,19 @@ def list_documents(user: dict = Depends(current_user)) -> list[dict]:
     return content.list_documents()
 
 
+@app.post("/api/documents/move")
+def move_document(data: dict, user: dict = Depends(current_user)) -> dict:
+    user = _prepare_write(user, ["editor", "admin"])
+    try:
+        result = content.move_document(data.get("path", ""), data.get("target_folder", ""), user["username"])
+        _finish_write(user)
+        return result
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (FileExistsError, ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.get("/api/documents/{document_path:path}")
 def get_document(document_path: str, user: dict = Depends(current_user)) -> dict:
     try:
@@ -307,6 +320,19 @@ def create_folder(data: dict, user: dict = Depends(current_user)) -> dict:
         _finish_write(user)
         return result
     except (ValueError, FileExistsError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/folders/move")
+def move_folder(data: dict, user: dict = Depends(current_user)) -> dict:
+    user = _prepare_write(user, ["editor", "admin"])
+    try:
+        result = content.move_folder(data.get("path", ""), data.get("target_parent", ""), user["username"])
+        _finish_write(user)
+        return result
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (FileExistsError, ValueError, OSError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
@@ -430,6 +456,32 @@ def apply_okf_folder_import(data: dict, user: dict = Depends(current_user)) -> d
         raise HTTPException(status_code=400, detail="source_folder is required")
     try:
         result = service.import_okf_folder(source_folder, user["username"])
+        _finish_write(user)
+        return result
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/imports/okf-folder/scan-upload")
+def scan_uploaded_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
+    require_role(user, ["admin"])
+    files = data.get("files", [])
+    if not isinstance(files, list):
+        raise HTTPException(status_code=400, detail="files must be a list")
+    try:
+        return service.scan_uploaded_okf_folder(data.get("folder_name", ""), files)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/imports/okf-folder/apply-upload")
+def apply_uploaded_okf_folder(data: dict, user: dict = Depends(current_user)) -> dict:
+    user = _prepare_write(user, ["admin"])
+    files = data.get("files", [])
+    if not isinstance(files, list):
+        raise HTTPException(status_code=400, detail="files must be a list")
+    try:
+        result = service.import_uploaded_okf_folder(data.get("folder_name", ""), files, user["username"])
         _finish_write(user)
         return result
     except (ValueError, OSError) as exc:

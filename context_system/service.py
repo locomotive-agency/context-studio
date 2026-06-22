@@ -159,6 +159,12 @@ class ContextService:
         plan = self.importer.scan(source_folder)
         return self.importer.apply(plan, author)
 
+    def scan_uploaded_okf_folder(self, folder_name: str, files: list[dict]) -> dict:
+        return self.importer.scan_uploaded(folder_name, files)
+
+    def import_uploaded_okf_folder(self, folder_name: str, files: list[dict], author: str) -> dict:
+        return self.importer.apply_uploaded(folder_name, files, author)
+
     def stats(self) -> dict:
         stats = self.repository.stats()
         stats["recent_controlled_uses"] = self.audit.recent(limit=5)

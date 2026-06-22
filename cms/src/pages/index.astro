@@ -56,6 +56,7 @@ import "../styles/global.css";
           <div class="breadcrumbs"><span>Context</span><i data-lucide="chevron-right"></i><strong id="current-location">Documents</strong></div>
           <div class="top-actions">
             <span id="save-state" class="save-state"></span>
+            <button id="move-document" class="button editor-only hidden"><i data-lucide="folder"></i>Move</button>
             <button id="document-history" class="button hidden"><i data-lucide="history"></i>History</button>
             <button id="toggle-inspector" class="button hidden"><i data-lucide="panel-right"></i>Details</button>
             <button id="save-document" class="button primary editor-only hidden"><i data-lucide="save"></i>Save</button>
@@ -74,8 +75,10 @@ import "../styles/global.css";
               </div>
             </div>
             <div id="okf-import-panel" class="import-panel hidden">
-              <div class="field"><label for="okf-import-path">Folder path</label><input id="okf-import-path" class="input" placeholder="C:\path\to\okf-folder" /></div>
+              <input id="okf-import-folder" class="hidden" type="file" multiple />
+              <div class="field"><label for="okf-import-folder-label">Folder</label><input id="okf-import-folder-label" class="input" value="No folder selected" readonly /></div>
               <div class="import-actions">
+                <button id="choose-okf-import" class="button" type="button"><i data-lucide="folder"></i>Choose folder</button>
                 <button id="scan-okf-import" class="button" type="button"><i data-lucide="file-search"></i>Scan</button>
                 <button id="apply-okf-import" class="button primary" type="button" disabled><i data-lucide="upload"></i>Import</button>
               </div>
@@ -195,7 +198,7 @@ import "../styles/global.css";
       import { marked } from "marked";
 
       const API = "";
-      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], collections: [], collectionDocuments: [], selectedCollection: "", revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, editorMode: "raw", historyMode: "repository", okfImportScan: null };
+      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], collections: [], collectionDocuments: [], selectedCollection: "", revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, draggedDocumentPath: "", draggedFolderPath: "", editorMode: "raw", historyMode: "repository", okfImportScan: null, okfImportFiles: [], okfImportFolderName: "", okfImportPayload: null };
       const byId = (id) => document.getElementById(id);
       const api = async (path, options = {}) => {
         const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
@@ -359,6 +362,7 @@ import "../styles/global.css";
         document.querySelectorAll(".editor-only").forEach((el) => el.classList.toggle("hidden", !canEdit()));
         document.querySelector('[data-view="users"]')?.classList.toggle("hidden", state.user.auth_mode === "github");
         byId("save-document").classList.add("hidden");
+        byId("move-document").classList.add("hidden");
         await Promise.all([loadDocuments(), loadValidation(), loadScopes(), loadCollections()]);
         renderToolBenchOptions();
       }
@@ -408,9 +412,44 @@ import "../styles/global.css";
         byId("folder-list").innerHTML = folders.map(([folder, count]) => {
           const depth = folder ? folder.split("/").length - 1 : 0;
           const name = folder ? folder.split("/").at(-1) : "All documents";
-          return `<button class="folder-row ${state.folder === folder ? "active" : ""}" data-folder="${escapeHtml(folder)}" style="--depth:${depth}"><i data-lucide="${folder ? "folder" : "files"}"></i><span>${escapeHtml(name)}</span><small>${count.toLocaleString()}</small></button>`;
+          return `<button class="folder-row ${state.folder === folder ? "active" : ""}" data-folder="${escapeHtml(folder)}" draggable="${canEdit() && folder ? "true" : "false"}" style="--depth:${depth}"><i data-lucide="${folder ? "folder" : "files"}"></i><span>${escapeHtml(name)}</span><small>${count.toLocaleString()}</small></button>`;
         }).join("");
-        byId("folder-list").querySelectorAll("[data-folder]").forEach((button) => button.addEventListener("click", () => { state.folder = button.dataset.folder; state.folderDeleteArmed = false; state.page = 1; renderBrowser(); }));
+        byId("folder-list").querySelectorAll("[data-folder]").forEach((button) => {
+          button.addEventListener("click", () => { state.folder = button.dataset.folder; state.folderDeleteArmed = false; state.page = 1; renderBrowser(); });
+          button.addEventListener("dragstart", (event) => {
+            if (!canEdit() || !button.dataset.folder) return;
+            state.draggedFolderPath = button.dataset.folder;
+            button.classList.add("dragging");
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", button.dataset.folder);
+          });
+          button.addEventListener("dragover", (event) => {
+            if (!canEdit() || (!state.draggedDocumentPath && !state.draggedFolderPath)) return;
+            if (state.draggedFolderPath && folderMoveWouldCycle(state.draggedFolderPath, button.dataset.folder)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            byId("folder-list").querySelectorAll(".folder-row").forEach((row) => row.classList.remove("drop-inside"));
+            button.classList.add("drop-inside");
+          });
+          button.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            const targetFolder = button.dataset.folder;
+            try {
+              if (state.draggedDocumentPath) {
+                const moved = await moveDocumentToFolder(state.draggedDocumentPath, targetFolder);
+                state.folder = moved.folder;
+                toast("Document moved");
+              } else if (state.draggedFolderPath && !folderMoveWouldCycle(state.draggedFolderPath, targetFolder)) {
+                const moved = await api("/api/folders/move", {method:"POST", body:JSON.stringify({path:state.draggedFolderPath, target_parent:targetFolder})});
+                state.folder = moved.path;
+                await Promise.all([loadDocuments(), loadSchemas()]);
+                toast("Folder moved");
+              }
+            } catch (error) { toast(error.message, true); }
+            clearDocumentDragState();
+          });
+          button.addEventListener("dragend", clearDocumentDragState);
+        });
 
         const filtered = state.documents.filter((doc) => {
           const inFolder = !state.folder || doc.folder === state.folder || doc.folder.startsWith(`${state.folder}/`);
@@ -421,8 +460,18 @@ import "../styles/global.css";
         state.page = Math.min(state.page, pages);
         const start = (state.page - 1) * state.pageSize;
         const visible = filtered.slice(start, start + state.pageSize);
-        byId("document-list").innerHTML = visible.map((doc) => `<button class="file-row" data-path="${escapeHtml(doc.path)}"><span class="file-name"><i data-lucide="${doc.format === "json" ? "braces" : "file-text"}"></i><span><strong>${escapeHtml(doc.frontmatter.title || doc.name)}</strong><small>${escapeHtml(doc.path)}</small></span></span><span class="file-type">${escapeHtml(doc.format === "json" ? "JSON" : doc.frontmatter.type || "Context Document")}</span><span><span class="status-pill ${doc.validation.valid ? "valid" : "invalid"}"><i data-lucide="${doc.validation.valid ? "circle-check" : "circle-alert"}"></i>${doc.validation.valid ? (doc.format === "json" ? "Valid JSON" : "Valid OKF") : "Invalid"}</span></span><span class="row-action"><i data-lucide="chevron-right"></i></span></button>`).join("") || `<div class="table-empty"><i data-lucide="file-search"></i><strong>No documents found</strong></div>`;
-        byId("document-list").querySelectorAll("[data-path]").forEach((button) => button.addEventListener("click", () => openDocument(button.dataset.path)));
+        byId("document-list").innerHTML = visible.map((doc) => `<button class="file-row" data-path="${escapeHtml(doc.path)}" draggable="${canEdit() ? "true" : "false"}"><span class="file-name"><i data-lucide="${doc.format === "json" ? "braces" : "file-text"}"></i><span><strong>${escapeHtml(doc.frontmatter.title || doc.name)}</strong><small>${escapeHtml(doc.path)}</small></span></span><span class="file-type">${escapeHtml(doc.format === "json" ? "JSON" : doc.frontmatter.type || "Context Document")}</span><span><span class="status-pill ${doc.validation.valid ? "valid" : "invalid"}"><i data-lucide="${doc.validation.valid ? "circle-check" : "circle-alert"}"></i>${doc.validation.valid ? (doc.format === "json" ? "Valid JSON" : "Valid OKF") : "Invalid"}</span></span><span class="row-action"><i data-lucide="chevron-right"></i></span></button>`).join("") || `<div class="table-empty"><i data-lucide="file-search"></i><strong>No documents found</strong></div>`;
+        byId("document-list").querySelectorAll("[data-path]").forEach((button) => {
+          button.addEventListener("click", () => openDocument(button.dataset.path));
+          button.addEventListener("dragstart", (event) => {
+            if (!canEdit()) return;
+            state.draggedDocumentPath = button.dataset.path;
+            button.classList.add("dragging");
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", button.dataset.path);
+          });
+          button.addEventListener("dragend", clearDocumentDragState);
+        });
         byId("result-count").textContent = `${filtered.length.toLocaleString()} ${filtered.length === 1 ? "document" : "documents"}`;
         byId("page-status").textContent = `Page ${state.page} of ${pages}`;
         byId("previous-page").disabled = state.page === 1;
@@ -447,6 +496,7 @@ import "../styles/global.css";
         byId("library").classList.remove("open");
         byId("document-browser").classList.add("hidden"); byId("document-editor").classList.remove("hidden");
         byId("save-document").classList.toggle("hidden", !canEdit());
+        byId("move-document").classList.toggle("hidden", !canEdit());
         byId("toggle-inspector").classList.toggle("hidden", state.current.format === "json");
         byId("document-history").classList.remove("hidden"); byId("editor-mode-bar").classList.remove("hidden");
         setInspectorOpen(false);
@@ -517,6 +567,7 @@ import "../styles/global.css";
           byId("editor-mode-bar").classList.add("hidden");
           byId("toggle-inspector").classList.add("hidden");
           byId("save-document").classList.add("hidden");
+          byId("move-document").classList.add("hidden");
           byId("save-state").textContent = "";
           byId("current-location").textContent = "Documents";
           await Promise.all([loadDocuments(), loadValidation()]);
@@ -550,6 +601,7 @@ import "../styles/global.css";
           byId("document-history").classList.add("hidden");
           byId("toggle-inspector").classList.add("hidden");
           byId("save-document").classList.add("hidden");
+          byId("move-document").classList.add("hidden");
           byId("save-state").textContent = "";
         }
         byId("current-location").textContent = name === "documents" && state.current ? state.current.frontmatter.title : name[0].toUpperCase() + name.slice(1);
@@ -563,6 +615,7 @@ import "../styles/global.css";
         byId("toggle-inspector").classList.add("hidden");
         byId("document-history").classList.add("hidden"); byId("editor-mode-bar").classList.add("hidden");
         byId("save-document").classList.add("hidden");
+        byId("move-document").classList.add("hidden");
         byId("save-state").textContent = "";
         byId("current-location").textContent = "Documents";
         renderBrowser();
@@ -734,6 +787,22 @@ import "../styles/global.css";
           .join("");
       }
 
+      function folderMoveWouldCycle(source, target) {
+        return Boolean(source && (source === target || target.startsWith(`${source}/`)));
+      }
+
+      function clearDocumentDragState() {
+        state.draggedDocumentPath = "";
+        state.draggedFolderPath = "";
+        document.querySelectorAll(".folder-row, .file-row").forEach((row) => row.classList.remove("dragging", "drop-inside"));
+      }
+
+      async function moveDocumentToFolder(path, targetFolder) {
+        const moved = await api("/api/documents/move", {method:"POST", body:JSON.stringify({path, target_folder:targetFolder})});
+        await Promise.all([loadDocuments(), loadValidation()]);
+        return moved;
+      }
+
       async function loadUsers() {
         const users = await api("/api/users");
         byId("user-list").innerHTML = users.map((user) => `<div class="list-row"><div class="avatar">${user.username.slice(0,1).toUpperCase()}</div><span><strong>${escapeHtml(user.username)}</strong><small>Local account</small></span><span class="role-pill">${escapeHtml(user.role)}</span><button class="icon-button" data-edit-user="${escapeHtml(user.username)}" title="Edit user"><i data-lucide="pencil"></i></button></div>`).join("");
@@ -746,8 +815,8 @@ import "../styles/global.css";
         const editing = mode.endsWith("-edit");
         const kind = mode.split("-")[0];
         const restoring = kind === "revision";
-        const titles = {document: "New document", folder: "New folder", collection: "New collection", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope", revision: "Restore document"};
-        byId("drawer-eyebrow").textContent = restoring ? "History" : editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = restoring ? "Restore version" : editing ? "Save changes" : "Create";
+        const titles = {document: "New document", folder: "New folder", collection: "New collection", user: editing ? "Edit user" : "Add user", scope: editing ? "Edit scope" : "Add scope", revision: "Restore document", move: "Move document"};
+        byId("drawer-eyebrow").textContent = kind === "move" ? "Organize" : restoring ? "History" : editing ? "Edit" : "Create"; byId("drawer-title").textContent = titles[kind]; byId("save-drawer").textContent = kind === "move" ? "Move" : restoring ? "Restore version" : editing ? "Save changes" : "Create";
         byId("delete-drawer-item").classList.toggle("hidden", !editing || !["user", "scope"].includes(kind));
         if (kind === "document") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-format">Format</label><select id="drawer-format" class="select"><option value="markdown">Markdown / OKF</option><option value="json">JSON</option></select></div><div class="field"><label for="drawer-folder">Folder</label><select id="drawer-folder" class="select">${folderOptions(state.folder)}</select></div><div class="field"><label for="drawer-filename">Filename</label><input id="drawer-filename" class="input" placeholder="document-name" pattern="[^/\\\\]+" required /></div><div class="field"><label for="drawer-document-title">Title</label><input id="drawer-document-title" class="input" required /></div><div class="field markdown-option"><label for="drawer-type">Type</label><select id="drawer-type" class="select" required>${typeOptions.map(([value,label]) => `<option value="${value}" ${value === "reference" ? "selected" : ""}>${label}</option>`).join("")}</select></div><div class="field markdown-option"><label for="drawer-scope">Scope</label><select id="drawer-scope" class="select">${scopeOptions("", true)}</select></div>`;
         if (kind === "folder") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-path">Folder path</label><input id="drawer-path" class="input" placeholder="products/platform" required /></div>`;
@@ -755,12 +824,13 @@ import "../styles/global.css";
         if (kind === "user") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-username">Username</label><input id="drawer-username" class="input" value="${escapeHtml(data?.username || "")}" ${editing ? "readonly" : "required"} /></div><div class="field"><label for="drawer-password">${editing ? "New password" : "Password"}</label><input id="drawer-password" class="input" type="password" ${editing ? "" : "required"} /></div><div class="field"><label for="drawer-role">Role</label><select id="drawer-role" class="select"><option ${data?.role === "viewer" ? "selected" : ""}>viewer</option><option ${data?.role === "editor" ? "selected" : ""}>editor</option><option ${data?.role === "admin" ? "selected" : ""}>admin</option></select></div>`;
         if (kind === "scope") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-scope-id">Scope ID</label><input id="drawer-scope-id" class="input" value="${escapeHtml(data?.id || "")}" ${editing ? "readonly" : "required"} placeholder="product-a" /></div><div class="field"><label for="drawer-scope-name">Name</label><input id="drawer-scope-name" class="input" value="${escapeHtml(data?.name || "")}" required /></div><div class="field"><label for="drawer-scope-level">Level</label><select id="drawer-scope-level" class="select">${["company","brand","product","market","campaign","audience","channel","custom"].map((level) => `<option ${data?.level === level ? "selected" : ""}>${level}</option>`).join("")}</select></div><div class="field"><label for="drawer-parent">Parent</label><select id="drawer-parent" class="select">${scopeOptions(data?.parent_id || "")}</select></div>`;
         if (kind === "revision") byId("drawer-fields").innerHTML = `<div class="restore-summary"><span class="commit">${escapeHtml(data.short_hash)}</span><strong>${escapeHtml(data.subject)}</strong><small>${escapeHtml(state.current.path)}</small><p>The selected version will replace the current document and be saved as a new Git revision. Existing history will remain available.</p></div>`;
+        if (kind === "move") byId("drawer-fields").innerHTML = `<div class="field"><label for="drawer-target-folder">Folder</label><select id="drawer-target-folder" class="select">${folderOptions(data?.folder || "")}</select></div>`;
         byId("drawer-scrim").classList.remove("hidden"); refreshIcons();
       }
 
       function closeDrawer() { byId("drawer-scrim").classList.add("hidden"); state.drawerMode = ""; state.drawerData = null; }
 
-      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder-documents").addEventListener("click", () => openDrawer("folder")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-collection").addEventListener("click", () => openDrawer("collection")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
+      byId("new-menu").addEventListener("click", () => openDrawer("document")); byId("new-folder-documents").addEventListener("click", () => openDrawer("folder")); byId("new-folder").addEventListener("click", () => openDrawer("folder")); byId("new-collection").addEventListener("click", () => openDrawer("collection")); byId("new-user").addEventListener("click", () => openDrawer("user")); byId("new-scope").addEventListener("click", () => openDrawer("scope")); byId("move-document").addEventListener("click", () => { if (state.current) openDrawer("move", state.current); }); byId("restore-revision").addEventListener("click", () => { if (state.selectedRevision?.documentMode && state.selectedRevision.index > 0) openDrawer("revision-restore", state.selectedRevision); });
       byId("close-drawer").addEventListener("click", closeDrawer); byId("cancel-drawer").addEventListener("click", closeDrawer); byId("drawer-scrim").addEventListener("click", (event) => { if (event.target === byId("drawer-scrim")) closeDrawer(); });
 
       byId("drawer-form").addEventListener("submit", async (event) => {
@@ -773,6 +843,7 @@ import "../styles/global.css";
           if (kind === "user") { const payload = {username:byId("drawer-username").value.trim(), password:byId("drawer-password").value, role:byId("drawer-role").value}; await api(editing ? `/api/users/${state.drawerData.username}` : "/api/users", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadUsers(); }
           if (kind === "scope") { const payload = {id:byId("drawer-scope-id").value.trim(), name:byId("drawer-scope-name").value.trim(), level:byId("drawer-scope-level").value, parent_id:byId("drawer-parent").value || null}; await api(editing ? `/api/scopes/${state.drawerData.id}` : "/api/scopes", {method:editing ? "PATCH" : "POST", body:JSON.stringify(payload)}); closeDrawer(); await loadScopes(); }
           if (kind === "revision") { const result = await api(`/api/history/${state.drawerData.hash}/restore`, {method:"POST", body:JSON.stringify({path:state.current.path})}); state.current = result.document; closeDrawer(); await Promise.all([loadDocuments(), loadValidation()]); await loadHistory(); toast("Document restored"); return; }
+          if (kind === "move") { const moved = await moveDocumentToFolder(state.current.path, byId("drawer-target-folder").value); state.current = moved; closeDrawer(); await openDocument(moved.path); toast("Document moved"); return; }
           toast(editing ? "Changes saved" : "Created");
         } catch (error) { toast(error.message, true); }
       });
@@ -786,11 +857,25 @@ import "../styles/global.css";
         byId("okf-import-panel").classList.toggle("hidden");
       });
 
+      byId("okf-import-folder").setAttribute("webkitdirectory", "");
+      byId("choose-okf-import").addEventListener("click", () => byId("okf-import-folder").click());
+      byId("okf-import-folder").addEventListener("change", (event) => {
+        const files = [...event.target.files];
+        state.okfImportFiles = files;
+        state.okfImportPayload = null;
+        state.okfImportScan = null;
+        state.okfImportFolderName = okfImportFolderName(files);
+        byId("okf-import-folder-label").value = files.length ? `${state.okfImportFolderName} (${files.length} files)` : "No folder selected";
+        byId("okf-import-report").textContent = files.length ? "Ready to scan." : "No scan yet.";
+        byId("apply-okf-import").disabled = true;
+      });
+
       byId("scan-okf-import").addEventListener("click", async () => {
         try {
-          const source_folder = byId("okf-import-path").value.trim();
-          const scan = await api("/api/imports/okf-folder/scan", {method:"POST", body:JSON.stringify({source_folder})});
+          const payload = await okfImportPayload();
+          const scan = await api("/api/imports/okf-folder/scan-upload", {method:"POST", body:JSON.stringify(payload)});
           state.okfImportScan = scan;
+          state.okfImportPayload = payload;
           renderOkfImportReport(scan);
           byId("apply-okf-import").disabled = Boolean(scan.blockers?.length);
         } catch (error) {
@@ -802,14 +887,32 @@ import "../styles/global.css";
 
       byId("apply-okf-import").addEventListener("click", async () => {
         try {
-          const source_folder = byId("okf-import-path").value.trim();
-          const result = await api("/api/imports/okf-folder/apply", {method:"POST", body:JSON.stringify({source_folder})});
+          const payload = state.okfImportPayload || await okfImportPayload();
+          const result = await api("/api/imports/okf-folder/apply-upload", {method:"POST", body:JSON.stringify(payload)});
           byId("okf-import-report").textContent = JSON.stringify(result, null, 2);
           byId("apply-okf-import").disabled = true;
+          state.okfImportPayload = null;
           await Promise.all([loadDocuments(), loadValidation(), loadSchemas()]);
           toast("OKF folder imported");
         } catch (error) { toast(error.message, true); }
       });
+
+      function okfImportFolderName(files) {
+        const firstPath = files[0]?.webkitRelativePath || files[0]?.name || "";
+        return firstPath.split("/").filter(Boolean)[0] || "uploaded-folder";
+      }
+
+      async function okfImportPayload() {
+        if (!state.okfImportFiles.length) throw new Error("Choose a folder first");
+        const files = [];
+        for (const file of state.okfImportFiles) {
+          const relativePath = file.webkitRelativePath || file.name;
+          const parts = relativePath.split("/").filter(Boolean);
+          const path = parts.join("/");
+          files.push({path, content_base64: await fileToBase64(file)});
+        }
+        return {folder_name: state.okfImportFolderName || okfImportFolderName(state.okfImportFiles), files};
+      }
 
       function renderOkfImportReport(scan) {
         const report = {
@@ -1076,6 +1179,8 @@ import "../styles/global.css";
   .folder-row small { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
   .folder-row:hover { border-color: var(--line); background: white; }
   .folder-row.active { color: #14573e; border-color: #c7dfd1; background: var(--green-soft); font-weight: 700; }
+  .folder-row.dragging, .file-row.dragging { opacity: .45; }
+  .folder-row.drop-inside { border-color: var(--green); background: #edf7f1; box-shadow: inset 0 0 0 1px rgba(36, 113, 76, .18); }
   .file-browser { min-width: 0; display: flex; flex-direction: column; background: white; }
   .file-table-header, .file-row { display: grid; grid-template-columns: minmax(260px, 1.8fr) minmax(130px, .7fr) 100px 24px; align-items: center; gap: 16px; }
   .file-table-header { min-height: 38px; padding: 0 16px; border-bottom: 1px solid var(--line); color: var(--muted); background: #fafbfa; font-size: 10px; font-weight: 800; text-transform: uppercase; }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from fastapi import HTTPException
@@ -89,6 +90,61 @@ def test_admin_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, mo
     assert (store.repository / "example.md").is_file()
 
 
+def test_admin_can_import_uploaded_okf_folder(tmp_path: Path, monkeypatch) -> None:
+    _cfg, store, service = _temp_service(tmp_path)
+    monkeypatch.setattr(app_module, "content", store)
+    monkeypatch.setattr(app_module, "service", service)
+    client = TestClient(app_module.app)
+    payload = {
+        "folder_name": "upload-source",
+        "files": [
+            {
+                "path": "products/example.md",
+                "content_base64": base64.b64encode(
+                    b"---\ntype: test\ntitle: Test\nstatus: approved\n---\n\nBody\n"
+                ).decode("ascii"),
+            }
+        ],
+    }
+
+    scanned = client.post(
+        "/api/imports/okf-folder/scan-upload",
+        headers=_headers("admin"),
+        json=payload,
+    )
+    imported = client.post(
+        "/api/imports/okf-folder/apply-upload",
+        headers=_headers("admin"),
+        json=payload,
+    )
+
+    assert scanned.status_code == 200
+    assert scanned.json()["files"] == [{"path": "products/example.md", "kind": "markdown"}]
+    assert imported.status_code == 200
+    assert imported.json()["imported_files"] == ["products/example.md"]
+    assert (store.repository / "products/example.md").read_text(encoding="utf-8").endswith("Body\n")
+
+
+def test_uploaded_okf_import_rejects_paths_outside_selected_folder(tmp_path: Path, monkeypatch) -> None:
+    _cfg, store, service = _temp_service(tmp_path)
+    monkeypatch.setattr(app_module, "content", store)
+    monkeypatch.setattr(app_module, "service", service)
+    client = TestClient(app_module.app)
+
+    response = client.post(
+        "/api/imports/okf-folder/scan-upload",
+        headers=_headers("admin"),
+        json={
+            "folder_name": "upload-source",
+            "files": [{"path": "/server/path/example.md", "content": "Body"}],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "relative" in response.json()["detail"]
+    assert not (store.repository / "server/path/example.md").exists()
+
+
 def test_editor_cannot_edit_schema_or_import_okf_folder(tmp_path: Path, monkeypatch) -> None:
     _cfg, store, service = _temp_service(tmp_path)
     source = tmp_path / "source"
@@ -113,10 +169,16 @@ def test_editor_cannot_edit_schema_or_import_okf_folder(tmp_path: Path, monkeypa
         headers=_headers("editor"),
         json={"source_folder": str(source)},
     )
+    uploaded = client.post(
+        "/api/imports/okf-folder/apply-upload",
+        headers=_headers("editor"),
+        json={"folder_name": "source", "files": [{"path": "example.md", "content": "Body"}]},
+    )
 
     assert schema.status_code == 403
     assert scanned.status_code == 403
     assert imported.status_code == 403
+    assert uploaded.status_code == 403
     assert not (store.repository / "example.md").exists()
 
 
@@ -147,6 +209,35 @@ def test_editor_can_upload_text_collection_document(tmp_path: Path, monkeypatch)
     assert uploaded.json()["index_status"] == "indexed"
     assert malformed.status_code == 400
     assert malformed.json()["detail"] == "content must be a string"
+
+
+def test_editor_can_move_documents_and_folders(tmp_path: Path, monkeypatch) -> None:
+    _cfg, store, service = _temp_service(tmp_path)
+    store.create_folder("archive", "admin")
+    store.create_folder("products", "admin")
+    store.save_document("example.md", {"type": "Reference", "title": "Example"}, "Body", "admin")
+    store.save_document("products/product.md", {"type": "Reference", "title": "Product"}, "Body", "admin")
+    monkeypatch.setattr(app_module, "content", store)
+    monkeypatch.setattr(app_module, "service", service)
+    client = TestClient(app_module.app)
+
+    moved_document = client.post(
+        "/api/documents/move",
+        headers=_headers("editor"),
+        json={"path": "example.md", "target_folder": "products"},
+    )
+    moved_folder = client.post(
+        "/api/folders/move",
+        headers=_headers("editor"),
+        json={"path": "products", "target_parent": "archive"},
+    )
+
+    assert moved_document.status_code == 200
+    assert moved_document.json()["path"] == "products/example.md"
+    assert moved_folder.status_code == 200
+    assert moved_folder.json()["path"] == "archive/products"
+    assert (store.repository / "archive/products/example.md").is_file()
+    assert (store.repository / "archive/products/product.md").is_file()
 
 
 def test_editor_cannot_manage_users_or_scopes() -> None:
