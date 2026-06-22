@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.zoominfo-operations
 title: 'Competitive landscape: ZoomInfo Operations'
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

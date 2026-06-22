@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.terminus-demandscience-chat-experiences
 title: Terminus (DemandScience)
 description: ''
-scope_id: zoominfo
+scope_id: product-chat
 durability: persistent
 criticality: hybrid
 status: approved

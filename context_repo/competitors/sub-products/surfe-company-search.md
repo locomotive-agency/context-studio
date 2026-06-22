@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.surfe-company-search
 title: Surfe
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

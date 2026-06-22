@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.informatica-data-quality-cloud-connectors
 title: Informatica Data Quality
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

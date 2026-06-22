@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.datamatch-enterprise-dme-api
 title: DataMatch Enterprise
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

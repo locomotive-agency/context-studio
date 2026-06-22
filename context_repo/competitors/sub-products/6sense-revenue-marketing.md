@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.6sense-revenue-marketing
 title: 6sense
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

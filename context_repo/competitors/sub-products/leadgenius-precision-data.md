@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.leadgenius-precision-data
 title: LeadGenius
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

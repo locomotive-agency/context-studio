@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.experian-aperture-data-studio
 title: Experian
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

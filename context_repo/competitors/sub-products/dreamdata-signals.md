@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.dreamdata-signals
 title: Dreamdata
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

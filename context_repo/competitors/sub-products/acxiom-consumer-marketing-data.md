@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.acxiom-consumer-marketing-data
 title: Acxiom
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

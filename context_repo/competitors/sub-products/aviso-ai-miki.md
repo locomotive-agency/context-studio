@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.aviso-ai-miki
 title: Aviso AI
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

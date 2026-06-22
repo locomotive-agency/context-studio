@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.bloomberg-intelligence
 title: Bloomberg
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

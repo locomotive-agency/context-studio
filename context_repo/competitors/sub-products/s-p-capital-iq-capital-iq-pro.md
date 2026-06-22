@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.s-p-capital-iq-capital-iq-pro
 title: S&P Capital IQ
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

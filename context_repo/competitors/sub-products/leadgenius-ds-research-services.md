@@ -39,7 +39,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.leadgenius-ds-research-services
 title: LeadGenius
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

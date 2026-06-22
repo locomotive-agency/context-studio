@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.privco-custom-research
 title: PrivCo
 description: ''
-scope_id: zoominfo
+scope_id: product-data-as-a-service
 durability: persistent
 criticality: hybrid
 status: approved

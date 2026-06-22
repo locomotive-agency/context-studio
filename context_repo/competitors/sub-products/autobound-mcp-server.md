@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.autobound-mcp-server
 title: Autobound
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

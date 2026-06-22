@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.alphasense-workflow-agents
 title: AlphaSense
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

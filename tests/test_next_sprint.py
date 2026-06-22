@@ -6,12 +6,9 @@ from context_system.cms import ContentStore
 from context_system.collections import CollectionManager
 from context_system.config import Config
 from context_system.importer import OKFImporter
-from context_system.models import ContextPackageRequest, ContextPackageResponse
 from context_system.okf import parse_markdown_metadata
 from context_system.repository import ContextRepository
 from context_system.service import ContextService
-from pydantic import ValidationError
-import pytest
 
 
 def _config(tmp_path: Path) -> Config:
@@ -24,26 +21,20 @@ def _config(tmp_path: Path) -> Config:
     )
 
 
-def test_context_package_blocks_missing_controlled_context_from_schema(tmp_path: Path):
+def test_controlled_schema_is_discoverable_without_package_assembly(tmp_path: Path):
     cfg = _config(tmp_path)
     store = ContentStore(cfg.context_repo)
     store.save_schema("", {"type": "legal-and-compliance", "criticality": "controlled"}, "admin")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package(
-        task="ad copy",
-        scope_id=None,
-        requests=[{"type": "legal-and-compliance", "query": "required disclaimer"}],
-    )
+    types = service.list_context_types()
+    documents = service.list_context_documents(type="legal-and-compliance")
 
-    assert package["blocked"] is True
-    assert package["results"][0]["resolved_criticality"] == "controlled"
-    assert package["results"][0]["okf_records"] == []
-    assert package["results"][0]["collection_results"] == []
-    assert package["results"][0]["missing"][0]["blocks_workflow"] is True
+    assert "legal-and-compliance" in types
+    assert documents == []
 
 
-def test_hybrid_context_searches_only_collections_named_by_okf_sources(tmp_path: Path):
+def test_document_metadata_surfaces_supporting_collection_for_agent_search(tmp_path: Path):
     cfg = _config(tmp_path)
     store = ContentStore(cfg.context_repo)
     store.save_document(
@@ -65,24 +56,20 @@ def test_hybrid_context_searches_only_collections_named_by_okf_sources(tmp_path:
     collections.add_document_text("excluded", "excluded.txt", "renewal risk should not appear from this collection")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package(
-        task="campaign brief",
-        scope_id=None,
-        requests=[{"type": "audience-profile", "query": "renewal risk"}],
-    )
+    documents = service.list_context_documents(type="audience-profile")
+    results = service.search_collection("sales-calls", "renewal risk")
 
-    result = package["results"][0]
-    assert package["blocked"] is False
-    assert [record["title"] for record in result["okf_records"]] == ["Sales leaders"]
-    assert {item["citation"]["collection_id"] for item in result["collection_results"]} == {"sales-calls"}
-    assert result["collection_results"][0]["citation"]["source_title"] == "call.txt"
-    assert not Path(result["collection_results"][0]["citation"]["source_path"]).is_absolute()
+    assert [record["title"] for record in documents] == ["Sales leaders"]
+    assert documents[0]["supporting_sources"]["collections"] == ["sales-calls"]
+    assert {item["collection_id"] for item in results} == {"sales-calls"}
+    assert results[0]["source_title"] == "call.txt"
+    assert not Path(results[0]["source_path"]).is_absolute()
     assert not Path(document["source_path"]).is_absolute()
     assert not Path(collections.list_documents("sales-calls")[0]["source_path"]).is_absolute()
-    assert "content_hash" in result["collection_results"][0]["citation"]
+    assert "content_hash" in results[0]
 
 
-def test_controlled_context_never_searches_collections(tmp_path: Path):
+def test_controlled_document_metadata_does_not_run_collection_search(tmp_path: Path):
     cfg = _config(tmp_path)
     store = ContentStore(cfg.context_repo)
     store.save_document(
@@ -102,18 +89,11 @@ def test_controlled_context_never_searches_collections(tmp_path: Path):
     collections.add_document_text("legal-notes", "notes.txt", "renewal risk language in notes")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package(
-        task="ad copy",
-        scope_id=None,
-        requests=[{"type": "legal-and-compliance", "query": "renewal risk"}],
-    )
+    documents = service.list_context_documents(type="legal-and-compliance")
 
-    result = package["results"][0]
-    assert package["blocked"] is False
-    assert result["resolved_criticality"] == "controlled"
-    assert result["okf_records"]
-    assert result["collection_results"] == []
-    assert result["suggested_sources"] == []
+    assert documents
+    assert documents[0]["criticality"] == "controlled"
+    assert documents[0]["supporting_sources"]["collections"] == ["legal-notes"]
 
 
 def test_collection_records_have_no_scope_allowed_use_or_summary(tmp_path: Path):
@@ -169,7 +149,7 @@ def test_folder_and_document_supporting_sources_are_merged(tmp_path: Path):
     }
 
 
-def test_mcp_suggested_sources_are_filtered_by_rbac(tmp_path: Path):
+def test_mcp_source_filtering_still_fails_closed_by_role(tmp_path: Path):
     cfg = _config(tmp_path)
     cfg.mcp_servers = [
         {"id": "sales-calls", "roles": ["admin"]},
@@ -190,16 +170,10 @@ def test_mcp_suggested_sources_are_filtered_by_rbac(tmp_path: Path):
     )
     service = ContextService(cfg)
 
-    package = service.assemble_context_package(
-        task="campaign brief",
-        scope_id=None,
-        requests=[{"type": "audience-profile"}],
-        user={"username": "viewer", "role": "viewer"},
-    )
+    allowed, denied = service._rbac_mcp_sources(["sales-calls", "public-research"], {"username": "viewer", "role": "viewer"})
 
-    result = package["results"][0]
-    assert result["suggested_sources"] == [{"kind": "mcp", "value": "public-research"}]
-    assert result["access_issues"] == [{"kind": "mcp", "value": "sales-calls", "reason": "insufficient role"}]
+    assert allowed == ["public-research"]
+    assert denied == [{"kind": "mcp", "value": "sales-calls", "reason": "insufficient role"}]
 
 
 def test_missing_user_context_does_not_default_to_admin(tmp_path: Path):
@@ -211,45 +185,6 @@ def test_missing_user_context_does_not_default_to_admin(tmp_path: Path):
 
     assert allowed == []
     assert denied == [{"kind": "mcp", "value": "admin-source", "reason": "missing authenticated user"}]
-
-
-def test_context_package_response_is_typed_and_includes_run_id_only_when_supplied(tmp_path: Path):
-    cfg = _config(tmp_path)
-    store = ContentStore(cfg.context_repo)
-    store.save_document(
-        "audience/sales-leaders.md",
-        {
-            "type": "audience-profile",
-            "title": "Sales leaders",
-            "criticality": "hybrid",
-            "status": "approved",
-        },
-        "Sales leaders care about pipeline quality.",
-        "admin",
-    )
-    service = ContextService(cfg)
-
-    without_run_id = service.assemble_context_package(
-        task="campaign brief",
-        scope_id=None,
-        requests=[{"type": "audience-profile"}],
-    )
-    with_run_id = service.assemble_context_package(
-        task="campaign brief",
-        scope_id=None,
-        requests=[{"type": "audience-profile"}],
-        run_id="run-123",
-    )
-
-    assert ContextPackageResponse.model_validate(without_run_id)
-    assert "run_id" not in without_run_id
-    assert ContextPackageResponse.model_validate(with_run_id)
-    assert with_run_id["run_id"] == "run-123"
-
-
-def test_context_package_request_requires_non_empty_requests():
-    with pytest.raises(ValidationError):
-        ContextPackageRequest.model_validate({"task": "campaign brief", "requests": []})
 
 
 def test_markdown_metadata_extracts_links_citations_and_headings():
@@ -325,7 +260,7 @@ def test_okf_traversal_reads_index_log_and_concepts(tmp_path: Path):
     assert concept["effective_frontmatter"]["custom_okf_key"] == "preserved"
 
 
-def test_scoped_collection_evidence_is_routed_by_effective_schema(tmp_path: Path):
+def test_scoped_document_metadata_surfaces_effective_collection_sources(tmp_path: Path):
     cfg = _config(tmp_path)
     store = ContentStore(cfg.context_repo)
     store.save_scope({"id": "global", "name": "Global", "level": "company"}, "admin")
@@ -363,24 +298,19 @@ def test_scoped_collection_evidence_is_routed_by_effective_schema(tmp_path: Path
     collections.add_document_text("enterprise-research", "enterprise.txt", "renewal risk appears in enterprise context")
     service = ContextService(cfg)
 
-    global_package = service.assemble_context_package(
-        task="campaign brief",
-        scope_id="global",
-        requests=[{"type": "audience-profile", "query": "renewal risk"}],
-    )
-    enterprise_package = service.assemble_context_package(
-        task="campaign brief",
-        scope_id="enterprise",
-        requests=[{"type": "audience-profile", "query": "renewal risk"}],
-    )
+    global_documents = service.list_context_documents(type="audience-profile", scope_id="global")
+    enterprise_documents = service.list_context_documents(type="audience-profile", scope_id="enterprise")
+    global_results = service.search_collection("global-research", "renewal risk")
+    enterprise_results = service.search_collection("enterprise-research", "renewal risk")
 
-    global_ids = {item["citation"]["collection_id"] for item in global_package["results"][0]["collection_results"]}
-    enterprise_ids = {item["citation"]["collection_id"] for item in enterprise_package["results"][0]["collection_results"]}
-    assert global_ids == {"global-research"}
-    assert enterprise_ids == {"global-research", "enterprise-research"}
+    assert {doc["title"] for doc in global_documents} == {"Sales leaders"}
+    assert {doc["title"] for doc in enterprise_documents} == {"Sales leaders", "Enterprise sales leaders"}
+    assert global_documents[0]["supporting_sources"]["collections"] == ["global-research"]
+    assert {item["collection_id"] for item in global_results} == {"global-research"}
+    assert {item["collection_id"] for item in enterprise_results} == {"enterprise-research"}
 
 
-def test_no_collection_search_runs_without_query(tmp_path: Path):
+def test_document_listing_does_not_search_collections(tmp_path: Path):
     cfg = _config(tmp_path)
     store = ContentStore(cfg.context_repo)
     store.save_document(
@@ -400,13 +330,10 @@ def test_no_collection_search_runs_without_query(tmp_path: Path):
     collections.add_document_text("sales-calls", "call.txt", "renewal risk and pipeline quality came up repeatedly")
     service = ContextService(cfg)
 
-    package = service.assemble_context_package(
-        task="campaign brief",
-        scope_id=None,
-        requests=[{"type": "audience-profile"}],
-    )
+    documents = service.list_context_documents(type="audience-profile")
 
-    assert package["results"][0]["collection_results"] == []
+    assert documents[0]["supporting_sources"]["collections"] == ["sales-calls"]
+    assert "collection_results" not in documents[0]
 
 
 def test_okf_folder_import_preserves_files_and_commits_once(tmp_path: Path):

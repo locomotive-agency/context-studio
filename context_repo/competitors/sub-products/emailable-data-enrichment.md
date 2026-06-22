@@ -39,7 +39,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.emailable-data-enrichment
 title: Emailable
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

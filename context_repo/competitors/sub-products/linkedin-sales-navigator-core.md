@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.linkedin-sales-navigator-core
 title: LinkedIn Sales Navigator
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hg-insights-rgi-fabric
 title: HG Insights
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.conversica-revenue-digital-assistant
 title: Conversica
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

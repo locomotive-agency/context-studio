@@ -1,10 +1,10 @@
-# OKF And MCP Agent Retrieval Alignment Implementation Plan
+# Governed MCP Retrieval And Tool Test Bench Sprint Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Follow the checkbox order and update this file as each task is completed.
 
-**Goal:** Make MCP the governed agent-facing retrieval surface for OKF records and OKF-routed Collection evidence.
+**Goal:** Rework MCP and Tool Test Bench so agents discover governed context progressively, retrieve full text only when needed, and search Collections only through Document-declared supporting sources.
 
-**Architecture:** OKF folder and file schema remains the governance source of truth. MCP clients request context by OKF type and optional scope/query; the service resolves effective schema, approved OKF records, and any allowed Collection evidence. Collections are never exposed through MCP as a standalone browse or arbitrary search surface.
+**Architecture:** Documents remain deterministic OKF records governed by `type`, `scope_id`, folder schema, status, criticality, and Git history. Collections remain supporting source buckets and are searchable only when an in-scope Document or folder schema points to them through `supporting_sources.collections`. Tool Test Bench should exercise the same service paths MCP uses.
 
 **Tech Stack:** FastAPI, FastMCP, Pydantic, SQLite FTS5 Collections, Git-backed OKF repository, Astro CMS, pytest.
 
@@ -12,244 +12,212 @@
 
 ## Sources Reviewed
 
+- `README.md`
 - `GOVERNANCE.md`
-- Karpathy LLM Wiki gist: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
+- Archived sprint plan: `archive/2026-06-22-okf-and-mcp-agent-retrieval-alignment.md`
+- Karpathy LLM wiki gist: https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
 - Google OKF spec: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
-- Marketing context spec: `C:/Users/jroak/Downloads/structuring-marketing-context-for-ai-improved.md`
-- Current implementation in `context_system/app.py`, `context_system/mcp_server.py`, `context_system/service.py`, `context_system/repository.py`, `context_system/cms.py`, `context_system/okf.py`, `context_system/models.py`, and `context_system/collections.py`
+- Current implementation in `context_system/app.py`, `context_system/mcp_server.py`, `context_system/service.py`, `context_system/repository.py`, `context_system/cms.py`, `context_system/okf.py`, `context_system/models.py`, `context_system/collections.py`, and `cms/src/pages/index.astro`
 
-## Review Clarifications
+## Design Rules
 
-- The earlier "canonical label or alias resolver" item is removed. It was a solution looking for a problem. For now, skills and MCP callers should use the OKF `type` values defined in folder and file schema.
-- Supplying user context to MCP is not meant to personalize the AI session. Its value is authorization and auditability: MCP should not become a way to bypass Admin, Editor, and Viewer permissions. If a deployment intentionally runs MCP as one local trusted user, that should be represented as an explicit configured service account role, not as missing identity defaulting to Admin.
-- Collections must be reached only through OKF governance. MCP should not list Collections, list Collection documents, or accept arbitrary Collection IDs for search. The service may search Collection evidence only after resolving the OKF folder/file schema for the requested context type and scope.
-- Do not use version numbers in function names. Use one current context-package contract and keep compatibility handling at the API/schema boundary only if a real migration requires it.
-- Required MCP request fields should either affect retrieval or be required for traceability. Do not require fields that the service ignores.
-- Do not add server-generated run workflows or a broader audit subsystem in this sprint. Keep existing explicit `run_id` audit behavior unless a concrete audit workflow is defined.
+- Do not add `tags` to the new MCP discovery contract. We should rely on `type`, `scope_id`, folder path, status, criticality, and supporting source pointers.
+- Do not run semantic retrieval over Documents.
+- Do not return full Document body text from aggregate discovery tools.
+- Do allow full Document body text through an explicit read tool.
+- Do allow Collection search only for Collections surfaced from a scoped Document or folder response.
+- Do not expose absolute server filesystem paths through MCP or Tool Test Bench responses.
+- Do not add `scope_mode`. Scope behavior should follow the existing scope hierarchy and server-side visibility checks.
+- Use Git as the authoritative history source. `log.md` can still be read when present, but we should not create a separate audit log model in this sprint.
+- Do not preserve backwards compatibility, legacy inputs, deprecation paths, or versioned tool names. This is a prototype.
 
-## Current Request Contract
+## Proposed MCP Tool Contract
 
-The current MCP `assemble_context_package` tool accepts more fields than the service meaningfully uses.
+Replace OKF and construct-heavy tool names with context-oriented names:
 
-- `task`: required by the tool. It is echoed in the response and can be used for audit context, but it does not change which OKF records or Collection evidence are selected.
-- `requests`: optional in the current tool because of a legacy `constructs` path. The new contract should make `requests` required and non-empty.
-- `requests[].type`: required in each request item. This changes the response because it selects the OKF records, effective schema, criticality, and Collection routing.
-- `requests[].query`: optional. This changes the response only when the resolved schema allows Collection evidence and the service searches those routed Collections.
-- `scope_id`: optional. This changes the response because it controls scoped record and schema resolution.
-- `run_id`: optional. This affects audit records only. It should not be required to retrieve context.
-- `constructs` and `icp`: legacy inputs. Remove them from the MCP contract if they do not affect the current retrieval path.
+- `list_context_scopes()`
+- `list_context_types(scope_id: str | None = None)`
+- `list_context_folders(type: str | None = None, scope_id: str | None = None)`
+- `read_context_index(folder: str | None = None, scope_id: str | None = None)`
+- `read_context_log(folder: str | None = None, scope_id: str | None = None)`
+- `list_context_documents(type: str, scope_id: str | None = None, folder: str | None = None, limit: int = 100)`
+- `read_context_document(path: str, scope_id: str | None = None)`
+- `search_collection(collection: str, query: str, limit: int = 10)`
+- `read_collection_source(collection: str, source_id: str)`
+- `validate_context()`
 
-## Alignment Summary
+Collection tools do not accept `scope_id` or `context_path`. The caller should learn Collection IDs only from scoped folder, index, or Document metadata responses that include `supporting_sources.collections`. MCP should not provide a global Collection listing tool.
 
-The repository is directionally aligned with the desired architecture:
+## Tool Behavior
 
-- OKF documents are stored as markdown with YAML frontmatter.
-- Unknown OKF frontmatter keys are tolerated.
-- Collections are separate supporting evidence buckets instead of governed context records.
-- Context package assembly already routes Collection search through OKF `supporting_sources.collections`.
-- API calls pass the authenticated user into context package assembly.
-- Admin, Editor, and Viewer roles are the active permission model.
+### Scope Discovery
 
-The remaining gaps are:
+- `list_context_scopes()` returns the scope hierarchy from `_scopes.yaml`.
+- `list_context_types(scope_id)` returns available Document types visible for the selected scope.
+- If no `scope_id` is supplied, discovery remains shallow and metadata-oriented. It should not imply an all-content full-text request.
 
-- MCP authenticates the HTTP request but does not pass caller identity or an explicit service-account role into tool execution.
-- Missing user context currently risks Admin-like behavior in MCP supporting-source filtering.
-- MCP tools require callers to already know a context `type`; they do not expose OKF bundle discovery, folder traversal, indexes, logs, types, scopes, links, or citations.
-- `index.md` and `log.md` are preserved as reserved OKF files but hidden from normal document listing and not exposed as first-class navigation/history resources.
-- MCP does not yet expose a governed way to request Collection evidence through OKF folder/file schema.
-- Context package responses are raw dicts instead of a validated response model at the API and MCP boundary.
-- OKF links and `# Citations` sections are not parsed into structured fields for agents.
+### Folder And Index Discovery
 
-## Role And Security Rules
+- `list_context_folders(type, scope_id)` returns folders that contain visible Documents or reserved navigation files. The optional `type` filter narrows the response to folders containing visible Documents of that type.
+- `read_context_index(folder, scope_id)` returns `index.md` when present, with headings, links, content hash, and scoped visible entries.
+- `read_context_log(folder, scope_id)` returns `log.md` when present and may include Git-derived recent changes for that folder.
 
-- Admins can edit everything, including users, scopes, schemas, folders, documents, Collections, imports, history restore, and system settings.
-- Editors can edit document folders and documents, and can add or manage Collections and Collection source files.
-- Viewers can review context and request context through the app, API, and MCP tools.
-- Do not add per-record edit metadata. `edit_roles` is not part of the model.
-- Add RBAC checks anywhere data leaves the system or an external tool can be invoked.
-- Missing MCP caller identity must fail closed unless an explicit service-account role is configured.
-- Missing MCP caller identity must never imply Admin.
+### Document Discovery And Read
 
-## Priority 0: Fail Closed On MCP Authorization Context
-
-### Problem
-
-`context_system/app.py` checks login for `/mcp`, but `context_system/mcp_server.py` invokes `ContextService` without a user. `ContextService._rbac_mcp_sources()` currently treats missing user context as Admin.
-
-This does not add user-visible value to an AI session by itself. It matters because MCP returns governed data and may suggest external MCP sources. If identity is dropped at the tool layer, MCP can become a permission bypass.
-
-### Required Changes
-
-- Add a small request context module, for example `context_system/request_context.py`, backed by `contextvars.ContextVar`.
-- In the `/mcp` middleware in `context_system/app.py`, resolve `current_user(request)`, store the public user in the context var before `call_next`, and reset it afterward.
-- In MCP tools that return data or source suggestions, read the current user from the context var and pass it into service methods.
-- If the project needs a local single-user MCP mode, add explicit config such as `mcp_service_account_role: viewer|editor|admin` and require it to be set. Do not infer Admin from a missing user.
-- Remove the Admin fallback in `ContextService._rbac_mcp_sources()`.
-- Missing MCP user context should deny configured MCP source access and report `missing authenticated user` unless an explicit service-account role is configured.
-
-### Tests
-
-- Add `tests/test_mcp_auth.py`.
-- Prove unauthenticated MCP calls are rejected when no service-account role is configured.
-- Prove an MCP context package assembled as Viewer does not receive Admin-only MCP supporting sources.
-- Prove missing user context does not default to Admin in `ContextService._rbac_mcp_sources()`.
-- Prove API `/api/context-package` and MCP `assemble_context_package` apply the same source filtering for the same user role.
-- Prove explicit local service-account mode uses the configured role and nothing broader.
-
-## Priority 1: Add Agent-Oriented OKF Discovery And Traversal Tools
-
-### Problem
-
-The OKF spec expects lightweight markdown files, links, `index.md`, and `log.md` to support progressive disclosure. The Karpathy LLM wiki pattern depends on an agent being able to inspect a maintained wiki, its index, its log, and its schema.
-
-Current MCP tools expose `get_construct`, deprecated `search_context`, `assemble_context_package`, and validation. An agent cannot start from MCP and ask what OKF bundle exists, which folders exist, which concepts are available, or what `index.md` says.
-
-### Required Changes
-
-- Add content-store methods that can include reserved OKF files:
-  - `list_okf_entries(folder: str | None = None)`
-  - `read_okf_entry(path: str)`
-  - `read_okf_index(folder: str | None = None)`
-  - `read_okf_log(folder: str | None = None)`
-- Treat `index.md` and `log.md` as valid OKF navigation documents even though they do not require YAML frontmatter.
-- Keep `ContentStore.list_documents()` focused on editable concept documents if that is still useful for the CMS, but add explicit OKF traversal methods for agents.
-- Add MCP tools:
-  - `list_okf_bundle(folder: str | None = None)`
-  - `read_okf_document(path: str)`
-  - `read_okf_index(folder: str | None = None)`
-  - `read_okf_log(folder: str | None = None)`
-  - `list_okf_types(scope_id: str | None = None)`
-  - `list_okf_scopes()`
-- Return stable fields for each entry: `path`, `kind`, `title`, `type`, `scope_id`, `status`, `description`, `links`, `citations`, `content_hash`, and validation status when applicable.
-- Keep unknown OKF types and unknown frontmatter keys tolerant.
-
-### Tests
-
-- Add tests proving `index.md` and `log.md` can be read through OKF traversal without frontmatter.
-- Add tests proving concept documents still require a non-empty `type`.
-- Add tests proving MCP `list_okf_bundle` exposes folders, concept docs, `index.md`, and `log.md`.
-- Add tests proving unknown OKF frontmatter keys are preserved in agent-facing responses.
-
-## Priority 2: Keep Collection Evidence Routed Through OKF Schema
-
-### Problem
-
-Collections are supporting evidence, not independent governed context. They should be pointed to by document folder and file schema, then searched only as part of a governed context request.
-
-The previous plan overexposed Collections by proposing MCP tools that could list and search Collections directly. That is not aligned with the governance model.
-
-### Required Changes
-
-- Do not add MCP tools named `list_collections`, `list_collection_documents`, `search_collection`, or any tool that accepts an arbitrary `collection_id` from an MCP client.
-- Add or keep only a context-package path where the MCP caller requests OKF context:
-  - `task`
+- `list_context_documents(...)` returns metadata only:
+  - `title`
+  - `path`
+  - `type`
   - `scope_id`
-  - `requests[].type`
-  - `requests[].query`
-- Resolve Collection access inside `ContextService` by using `ContextRepository.supporting_sources_for(type, scope_id)`.
-- `supporting_sources_for()` must merge Collection IDs only from effective folder schema and file frontmatter.
-- Search only the resolved `supporting_sources.collections` values for the requested OKF type and scope.
-- If no Collection source is routed by the effective OKF schema, return no Collection results.
-- If a query is omitted, return approved OKF records and source metadata, but do not run Collection search.
-- Return Collection evidence inside the context package with citation fields only: `collection_id`, `source_document_id`, `source_title`, logical `source_path`, `location`, `unit_id`, and `content_hash`.
-- Do not expose absolute server paths in MCP results.
-- Do not promote Collection excerpts into OKF records automatically.
-- Do not add Collection scope, criticality, status, allowed-use, or summarization fields.
+  - `status`
+  - `criticality`
+  - `description`
+  - `supporting_sources.collections`
+  - `content_hash`
+  - `links`
+  - `citations`
+- `list_context_documents(...)` must not return `body`.
+- `read_context_document(path, scope_id)` returns full Document text only after validating that the Document is visible for the requested scope.
 
-### Tests
+### Collection Search And Source Read
 
-- Prove MCP has no direct Collection listing or arbitrary Collection search tool.
-- Prove an MCP caller cannot pass `collection_id` to search a Collection directly.
-- Prove Collection search occurs only for Collections routed by effective OKF folder or file schema.
-- Prove a request for the same `type` and `query` returns different Collection evidence when `scope_id` changes the effective schema.
-- Prove a request with no routed Collections returns no Collection evidence.
-- Prove Collection results include citations and no absolute server filesystem paths.
+- `search_collection(collection, query, limit)` searches a Collection ID that was surfaced from a scoped Document or folder response.
+- The default `limit` is `10`.
+- Search returns snippets and current metadata:
+  - `collection_id`
+  - `source_id`
+  - `source_title`
+  - logical `source_path`
+  - `location`
+  - `unit_id`
+  - `snippet`
+  - `content_hash`
+  - retrieval score fields already supported by the Collection manager
+- `read_collection_source(collection, source_id)` returns a Collection source by ID after the source has been discovered through `search_collection`.
+- Collection source reads should return logical source metadata and text. They should not return absolute paths.
 
-## Priority 3: Use One Typed Context Package Boundary
+## Tool Test Bench Updates
 
-### Problem
+Tool Test Bench should become the local test surface for the MCP contract.
 
-The context package request is typed, but the service response is still a raw dict. The result item model is not the full response envelope.
+- Add a dedicated MCP Tools panel.
+- Provide a tool selector covering every current agent-facing tool.
+- Show input fields appropriate to the selected tool.
+- Show the exact request payload sent to the server.
+- Show response preview and raw JSON response.
+- Show governance and validation errors clearly.
+- Use the same server-side service methods as MCP so the bench does not drift from the agent contract.
+- Do not present a global Collection browser for MCP testing.
+- For Collection tools, populate Collection choices from the selected scoped folder, index, or Document result.
 
-The typing gap is real, but function names should describe behavior. Compatibility handling belongs at the API or schema boundary, not in service method names.
+## Context Repository Reorganization
 
-### Required Changes
+We need to fix competitor scoping so competitive context is retrieved at the correct business or product level.
 
-- Rename current models and methods toward one current contract:
-  - `ContextPackageRequest`
-  - `ContextPackageResponse`
-  - `ContextPackageResult`
-  - `ContextService.assemble_context_package(...)`
-- Keep one implementation path for `/api/context-package` and MCP `assemble_context_package`.
-- Deprecate or remove legacy inputs that do not affect retrieval, especially `constructs` and `icp`.
-- Add a Pydantic response envelope with:
-  - `task`
-  - `scope_id`
-  - `results`
-  - `blocked`
-  - `kb_git_sha`
-  - `run_id`, only when supplied by the caller
-- Build and validate the response model before returning `model_dump()`.
-- Include structured OKF provenance for each OKF record: `kb_path`, `content_hash`, `okf` frontmatter, `links`, and `citations`.
-- Preserve `missing` blocks and `access_issues` in the typed response.
+### Competitor Scope Rules
 
-### Tests
+- Competitor brand pages should remain broad with `scope_id: zoominfo` because one competitor brand can overlap many products.
+- Competitor sub-products should map to the matching ZoomInfo product scope when possible using `zi_overlap_product`.
+- Competitive crossovers should map to the relevant ZoomInfo product scope.
+- Competitive categories should remain broad by default. We should only add category-like scopes if we intentionally introduce category scopes.
 
-- Add response-shape tests for API and MCP context package assembly.
-- Prove invalid service output cannot leave the boundary without validation.
-- Prove controlled missing context still sets `blocked: true`.
-- Prove Collection citations validate against the response model.
-- Prove `constructs` and `icp` are not required by the MCP contract.
+### Example
 
-## Priority 4: Parse OKF Links, Citations, Indexes, And Logs
+`context_repo/competitors/sub-products/apollo-b2b-data.md` currently uses:
 
-### Problem
+```yaml
+zi_overlap_product: Data (Pillar 1)
+scope_id: zoominfo
+```
 
-The OKF spec keeps links and citations lightweight, and the Karpathy wiki pattern depends on curated navigation and history. The current implementation returns markdown bodies but does not expose links, citations, indexes, or logs as structured agent-readable fields.
+It should use:
 
-### Required Changes
+```yaml
+zi_overlap_product: Data (Pillar 1)
+scope_id: product-data
+```
 
-- Add a small markdown metadata parser in `context_system/okf.py` or a focused new module.
-- Extract:
-  - internal markdown links to other OKF files
-  - external links
-  - `# Citations` section entries
-  - headings for quick outline previews
-- Attach parsed fields to runtime records and OKF traversal responses.
-- For `index.md`, return a folder-level navigation response with body, links, headings, and content hash.
-- For `log.md`, return chronological entries if they can be parsed safely; otherwise return body, headings, links, and content hash.
-- Keep parsing tolerant. Broken links should be surfaced as validation warnings, not fatal errors.
+### Mapping Work
 
-### Tests
+- Build a deterministic mapping from known `zi_overlap_product` values to existing product scopes in `context_repo/_scopes.yaml`.
+- Update `context_repo/competitors/sub-products/*.md` where a reliable product match exists.
+- Update `context_repo/competitors/crossovers/*.md` where a reliable product match exists.
+- Leave competitor brands at `scope_id: zoominfo`.
+- Leave competitive categories at `scope_id: zoominfo` unless a specific product scope is clearly warranted.
+- Regenerate or update competitor `index.md` files so agents can see product-scoped groupings without opening every file.
+- Validate the full context repo after changes.
 
-- Prove citations under `# Citations` are extracted.
-- Prove broken markdown links are reported but do not prevent document retrieval.
-- Prove internal links are returned with normalized repository-relative paths.
-- Prove `index.md` and `log.md` return content hashes.
+## Implementation Tasks
+
+### Task 1: MCP Contract Tests
+
+- [x] Add failing tests for the new MCP tool names.
+- [x] Add tests proving aggregate Document tools do not return body text.
+- [x] Add tests proving full body text is returned only by `read_context_document`.
+- [x] Add tests proving no MCP tool exposes semantic search over Documents.
+- [x] Add tests proving MCP exposes no global Collection listing tool.
+
+### Task 2: Context Service Retrieval Methods
+
+- [x] Add service methods for scoped folder, type, index, log, and Document metadata retrieval.
+- [x] Add service method for scoped Document full-text retrieval.
+- [x] Include `supporting_sources.collections` in scoped folder, index, and Document metadata responses.
+- [x] Add service methods for governed Collection search and source read.
+
+### Task 3: MCP Tool Rename And Removal
+
+- [x] Add the new context-oriented MCP tools.
+- [x] Remove or hide confusing OKF and construct-oriented names from the MCP surface.
+- [x] Remove `assemble_context_package`.
+- [x] Keep internal OKF terminology where it belongs in implementation modules.
+- [x] Ensure MCP caller identity still fails closed unless an explicit service-account role is configured.
+
+### Task 4: Tool Test Bench MCP Panel
+
+- [x] Add a Tool Test Bench panel for all MCP tools.
+- [x] Add dynamic input controls for each selected tool.
+- [x] Show request payload, response preview, raw JSON, and errors.
+- [x] Ensure Collection testing uses Collection IDs surfaced from scoped folder, index, or Document responses.
+
+### Task 5: Competitor Scope Reorganization
+
+- [x] Create tests or scripts that report competitor files whose `zi_overlap_product` can map to an existing product scope but still use `scope_id: zoominfo`.
+- [x] Update competitor sub-product scopes using the deterministic mapping.
+- [x] Update competitive crossover scopes using the deterministic mapping.
+- [x] Keep competitor brand scopes broad.
+- [x] Keep competitive category scopes broad unless a product match is explicit.
+- [x] Update competitor indexes to support scoped progressive disclosure.
+
+### Task 6: Verification
+
+- [x] Run `uv run pytest`.
+- [x] Run `uv run python run.py validate`.
+- [x] Run `npm run build` for the CMS.
+- [x] Run Tool Test Bench demos for representative scope, Document, and Collection flows.
 
 ## Acceptance Criteria
 
-- MCP uses either the authenticated user role or an explicit configured service-account role.
-- Missing MCP user identity fails closed unless an explicit service-account role is configured.
-- Missing MCP user identity never defaults to Admin.
-- AI systems can use MCP to list OKF folders, read `index.md`, read `log.md`, list OKF types and scopes, retrieve OKF concepts, inspect links, and inspect citations.
-- AI systems request Collection evidence only through context package requests governed by OKF folder/file schema.
-- MCP does not expose direct Collection listing, direct Collection document listing, arbitrary Collection IDs, or arbitrary Collection search.
-- Collection evidence is returned with citations and logical paths, not absolute server paths.
-- Context packages are validated by typed response models before leaving the service.
-- Required MCP request fields are limited to fields that affect retrieval or traceability.
-- The role model remains Admin, Editor, Viewer.
-- `edit_roles` is not reintroduced.
+- MCP exposes context-oriented tool names that match the governed retrieval model.
+- Aggregate Document discovery returns metadata only and never returns full body text.
+- Full Document body text is available only through explicit Document read.
+- Collection semantic search uses Collection IDs surfaced from scoped folder, index, or Document metadata.
+- Collection source reads are available only for sources discovered through Collection search.
+- `assemble_context_package` is removed from the MCP surface.
+- Tool Test Bench can test every MCP tool from the browser.
+- Tool Test Bench shows payloads, responses, raw JSON, and governance errors.
+- Competitor sub-products and crossovers are scoped to matching product scopes where reliable mappings exist.
+- Competitor brand pages remain broad.
+- Competitive categories remain broad unless intentionally changed.
+- Validation passes with no invalid OKF Documents.
 
 ## Non-Goals
 
-- Do not add semantic search over OKF records as the primary retrieval path.
+- Do not add `tags` to the MCP discovery contract.
+- Do not add semantic search over Documents.
+- Do not add `scope_mode`.
+- Do not add category scopes unless we explicitly decide to model categories as scopes.
 - Do not add Collection summarization.
-- Do not auto-promote Collection evidence into OKF.
-- Do not expose Collections as a standalone MCP browsing or search surface.
-- Do not accept arbitrary Collection IDs in MCP context requests.
-- Do not add a central OKF schema registry.
-- Do not add per-record edit permissions.
-- Do not add a canonical label or alias resolver in this sprint.
-- Do not add server-generated run IDs or a broader audit workflow in this sprint.
+- Do not auto-promote Collection evidence into Documents.
 - Do not add a new role taxonomy.
+- Do not create a separate audit log system beyond Git history and existing records.
+- Do not keep compatibility code for old MCP tool names or request shapes.

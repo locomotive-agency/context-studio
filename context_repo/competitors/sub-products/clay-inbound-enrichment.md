@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.clay-inbound-enrichment
 title: Clay
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

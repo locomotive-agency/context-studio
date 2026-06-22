@@ -39,7 +39,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.lead-onion-account-intelligence
 title: Lead Onion
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

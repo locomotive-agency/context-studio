@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.6sense-inbound-marketing-automation
 title: 6sense
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.jiminny-competitor-intelligence
 title: Jiminny
 description: ''
-scope_id: zoominfo
+scope_id: product-chorus
 durability: persistent
 criticality: hybrid
 status: approved

@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.snitcher-radar
 title: Snitcher
 description: ''
-scope_id: zoominfo
+scope_id: product-identify-website-visitors
 durability: persistent
 criticality: hybrid
 status: approved

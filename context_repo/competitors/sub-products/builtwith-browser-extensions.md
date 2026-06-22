@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.builtwith-browser-extensions
 title: BuiltWith
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

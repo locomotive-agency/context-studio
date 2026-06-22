@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.contify-m-and-ci-platform
 title: Contify
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

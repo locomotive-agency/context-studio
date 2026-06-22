@@ -26,7 +26,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.rollworks-adroll-abm-privacy-consent
 title: RollWorks (AdRoll ABM)
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

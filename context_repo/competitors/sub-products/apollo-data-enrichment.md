@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.apollo-data-enrichment
 title: Apollo
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

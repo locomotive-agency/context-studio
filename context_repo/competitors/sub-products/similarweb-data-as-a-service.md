@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.similarweb-data-as-a-service
 title: Similarweb
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

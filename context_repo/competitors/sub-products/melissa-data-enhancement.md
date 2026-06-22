@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.melissa-data-enhancement
 title: Melissa
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

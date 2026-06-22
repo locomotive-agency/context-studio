@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.keap-quoting-invoicing-payments
 title: Keap
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

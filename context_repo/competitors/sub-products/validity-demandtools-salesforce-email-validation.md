@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.validity-demandtools-salesforce-email-validation
 title: Validity DemandTools
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

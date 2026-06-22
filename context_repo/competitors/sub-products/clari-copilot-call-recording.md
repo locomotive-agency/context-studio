@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.clari-copilot-call-recording
 title: Clari Copilot
 description: ''
-scope_id: zoominfo
+scope_id: product-chorus
 durability: persistent
 criticality: hybrid
 status: approved

@@ -47,7 +47,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.getprospect-b2b-database
 title: GetProspect
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

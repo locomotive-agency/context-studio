@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.leadiq-smart-prospecting
 title: LeadIQ
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

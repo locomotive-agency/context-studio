@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.foundry-abm-sales-acceleration
 title: Foundry ABM
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

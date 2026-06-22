@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.formcomplete
 title: 'Competitive landscape: FormComplete'
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

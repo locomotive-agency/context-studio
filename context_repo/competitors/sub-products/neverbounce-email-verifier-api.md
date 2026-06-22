@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.neverbounce-email-verifier-api
 title: NeverBounce
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

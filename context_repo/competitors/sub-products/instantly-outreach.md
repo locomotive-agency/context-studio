@@ -36,7 +36,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.instantly-outreach
 title: Instantly
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.revenue-grid-activity-capture
 title: Revenue Grid
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

@@ -41,7 +41,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.uplead-data-enrichment
 title: UpLead
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

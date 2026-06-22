@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.chili-piper-chat-ai
 title: Chili Piper
 description: ''
-scope_id: zoominfo
+scope_id: product-chat
 durability: persistent
 criticality: hybrid
 status: approved

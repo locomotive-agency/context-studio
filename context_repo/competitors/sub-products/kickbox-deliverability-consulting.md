@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.kickbox-deliverability-consulting
 title: Kickbox
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

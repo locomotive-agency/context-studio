@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.oracle-data-cloud-responsys
 title: Oracle Data Cloud
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

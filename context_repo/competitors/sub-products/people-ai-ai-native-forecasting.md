@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.people-ai-ai-native-forecasting
 title: People.ai
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

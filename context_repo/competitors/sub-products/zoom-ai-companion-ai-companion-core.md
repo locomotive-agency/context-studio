@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.zoom-ai-companion-ai-companion-core
 title: Zoom AI Companion
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

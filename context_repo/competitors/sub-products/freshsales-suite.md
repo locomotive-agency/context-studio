@@ -49,7 +49,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.freshsales-suite
 title: Freshsales
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved

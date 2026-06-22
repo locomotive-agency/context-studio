@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.datarade-marketplace
 title: Datarade
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

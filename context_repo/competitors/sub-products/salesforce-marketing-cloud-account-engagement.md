@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.salesforce-marketing-cloud-account-engagement
 title: Salesforce Marketing Cloud
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

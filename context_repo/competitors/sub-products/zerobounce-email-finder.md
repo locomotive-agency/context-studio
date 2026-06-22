@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.zerobounce-email-finder
 title: ZeroBounce
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

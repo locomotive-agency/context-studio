@@ -37,7 +37,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.dun-bradstreet-data-cloud
 title: Dun & Bradstreet
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

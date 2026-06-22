@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.clearout-form-guard
 title: Clearout
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

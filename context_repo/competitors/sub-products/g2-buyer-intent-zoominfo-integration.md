@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.g2-buyer-intent-zoominfo-integration
 title: G2 Buyer Intent
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

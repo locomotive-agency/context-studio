@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.madison-logic-ml-insights
 title: Madison Logic
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

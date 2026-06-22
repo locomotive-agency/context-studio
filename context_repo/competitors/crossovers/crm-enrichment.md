@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.crm-enrichment
 title: 'Competitive landscape: CRM Enrichment'
 description: ''
-scope_id: zoominfo
+scope_id: product-crm-enrichment
 durability: persistent
 criticality: hybrid
 status: approved

@@ -36,7 +36,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.artisan-ai-data
 title: Artisan AI
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

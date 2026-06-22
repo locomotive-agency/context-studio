@@ -36,7 +36,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.dun-bradstreet-finance-analytics
 title: Dun & Bradstreet
 description: ''
-scope_id: zoominfo
+scope_id: product-data-as-a-service
 durability: persistent
 criticality: hybrid
 status: approved

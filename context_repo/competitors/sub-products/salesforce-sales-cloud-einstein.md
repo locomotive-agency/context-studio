@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.salesforce-sales-cloud-einstein
 title: Salesforce Sales Cloud
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

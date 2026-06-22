@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.talend-data-quality-data-fabric
 title: Talend Data Quality
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

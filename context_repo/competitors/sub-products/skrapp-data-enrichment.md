@@ -39,7 +39,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.skrapp-data-enrichment
 title: Skrapp
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.klaviyo-data-platform
 title: Klaviyo
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

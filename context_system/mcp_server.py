@@ -16,78 +16,78 @@ mcp = FastMCP(
 
 
 @mcp.tool()
-def get_construct(construct: str, scope_id: str | None = None) -> list[dict]:
-    """Return approved OKF context documents for a construct."""
+def list_context_scopes() -> list[dict]:
+    """List governed context scope nodes."""
     mcp_user_or_service_account(service.config)
-    return service.get_construct(construct, scope_id=scope_id)
+    return service.list_context_scopes()
 
 
 @mcp.tool()
-def assemble_context_package(
-    task: str,
-    requests: list[dict],
+def list_context_types(scope_id: str | None = None) -> list[str]:
+    """List context document types visible for the optional scope."""
+    mcp_user_or_service_account(service.config)
+    return service.list_context_types(scope_id=scope_id)
+
+
+@mcp.tool()
+def list_context_folders(type: str | None = None, scope_id: str | None = None) -> list[dict]:
+    """List context folders containing visible documents, optionally filtered by type and scope."""
+    mcp_user_or_service_account(service.config)
+    return service.list_context_folders(type=type, scope_id=scope_id)
+
+
+@mcp.tool()
+def read_context_index(folder: str | None = None, scope_id: str | None = None) -> dict:
+    """Read a context folder index document."""
+    mcp_user_or_service_account(service.config)
+    return service.read_context_index(folder=folder, scope_id=scope_id)
+
+
+@mcp.tool()
+def read_context_log(folder: str | None = None, scope_id: str | None = None) -> dict:
+    """Read a context folder log document."""
+    mcp_user_or_service_account(service.config)
+    return service.read_context_log(folder=folder, scope_id=scope_id)
+
+
+@mcp.tool()
+def list_context_documents(
+    type: str,
     scope_id: str | None = None,
-    run_id: str | None = None,
-) -> dict:
-    """Assemble governed context for an AI task."""
-    user = mcp_user_or_service_account(service.config)
-    return service.assemble_context_package(task=task, scope_id=scope_id, requests=requests, run_id=run_id, user=user)
+    folder: str | None = None,
+    limit: int = 100,
+) -> list[dict]:
+    """List visible context document metadata without body text."""
+    mcp_user_or_service_account(service.config)
+    return service.list_context_documents(type=type, scope_id=scope_id, folder=folder, limit=limit)
 
 
 @mcp.tool()
-def list_okf_bundle(folder: str | None = None) -> list[dict]:
-    """List OKF entries, including index and log files, for a folder."""
+def read_context_document(path: str, scope_id: str | None = None) -> dict:
+    """Read the full text for one visible context document."""
     mcp_user_or_service_account(service.config)
-    return service.repository.content.list_okf_entries(folder)
+    return service.read_context_document(path=path, scope_id=scope_id)
 
 
 @mcp.tool()
-def read_okf_document(path: str) -> dict:
-    """Read an OKF concept, index, or log document."""
+def search_collection(collection: str, query: str, limit: int = 10) -> list[dict]:
+    """Search a supporting Collection discovered from scoped context metadata."""
     mcp_user_or_service_account(service.config)
-    return service.repository.content.read_okf_entry(path)
+    return service.search_collection(collection=collection, query=query, limit=limit)
 
 
 @mcp.tool()
-def read_okf_index(folder: str | None = None) -> dict:
-    """Read an OKF index document."""
+def read_collection_source(collection: str, source_id: str) -> dict:
+    """Read a Collection source discovered from collection search results."""
     mcp_user_or_service_account(service.config)
-    return service.repository.content.read_okf_index(folder)
+    return service.read_collection_source(collection=collection, source_id=source_id)
 
 
 @mcp.tool()
-def read_okf_log(folder: str | None = None) -> dict:
-    """Read an OKF log document."""
+def validate_context() -> dict:
+    """Return context validation failures."""
     mcp_user_or_service_account(service.config)
-    return service.repository.content.read_okf_log(folder)
-
-
-@mcp.tool()
-def list_okf_types(scope_id: str | None = None) -> list[str]:
-    """List approved OKF types discoverable for the optional scope."""
-    mcp_user_or_service_account(service.config)
-    types = {record.type for record in service.repository.runtime_records(include_body=False)}
-    for folder in service.repository.content.list_folders():
-        value = folder["effective_schema"].get("type")
-        if isinstance(value, str) and value:
-            types.add(value)
-    if scope_id:
-        types = {type_name for type_name in types if service.repository.get_construct(type_name, include_body=False, scope_id=scope_id) or service.repository.resolve_criticality(type_name, scope_id=scope_id)}
-    return sorted(types)
-
-
-@mcp.tool()
-def list_okf_scopes() -> list[dict]:
-    """List OKF scope nodes."""
-    mcp_user_or_service_account(service.config)
-    return service.repository.content.list_scopes()
-
-
-@mcp.tool()
-def validate_context_bundle() -> dict:
-    """Return OKF validation failures in the context bundle."""
-    mcp_user_or_service_account(service.config)
-    return service.repository.content.validation_report()
+    return service.validate_context()
 
 
 if __name__ == "__main__":

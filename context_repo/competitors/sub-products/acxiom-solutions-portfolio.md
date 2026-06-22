@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.acxiom-solutions-portfolio
 title: Acxiom
 description: ''
-scope_id: zoominfo
+scope_id: product-data-as-a-service
 durability: persistent
 criticality: hybrid
 status: approved

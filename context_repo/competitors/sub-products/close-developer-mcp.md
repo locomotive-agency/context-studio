@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.close-developer-mcp
 title: Close
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

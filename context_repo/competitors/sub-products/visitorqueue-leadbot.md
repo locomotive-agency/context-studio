@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.visitorqueue-leadbot
 title: VisitorQueue (Leadinfo)
 description: ''
-scope_id: zoominfo
+scope_id: product-chat
 durability: persistent
 criticality: hybrid
 status: approved

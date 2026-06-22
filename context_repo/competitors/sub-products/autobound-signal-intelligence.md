@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.autobound-signal-intelligence
 title: Autobound
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

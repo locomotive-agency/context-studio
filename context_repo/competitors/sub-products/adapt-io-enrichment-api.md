@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.adapt-io-enrichment-api
 title: Adapt.io
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

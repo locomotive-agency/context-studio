@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.saleshandy-dialer
 title: Saleshandy
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

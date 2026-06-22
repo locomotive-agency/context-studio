@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.intentdata-io-technointent
 title: IntentData.io
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

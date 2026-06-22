@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.bombora-company-surge
 title: Bombora
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.optimove-personalize
 title: Optimove
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

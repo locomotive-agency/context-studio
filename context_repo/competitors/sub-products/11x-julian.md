@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.11x-julian
 title: 11x
 description: ''
-scope_id: zoominfo
+scope_id: product-chat
 durability: persistent
 criticality: hybrid
 status: approved

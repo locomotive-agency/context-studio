@@ -37,7 +37,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.landbase-gtm2-omni
 title: Landbase
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

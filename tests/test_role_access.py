@@ -34,13 +34,8 @@ def test_context_and_semantic_routes_require_login() -> None:
     with TestClient(app_module.app) as client:
         responses = [
             client.get("/api/stats"),
-            client.get("/api/constructs/brand-messaging"),
             client.get("/api/search", params={"query": "brand"}),
-            client.post("/api/assemble_context_package", json={"task": "brand", "constructs": ["brand-messaging"]}),
-            client.post(
-                "/api/context-package",
-                json={"task": "brand", "requests": [{"type": "brand-messaging"}]},
-            ),
+            client.post("/api/mcp-tools/list_context_documents", json={"type": "brand-messaging"}),
             client.post("/mcp/"),
         ]
 
@@ -51,9 +46,9 @@ def test_viewer_can_request_context_but_cannot_write() -> None:
     client = TestClient(app_module.app)
 
     read = client.post(
-        "/api/context-package",
+        "/api/mcp-tools/list_context_documents",
         headers=_headers("viewer"),
-        json={"task": "brand", "requests": [{"type": "brand-messaging"}]},
+        json={"type": "brand-messaging"},
     )
     write = client.put(
         "/api/documents/viewer-test.md",
@@ -63,6 +58,24 @@ def test_viewer_can_request_context_but_cannot_write() -> None:
 
     assert read.status_code == 200
     assert write.status_code == 403
+
+
+def test_legacy_context_package_routes_are_removed() -> None:
+    client = TestClient(app_module.app)
+
+    first = client.post(
+        "/api/context-package",
+        headers=_headers("viewer"),
+        json={"task": "brand", "requests": [{"type": "brand-messaging"}]},
+    )
+    second = client.post(
+        "/api/assemble_context_package",
+        headers=_headers("viewer"),
+        json={"task": "brand", "constructs": ["brand-messaging"]},
+    )
+
+    assert first.status_code == 404
+    assert second.status_code == 404
 
 
 def test_admin_can_edit_folder_metadata_and_import_okf_folder(tmp_path: Path, monkeypatch) -> None:

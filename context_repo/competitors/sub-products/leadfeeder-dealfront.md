@@ -26,7 +26,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.leadfeeder-dealfront
 title: Leadfeeder
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

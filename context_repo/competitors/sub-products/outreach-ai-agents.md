@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.outreach-ai-agents
 title: Outreach
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

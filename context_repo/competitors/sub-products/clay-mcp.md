@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.clay-mcp
 title: Clay
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

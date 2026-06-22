@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.intent-data
 title: 'Competitive landscape: Intent Data'
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.lead411-data
 title: Lead411
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

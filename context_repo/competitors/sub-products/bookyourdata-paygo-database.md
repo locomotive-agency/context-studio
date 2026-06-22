@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.bookyourdata-paygo-database
 title: BookYourData
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

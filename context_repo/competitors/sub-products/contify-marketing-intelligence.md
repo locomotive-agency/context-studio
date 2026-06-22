@@ -36,7 +36,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.contify-marketing-intelligence
 title: Contify
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

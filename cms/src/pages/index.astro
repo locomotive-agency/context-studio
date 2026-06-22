@@ -32,7 +32,7 @@ import "../styles/global.css";
         <nav class="primary-nav" aria-label="Workspace">
           <button class="rail-button active" data-view="documents"><i data-lucide="files"></i><span>Documents</span></button>
           <button class="rail-button" data-view="collections"><i data-lucide="database"></i><span>Collections</span></button>
-          <button class="rail-button" data-view="test-bench"><i data-lucide="test-tube-2"></i><span>Tool Test Bench</span></button>
+          <button class="rail-button" data-view="test-bench"><i data-lucide="test-tube-2"></i><span>MCP Test Tool</span></button>
           <button class="rail-button" data-view="validation"><i data-lucide="shield-check"></i><span>Validation</span><span id="validation-dot" class="dot hidden"></span></button>
           <button class="rail-button" data-view="history"><i data-lucide="history"></i><span>History</span></button>
           <button class="rail-button" data-view="scopes"><i data-lucide="network"></i><span>Scopes</span></button>
@@ -149,28 +149,30 @@ import "../styles/global.css";
         </section>
 
         <section id="view-test-bench" class="view">
-          <div class="page">
+          <div class="page mcp-test-page">
             <div class="page-header">
-              <div><span class="eyebrow">Tool calls</span><h2>Tool Test Bench</h2><p class="page-subtitle">Call the same context package endpoint an AI workflow uses.</p></div>
+              <div><span class="eyebrow">MCP tools</span><h2>MCP Test Tool</h2><p class="page-subtitle">Retrieval tool checks.</p></div>
             </div>
-            <form id="bench-form" class="bench-form">
-              <div class="field"><label for="bench-task">Task</label><input id="bench-task" class="input" value="campaign brief" /></div>
-              <div class="field"><label for="bench-scope">Scope</label><select id="bench-scope" class="select"></select></div>
-              <div class="field"><label for="bench-type">Context type</label><select id="bench-type" class="select"></select></div>
-              <div class="field"><label for="bench-query">Query</label><input id="bench-query" class="input" placeholder="buyer pains for sales leaders" /></div>
-              <button class="button primary" type="submit"><i data-lucide="file-search"></i>Run request</button>
-            </form>
-            <div class="bench-output">
-              <section>
-                <div class="section-label">Request JSON</div>
-                <pre id="bench-request" class="json-output">{}</pre>
+            <div class="bench-shell">
+              <section class="bench-command-panel">
+                <form id="bench-form" class="bench-form">
+                  <div class="field"><label for="bench-tool">Tool</label><select id="bench-tool" class="select"></select></div>
+                  <div id="bench-fields" class="bench-fields"></div>
+                  <button class="button primary" type="submit"><i data-lucide="file-search"></i>Run</button>
+                </form>
+                <details class="bench-raw-panel">
+                  <summary><span>Request JSON</span><i data-lucide="chevron-down"></i></summary>
+                  <pre id="bench-request" class="json-output compact">{}</pre>
+                </details>
               </section>
-              <section>
-                <div class="section-label">Response JSON</div>
-                <pre id="bench-response" class="json-output">{}</pre>
+              <section class="bench-response-panel">
+                <div id="bench-results" class="bench-results"><div class="empty">No result yet.</div></div>
+                <details class="bench-raw-panel">
+                  <summary><span>Response JSON</span><i data-lucide="chevron-down"></i></summary>
+                  <pre id="bench-response" class="json-output">{}</pre>
+                </details>
               </section>
             </div>
-            <div id="bench-results" class="bench-results"></div>
           </div>
         </section>
 
@@ -198,7 +200,7 @@ import "../styles/global.css";
       import { marked } from "marked";
 
       const API = "";
-      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], collections: [], collectionDocuments: [], selectedCollection: "", revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, draggedDocumentPath: "", draggedFolderPath: "", editorMode: "raw", historyMode: "repository", okfImportScan: null, okfImportFiles: [], okfImportFolderName: "", okfImportPayload: null };
+      const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], collections: [], collectionDocuments: [], selectedCollection: "", revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, draggedDocumentPath: "", draggedFolderPath: "", editorMode: "raw", historyMode: "repository", okfImportScan: null, okfImportFiles: [], okfImportFolderName: "", okfImportPayload: null, benchCollections: new Set(), benchSources: new Map() };
       const byId = (id) => document.getElementById(id);
       const api = async (path, options = {}) => {
         const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
@@ -393,8 +395,69 @@ import "../styles/global.css";
       }
 
       function renderToolBenchOptions() {
-        byId("bench-scope").innerHTML = scopeOptions("", true);
-        byId("bench-type").innerHTML = typeOptions.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+        const tool = byId("bench-tool");
+        const tools = [
+          ["list_context_scopes", "List context scopes"],
+          ["list_context_types", "List context types"],
+          ["list_context_folders", "List context folders"],
+          ["read_context_index", "Read context index"],
+          ["read_context_log", "Read context log"],
+          ["list_context_documents", "List context documents"],
+          ["read_context_document", "Read context document"],
+          ["search_collection", "Search collection"],
+          ["read_collection_source", "Read collection source"],
+          ["validate_context", "Validate context"],
+        ];
+        const current = tool.value || "list_context_documents";
+        tool.innerHTML = tools.map(([value, label]) => `<option value="${value}" ${value === current ? "selected" : ""}>${label}</option>`).join("");
+        renderBenchFields();
+      }
+
+      function renderBenchFields() {
+        const tool = byId("bench-tool").value;
+        const fields = {
+          list_context_scopes: [],
+          list_context_types: [{key:"scope_id", label:"Scope", type:"scope"}],
+          list_context_folders: [{key:"type", label:"Type", type:"context-type", optional:true}, {key:"scope_id", label:"Scope", type:"scope"}],
+          read_context_index: [{key:"folder", label:"Folder", placeholder:"competitors"}, {key:"scope_id", label:"Scope", type:"scope"}],
+          read_context_log: [{key:"folder", label:"Folder", placeholder:"competitors"}, {key:"scope_id", label:"Scope", type:"scope"}],
+          list_context_documents: [{key:"type", label:"Type", type:"context-type"}, {key:"scope_id", label:"Scope", type:"scope"}, {key:"folder", label:"Folder", placeholder:"competitors/sub-products"}, {key:"limit", label:"Limit", type:"number", value:"100"}],
+          read_context_document: [{key:"path", label:"Path", placeholder:"competitors/sub-products/apollo-b2b-data.md"}, {key:"scope_id", label:"Scope", type:"scope"}],
+          search_collection: [{key:"collection", label:"Collection", type:"bench-collection"}, {key:"query", label:"Query", placeholder:"renewal risk"}, {key:"limit", label:"Limit", type:"number", value:"10"}],
+          read_collection_source: [{key:"collection", label:"Collection", type:"bench-collection"}, {key:"source_id", label:"Source", type:"bench-source"}],
+          validate_context: [],
+        }[tool] || [];
+        byId("bench-fields").innerHTML = fields.map(benchFieldMarkup).join("") || `<div class="empty compact">No inputs required</div>`;
+        refreshIcons();
+      }
+
+      function benchFieldMarkup(field) {
+        const id = `bench-${field.key.replaceAll("_", "-")}`;
+        if (field.type === "scope") return `<div class="field"><label for="${id}">${field.label}</label><select id="${id}" class="select" data-bench-key="${field.key}">${scopeOptions("", true)}</select></div>`;
+        if (field.type === "context-type") return `<div class="field"><label for="${id}">${field.label}</label><select id="${id}" class="select" data-bench-key="${field.key}">${field.optional ? `<option value="">Any type</option>` : ""}${typeOptions.map(([value, label]) => `<option value="${value}">${label}</option>`).join("")}</select></div>`;
+        if (field.type === "bench-collection") {
+          const collections = [...state.benchCollections].sort();
+          return `<div class="field"><label for="${id}">${field.label}</label><select id="${id}" class="select" data-bench-key="${field.key}" ${collections.length ? "" : "disabled"}>${collections.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("") || `<option value="">Run a scoped context tool first</option>`}</select></div>`;
+        }
+        if (field.type === "bench-source") {
+          const sources = [...state.benchSources.entries()].sort(([left], [right]) => left.localeCompare(right));
+          return `<div class="field"><label for="${id}">${field.label}</label><select id="${id}" class="select" data-bench-key="${field.key}" ${sources.length ? "" : "disabled"}>${sources.map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`).join("") || `<option value="">Run search_collection first</option>`}</select></div>`;
+        }
+        return `<div class="field"><label for="${id}">${field.label}</label><input id="${id}" class="input" data-bench-key="${field.key}" type="${field.type || "text"}" value="${escapeHtml(field.value || "")}" placeholder="${escapeHtml(field.placeholder || "")}" /></div>`;
+      }
+
+      byId("bench-tool").addEventListener("change", renderBenchFields);
+
+      function collectBenchPayload() {
+        const payload = {};
+        byId("bench-fields").querySelectorAll("[data-bench-key]").forEach((field) => {
+          if (field.disabled) return;
+          const key = field.dataset.benchKey;
+          const value = field.value.trim();
+          if (!value) return;
+          payload[key] = field.type === "number" ? Number(value) : value;
+        });
+        return payload;
       }
 
       function renderBrowser() {
@@ -949,14 +1012,11 @@ import "../styles/global.css";
 
       byId("bench-form").addEventListener("submit", async (event) => {
         event.preventDefault();
-        const request = {
-          task: byId("bench-task").value.trim() || "context request",
-          scope_id: byId("bench-scope").value || null,
-          requests: [{type: byId("bench-type").value, query: byId("bench-query").value.trim() || null}],
-        };
+        const tool = byId("bench-tool").value;
+        const request = collectBenchPayload();
         byId("bench-request").textContent = JSON.stringify(request, null, 2);
         try {
-          const response = await api("/api/context-package", {method:"POST", body:JSON.stringify(request)});
+          const response = await api(`/api/mcp-tools/${encodeURIComponent(tool)}`, {method:"POST", body:JSON.stringify(request)});
           byId("bench-response").textContent = JSON.stringify(response, null, 2);
           renderBenchResults(response);
         } catch (error) {
@@ -967,17 +1027,49 @@ import "../styles/global.css";
       });
 
       function renderBenchResults(response) {
-        byId("bench-results").innerHTML = (response.results || []).map((result) => `
-          <section class="bench-result ${result.missing?.some((item) => item.blocks_workflow) ? "blocked" : ""}">
-            <div class="bench-result-header"><strong>${escapeHtml(result.type)}</strong><span>${escapeHtml(result.resolved_criticality)}</span></div>
-            ${result.missing?.length ? `<div class="attention-list">${result.missing.map((item) => `<div><i data-lucide="circle-alert"></i><span>${escapeHtml(item.reason)}</span></div>`).join("")}</div>` : ""}
-            ${result.okf_records?.length ? `<div class="result-section"><div class="section-label">Approved context</div>${result.okf_records.map((record) => `<article><strong>${escapeHtml(record.title)}</strong><small>${escapeHtml(record.kb_path)}</small><p>${escapeHtml((record.body || "").slice(0, 360))}</p></article>`).join("")}</div>` : ""}
-            ${result.collection_results?.length ? `<div class="result-section"><div class="section-label">Collection passages</div>${result.collection_results.map((item) => `<article><strong>${escapeHtml(item.citation.source_title)}</strong><small>${escapeHtml(item.citation.collection_id)} &middot; ${escapeHtml(item.citation.location)}</small><p>${escapeHtml(item.text)}</p></article>`).join("")}</div>` : ""}
-            ${result.suggested_sources?.length ? `<div class="result-section"><div class="section-label">Suggested sources</div>${result.suggested_sources.map((item) => `<article><strong>${escapeHtml(item.kind)}</strong><small>${escapeHtml(item.value)}</small></article>`).join("")}</div>` : ""}
-            ${result.access_issues?.length ? `<div class="attention-list">${result.access_issues.map((item) => `<div><i data-lucide="circle-alert"></i><span>${escapeHtml(item.value)}: ${escapeHtml(item.reason)}</span></div>`).join("")}</div>` : ""}
-          </section>
-        `).join("") || `<div class="empty">No results</div>`;
+        harvestBenchCollections(response.result);
+        if (response.tool === "search_collection") harvestBenchSources(response.result);
+        byId("bench-results").innerHTML = benchPreview(response.tool, response.result);
+        renderBenchFields();
         refreshIcons();
+      }
+
+      function harvestBenchCollections(value) {
+        const visit = (item) => {
+          if (!item || typeof item !== "object") return;
+          const collections = item.supporting_sources?.collections;
+          if (Array.isArray(collections)) collections.forEach((collection) => state.benchCollections.add(collection));
+          if (Array.isArray(item)) item.forEach(visit);
+          else Object.values(item).forEach(visit);
+        };
+        visit(value);
+      }
+
+      function harvestBenchSources(results) {
+        if (!Array.isArray(results)) return;
+        results.forEach((item) => {
+          if (!item.source_id) return;
+          state.benchSources.set(item.source_id, `${item.source_title || item.source_id} (${item.source_id})`);
+          if (item.collection_id) state.benchCollections.add(item.collection_id);
+        });
+      }
+
+      function benchPreview(tool, result) {
+        if (Array.isArray(result) && !result.length) return `<div class="empty">No results</div>`;
+        if (tool === "list_context_documents") {
+          return `<div class="result-section">${result.map((record) => `<article><strong>${escapeHtml(record.title)}</strong><small>${escapeHtml(record.path)}${record.scope_id ? ` &middot; ${escapeHtml(record.scope_id)}` : ""}</small><p>${escapeHtml(record.description || record.type)}</p>${record.supporting_sources?.collections?.length ? `<small>Collections: ${record.supporting_sources.collections.map(escapeHtml).join(", ")}</small>` : ""}</article>`).join("")}</div>`;
+        }
+        if (tool === "read_context_document") {
+          return `<section class="bench-result"><div class="bench-result-header"><strong>${escapeHtml(result.title || result.name || result.path)}</strong><span>${escapeHtml(result.type || "document")}</span></div><pre class="text-preview">${escapeHtml((result.body || "").slice(0, 1200))}</pre></section>`;
+        }
+        if (tool === "search_collection") {
+          return `<div class="result-section">${result.map((item) => `<article><strong>${escapeHtml(item.source_title)}</strong><small>${escapeHtml(item.collection_id)} &middot; ${escapeHtml(item.location)} &middot; ${escapeHtml(item.source_id)}</small><p>${escapeHtml(item.snippet)}</p></article>`).join("")}</div>`;
+        }
+        if (tool === "read_collection_source") {
+          return `<section class="bench-result"><div class="bench-result-header"><strong>${escapeHtml(result.source_title || result.id)}</strong><span>${escapeHtml(result.collection_id)}</span></div><small class="source-path">${escapeHtml(result.source_path || "")}</small><pre class="text-preview">${escapeHtml((result.text || "").slice(0, 1600))}</pre></section>`;
+        }
+        if (Array.isArray(result)) return `<div class="result-section">${result.slice(0, 100).map((item) => `<article><strong>${escapeHtml(item.title || item.name || item.path || item.id || String(item))}</strong><small>${escapeHtml(item.path || item.id || item.type || "")}</small></article>`).join("")}</div>`;
+        return `<pre class="json-output">${escapeHtml(JSON.stringify(result, null, 2))}</pre>`;
       }
 
       byId("document-search").addEventListener("input", () => { state.page = 1; renderBrowser(); });
@@ -1142,8 +1234,7 @@ import "../styles/global.css";
     .body-editor { min-height: 520px; padding: 26px 24px 70px; font-size: 15px; }
     .inspector-open .properties { height: auto; overflow: visible; border-left: 0; border-top: 1px solid var(--line); }
     .history-layout, .schema-layout { grid-template-columns: 1fr; }
-    .collection-layout, .bench-output { grid-template-columns: 1fr; }
-    .bench-form { grid-template-columns: 1fr 1fr; }
+    .collection-layout { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 560px) {
@@ -1290,12 +1381,29 @@ import "../styles/global.css";
   .collection-detail-header > div:first-child { min-width: 0; display: grid; gap: 4px; }
   .collection-detail-header strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
   .collection-detail-header small { color: var(--muted); font-size: 11px; }
-  .bench-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 14px; align-items: end; margin-bottom: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 6px; background: #fafbfa; }
-  .bench-output { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
+  .mcp-test-page { max-width: 1500px; }
+  .bench-shell { display: grid; grid-template-columns: minmax(290px, .58fr) minmax(0, 1.42fr); gap: 16px; align-items: start; }
+  .bench-command-panel, .bench-response-panel { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
+  .bench-command-panel { position: sticky; top: 74px; }
+  .bench-form { display: grid; grid-template-columns: 1fr; gap: 13px; align-items: end; margin: 0; padding: 14px; border-bottom: 1px solid var(--line); background: #fbfcfb; }
+  .bench-fields { display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .bench-raw-panel { border-top: 1px solid var(--line); background: white; }
+  .bench-command-panel .bench-raw-panel { border-top: 0; }
+  .bench-raw-panel summary { min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; cursor: pointer; list-style: none; }
+  .bench-raw-panel summary::-webkit-details-marker { display: none; }
+  .bench-raw-panel summary svg { width: 15px; transition: transform .16s ease; }
+  .bench-raw-panel[open] summary { border-bottom: 1px solid var(--line); }
+  .bench-raw-panel[open] summary svg { transform: rotate(180deg); }
+  .bench-raw-panel .json-output { border: 0; border-radius: 0; max-height: 300px; }
+  .bench-output { display: none; }
   .json-output { min-height: 180px; max-height: 380px; overflow: auto; margin: 0; padding: 13px; border: 1px solid var(--line); border-radius: 5px; background: #26312b; color: #edf4ef; font: 11px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
-  .bench-results { display: grid; gap: 12px; }
-  .bench-result { overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: white; }
-  .bench-result.blocked { border-color: #e4b1aa; }
+  .json-output.compact { min-height: 96px; max-height: 220px; }
+  .bench-response-panel .json-output { min-height: 220px; }
+  .bench-results { display: grid; gap: 0; }
+  .bench-results > .empty { min-height: 120px; display: grid; place-items: center; margin: 16px; color: var(--muted); font-size: 13px; }
+  .bench-result { overflow: hidden; border-bottom: 1px solid var(--line); background: white; }
+  .bench-result:last-child { border-bottom: 0; }
+  .bench-result.blocked { box-shadow: inset 3px 0 0 #c66157; }
   .bench-result-header { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #fafbfa; }
   .bench-result-header span { padding: 4px 7px; border-radius: 4px; color: #315b45; background: var(--green-soft); font-size: 11px; font-weight: 750; }
   .attention-list { display: grid; gap: 6px; padding: 10px 14px; color: var(--red); background: var(--red-soft); font-size: 12px; }
@@ -1308,6 +1416,8 @@ import "../styles/global.css";
   .result-section strong { font-size: 13px; }
   .result-section small { color: var(--muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
   .result-section p { margin: 0; color: #424b46; font-size: 12px; line-height: 1.55; }
+  .source-path { display: block; padding: 10px 14px 0; color: var(--muted); font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+  .text-preview { max-height: 380px; overflow: auto; margin: 0; padding: 13px 14px 16px; color: #29322d; background: #fbfcfb; border-top: 1px solid var(--line); font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
   .restore-summary { display: grid; justify-items: start; gap: 9px; }
   .restore-summary strong { font-size: 15px; }
   .restore-summary small { color: var(--muted); font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
@@ -1353,6 +1463,14 @@ import "../styles/global.css";
     .revision-header { align-items: flex-start; flex-direction: column; }
     .revision-header .button { margin-left: 0; }
     .schema-layout { grid-template-columns: 1fr; }
+    .bench-shell { grid-template-columns: 1fr; }
+    .bench-command-panel { position: static; }
+    .bench-form { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 1180px) {
+    .bench-shell { grid-template-columns: 1fr; }
+    .bench-command-panel { position: static; }
   }
 
   @media (max-width: 680px) {

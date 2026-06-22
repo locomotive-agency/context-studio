@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.visitorqueue-screen-recording
 title: VisitorQueue (Leadinfo)
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

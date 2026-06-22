@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.avoma-scheduler
 title: Avoma
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved

@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.regie-data-enrichment
 title: Regie.ai
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

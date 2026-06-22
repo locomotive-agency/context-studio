@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.monday-crm-campaigns
 title: Monday CRM
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

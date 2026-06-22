@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.techsalerator-data-marketplace
 title: Techsalerator
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

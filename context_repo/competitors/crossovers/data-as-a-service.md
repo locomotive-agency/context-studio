@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.data-as-a-service
 title: 'Competitive landscape: Data as a Service'
 description: ''
-scope_id: zoominfo
+scope_id: product-data-as-a-service
 durability: persistent
 criticality: hybrid
 status: approved

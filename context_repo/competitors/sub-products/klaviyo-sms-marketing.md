@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.klaviyo-sms-marketing
 title: Klaviyo
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved

@@ -44,7 +44,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.foundry-abm-intent
 title: Foundry ABM
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

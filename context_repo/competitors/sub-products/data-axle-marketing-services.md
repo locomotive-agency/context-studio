@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.data-axle-marketing-services
 title: Data Axle
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

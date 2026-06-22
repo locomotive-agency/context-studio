@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.salesintel-signal360
 title: SalesIntel
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

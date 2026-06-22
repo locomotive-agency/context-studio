@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.zoominfo-chat
 title: 'Competitive landscape: ZoomInfo Chat'
 description: ''
-scope_id: zoominfo
+scope_id: product-chat
 durability: persistent
 criticality: hybrid
 status: approved

@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hubspot-marketing-hub-forms
 title: HubSpot Marketing Hub
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

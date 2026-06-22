@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.aviso-ai-sales-engagement
 title: Aviso AI
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

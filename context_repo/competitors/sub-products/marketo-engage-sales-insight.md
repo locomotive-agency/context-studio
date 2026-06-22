@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.marketo-engage-sales-insight
 title: Marketo Engage
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

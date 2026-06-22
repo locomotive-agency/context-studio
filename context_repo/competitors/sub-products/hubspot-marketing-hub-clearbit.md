@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hubspot-marketing-hub-clearbit
 title: HubSpot Marketing Hub
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.informatica-data-quality-agentic-data-management
 title: Informatica Data Quality
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

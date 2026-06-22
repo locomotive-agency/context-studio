@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.snitcher-ip-to-company-api
 title: Snitcher
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

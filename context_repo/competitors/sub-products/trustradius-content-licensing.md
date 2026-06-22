@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.trustradius-content-licensing
 title: TrustRadius
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

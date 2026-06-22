@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.oliv-ai-crm-manager
 title: Oliv AI
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

@@ -193,11 +193,11 @@ If GitHub mode is enabled, make sure the deployed working copy has an `origin` r
 
 ## MCP
 
-The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. MCP access requires a valid local or GitHub login. Available tools retrieve constructs, assemble context packages, and validate the bundle.
+The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. MCP access requires a valid local or GitHub login. Available tools list context scopes, types, folders, indexes, logs, and metadata-only Documents; read full Documents; search surfaced Collections; read Collection sources; and validate the bundle.
 
 ## API Highlights
 
-- `POST /api/context-package` assembles the current context package contract.
+- `POST /api/mcp-tools/{tool_name}` runs an authenticated Tool Test Bench request through the same service methods used by MCP tools.
 - `POST /api/imports/okf-folder/scan` scans an OKF folder before import.
 - `POST /api/imports/okf-folder/apply` imports an OKF folder as one Git-backed operation.
 - `GET /api/collections` lists Collections.

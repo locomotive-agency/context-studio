@@ -13,7 +13,6 @@ from .auth import GitHubAuth, UserStore, current_user, login_response, require_r
 from .cms import ContentStore
 from .config import get_config
 from .mcp_server import mcp
-from .models import ContextPackageRequest
 from .request_context import clear_request_user, set_request_user
 from .service import ContextService
 
@@ -394,49 +393,58 @@ def list_records(user: dict = Depends(current_user)) -> list[dict]:
     return [record.model_dump() for record in service.repository.runtime_records(include_body=False)]
 
 
-@app.get("/api/constructs/{construct}")
-def get_construct(construct: str, scope_id: str | None = None, user: dict = Depends(current_user)) -> list[dict]:
-    return service.get_construct(construct, scope_id=scope_id)
-
-
 @app.get("/api/search")
 def search_context(query: str, constructs: str | None = None, top_k: int = 5, user: dict = Depends(current_user)) -> list[dict]:
     construct_list = [item.strip() for item in constructs.split(",") if item.strip()] if constructs else None
     return service.search(query=query, constructs=construct_list, top_k=top_k)
 
 
-@app.post("/api/context-package")
-def context_package(data: ContextPackageRequest, user: dict = Depends(current_user)) -> dict:
-    return service.assemble_context_package(
-        task=data.task,
-        scope_id=data.scope_id,
-        requests=[item.model_dump() for item in data.requests],
-        run_id=data.run_id,
-        user=user,
-    )
-
-
-@app.post("/api/assemble_context_package")
-def assemble_context_package(data: dict, user: dict = Depends(current_user)) -> dict:
-    if isinstance(data.get("requests"), list):
-        return service.assemble_context_package(
-            task=data.get("task", ""),
-            scope_id=data.get("scope_id"),
-            requests=data.get("requests", []),
-            run_id=data.get("run_id"),
-            user=user,
-        )
-    task, constructs = data.get("task"), data.get("constructs", [])
-    if not task or not isinstance(constructs, list):
-        raise HTTPException(status_code=400, detail="task and a constructs list are required")
-    return service.assemble_construct_context_package(
-        task=task,
-        constructs=constructs,
-        scope=data.get("scope"),
-        icp=data.get("icp"),
-        run_id=data.get("run_id"),
-        query=data.get("query"),
-    ).to_response()
+@app.post("/api/mcp-tools/{tool_name}")
+def run_mcp_tool(tool_name: str, data: dict, user: dict = Depends(current_user)) -> dict:
+    tools = {
+        "list_context_scopes": lambda payload: service.list_context_scopes(),
+        "list_context_types": lambda payload: service.list_context_types(scope_id=payload.get("scope_id")),
+        "list_context_folders": lambda payload: service.list_context_folders(
+            type=payload.get("type"),
+            scope_id=payload.get("scope_id"),
+        ),
+        "read_context_index": lambda payload: service.read_context_index(
+            folder=payload.get("folder"),
+            scope_id=payload.get("scope_id"),
+        ),
+        "read_context_log": lambda payload: service.read_context_log(
+            folder=payload.get("folder"),
+            scope_id=payload.get("scope_id"),
+        ),
+        "list_context_documents": lambda payload: service.list_context_documents(
+            type=payload.get("type", ""),
+            scope_id=payload.get("scope_id"),
+            folder=payload.get("folder"),
+            limit=int(payload.get("limit") or 100),
+        ),
+        "read_context_document": lambda payload: service.read_context_document(
+            path=payload.get("path", ""),
+            scope_id=payload.get("scope_id"),
+        ),
+        "search_collection": lambda payload: service.search_collection(
+            collection=payload.get("collection", ""),
+            query=payload.get("query", ""),
+            limit=int(payload.get("limit") or 10),
+        ),
+        "read_collection_source": lambda payload: service.read_collection_source(
+            collection=payload.get("collection", ""),
+            source_id=payload.get("source_id", ""),
+        ),
+        "validate_context": lambda payload: service.validate_context(),
+    }
+    if tool_name not in tools:
+        raise HTTPException(status_code=404, detail="unknown MCP tool")
+    try:
+        return {"tool": tool_name, "request": data, "result": tools[tool_name](data)}
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (PermissionError, ValueError, OSError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/imports/okf-folder/scan")

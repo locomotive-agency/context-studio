@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.weflow-activity-capture
 title: Weflow
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

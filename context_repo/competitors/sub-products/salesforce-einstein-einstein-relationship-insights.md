@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.salesforce-einstein-einstein-relationship-insights
 title: Salesforce Einstein
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

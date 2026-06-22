@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.instantly-b2b-lead-finder
 title: Instantly
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

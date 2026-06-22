@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.voila-norbert-enrich
 title: Voila Norbert
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

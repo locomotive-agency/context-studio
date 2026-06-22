@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.breeze-intelligence-enrichment
 title: Breeze Intelligence
 description: ''
-scope_id: zoominfo
+scope_id: product-crm-enrichment
 durability: persistent
 criticality: hybrid
 status: approved

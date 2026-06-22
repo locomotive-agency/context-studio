@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.lead-forensics-b2b-sales-solution
 title: Lead Forensics
 description: ''
-scope_id: zoominfo
+scope_id: product-identify-website-visitors
 durability: persistent
 criticality: hybrid
 status: approved

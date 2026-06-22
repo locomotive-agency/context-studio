@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.informatica-data-quality-claire-ai
 title: Informatica Data Quality
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

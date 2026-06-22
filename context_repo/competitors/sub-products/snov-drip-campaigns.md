@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.snov-drip-campaigns
 title: Snov.io
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

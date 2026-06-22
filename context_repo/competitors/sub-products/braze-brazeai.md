@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.braze-brazeai
 title: Braze
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved

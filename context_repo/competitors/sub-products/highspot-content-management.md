@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.highspot-content-management
 title: Highspot
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved

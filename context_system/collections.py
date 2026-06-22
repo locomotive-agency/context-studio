@@ -131,6 +131,27 @@ class CollectionManager:
             ).fetchall()
         return [self._with_logical_source_path(dict(row)) for row in rows]
 
+    def read_source(self, collection_id: str, source_id: str) -> dict:
+        clean_id = slugify(collection_id)
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                """
+                SELECT id, collection_id, source_title, source_path, mime_type, content_hash, modified_time, index_status, error
+                FROM collection_documents
+                WHERE id = ? AND collection_id = ?
+                """,
+                (source_id, clean_id),
+            ).fetchone()
+        if not row:
+            raise ValueError("source not found")
+        data = dict(row)
+        source_path = Path(data["source_path"])
+        text = self._parse_source(source_path) if source_path.is_file() else ""
+        data = self._with_logical_source_path(data)
+        data["text"] = text
+        return data
+
     def add_document_text(self, collection_id: str, filename: str, text: str) -> dict:
         return self.add_document_bytes(collection_id, filename, text.encode("utf-8"))
 

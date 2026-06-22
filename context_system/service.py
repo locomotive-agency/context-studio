@@ -5,7 +5,6 @@ from pathlib import Path
 from .audit import AuditLog
 from .collections import CollectionManager
 from .config import Config, get_config
-from .models import ContextPackage, ContextPackageResponse, MissingContextBlock
 from .importer import OKFImporter
 from .repository import ContextRepository
 
@@ -18,139 +17,129 @@ class ContextService:
         self.importer = OKFImporter(self.config)
         self.audit = AuditLog(self.config.audit_db)
 
-    def get_construct(self, construct: str, scope_id: str | None = None) -> list[dict]:
-        return [record.model_dump() for record in self.repository.get_construct(construct, scope_id=scope_id)]
-
     def search(self, query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[dict]:
         return [pointer.model_dump() for pointer in self.repository.search(query, constructs, top_k)]
 
-    def assemble_context_package(
-        self,
-        task: str,
-        scope_id: str | None,
-        requests: list[dict],
-        run_id: str | None = None,
-        user: dict | None = None,
-    ) -> dict:
-        package = {
-            "task": task,
-            "scope_id": scope_id,
-            "results": [],
-            "blocked": False,
-            "kb_git_sha": self.repository.content.git.head(),
+    def list_context_scopes(self) -> list[dict]:
+        return self.repository.content.list_scopes()
+
+    def list_context_types(self, scope_id: str | None = None) -> list[str]:
+        types = {
+            record.type
+            for record in self.repository.runtime_records(include_body=False)
+            if record.status == "approved" and self.repository._is_current(record) and self._record_visible_for_scope(record, scope_id)
         }
-        if run_id:
-            package["run_id"] = run_id
-        controlled_used: list[dict] = []
-        for item in requests:
-            construct = str(item.get("type", "")).strip()
-            query = item.get("query")
-            if not construct:
-                continue
-            resolved = self.repository.resolve_criticality(construct, scope_id=scope_id)
-            records = self.repository.get_construct(construct, scope_id=scope_id)
-            okf_records = [record.model_dump() for record in records]
-            missing = []
-            collection_results: list[dict] = []
-            suggested_sources: list[dict] = []
-            access_issues: list[dict] = []
-            if resolved == "controlled":
-                if not records:
-                    missing.append(
-                        MissingContextBlock(
-                            type=construct,
-                            reason="missing approved controlled context",
-                            blocks_workflow=True,
-                        ).model_dump()
-                    )
-                for record in records:
-                    if not record.body.strip():
-                        missing.append(
-                            MissingContextBlock(
-                                type=construct,
-                                reason=f"controlled record {record.id} has no body",
-                                blocks_workflow=True,
-                            ).model_dump()
-                        )
-                    else:
-                        controlled_used.append(record.model_dump())
-            else:
-                sources = self.repository.supporting_sources_for(construct, scope_id=scope_id)
-                if query and sources.get("collections"):
-                    collection_results = self.collections.search(sources["collections"], str(query), top_k=5)
-                suggested_sources.extend({"kind": "web", "value": url} for url in sources.get("web", []))
-                allowed_mcp, denied_mcp = self._rbac_mcp_sources(sources.get("mcp", []), user)
-                suggested_sources.extend({"kind": "mcp", "value": value} for value in allowed_mcp)
-                access_issues.extend(denied_mcp)
-            package["results"].append(
+        for folder in self.repository.content.list_folders():
+            schema = folder["effective_schema"]
+            type_name = schema.get("type")
+            if isinstance(type_name, str) and type_name and self.repository._scope_matches(schema.get("scope_id"), scope_id):
+                types.add(type_name)
+        return sorted(types)
+
+    def list_context_folders(self, type: str | None = None, scope_id: str | None = None) -> list[dict]:
+        records = [
+            record
+            for record in self.repository.runtime_records(include_body=False)
+            if record.status == "approved"
+            and self.repository._is_current(record)
+            and (not type or record.type == type)
+            and self._record_visible_for_scope(record, scope_id)
+        ]
+        folder_paths: set[str] = set()
+        for record in records:
+            parent = Path(record.kb_path).parent
+            while str(parent) != ".":
+                folder_paths.add(parent.as_posix())
+                parent = parent.parent
+        folders = []
+        for path in sorted(folder_paths):
+            schema = self.repository.content.read_schema(path)
+            direct_records = [record for record in records if Path(record.kb_path).parent.as_posix() == path]
+            nested_records = [record for record in records if Path(record.kb_path).parent.as_posix() == path or Path(record.kb_path).parent.as_posix().startswith(f"{path}/")]
+            folders.append(
                 {
-                    "type": construct,
-                    "resolved_criticality": resolved,
-                    "okf_records": okf_records,
-                    "collection_results": collection_results,
-                    "suggested_sources": suggested_sources,
-                    "missing": missing,
-                    "access_issues": access_issues,
+                    "path": path,
+                    "type": schema["effective_schema"].get("type"),
+                    "scope_id": schema["effective_schema"].get("scope_id"),
+                    "document_count": len(nested_records),
+                    "direct_document_count": len(direct_records),
+                    "supporting_sources": schema["effective_schema"].get("supporting_sources", {}),
+                    "has_index": (self.config.context_repo / path / "index.md").is_file(),
+                    "has_log": (self.config.context_repo / path / "log.md").is_file(),
                 }
             )
-            if any(block["blocks_workflow"] for block in missing):
-                package["blocked"] = True
-        if controlled_used and run_id:
-            self.audit.write(
-                run_id=run_id,
-                task=task,
-                record_ids=[record["id"] for record in controlled_used],
-                hashes=[record["content_hash"] for record in controlled_used],
-            )
-        return ContextPackageResponse.model_validate(package).model_dump(exclude_none=True)
+        return folders
 
-    def assemble_construct_context_package(
+    def read_context_index(self, folder: str | None = None, scope_id: str | None = None) -> dict:
+        entry = self.repository.content.read_okf_index(folder)
+        entry["supporting_sources"] = self._folder_supporting_sources(folder)
+        entry["entries"] = self.list_context_documents(type="", scope_id=scope_id, folder=folder, limit=100)
+        return entry
+
+    def read_context_log(self, folder: str | None = None, scope_id: str | None = None) -> dict:
+        entry = self.repository.content.read_okf_log(folder)
+        entry["supporting_sources"] = self._folder_supporting_sources(folder)
+        entry["git_history"] = self.repository.content.git.history(folder, limit=10)
+        return entry
+
+    def list_context_documents(
         self,
-        task: str,
-        constructs: list[str],
-        scope: dict | None = None,
-        icp: str | None = None,
-        run_id: str | None = None,
-        query: str | None = None,
-    ) -> ContextPackage:
-        pkg = ContextPackage(task=task)
-        pkg.kb_git_sha = self.repository.content.git.head()
-        scope_id = (scope or {}).get("id") or (scope or {}).get("scope_id")
-        controlled_used: list[dict] = []
-        for construct in constructs:
-            records = self.repository.get_construct(construct, scope_id=scope_id)
-            if not records:
-                pkg.missing_blocks.append(
-                    MissingContextBlock(
-                        type=construct,
-                        reason="no approved records",
-                        blocks_workflow=False,
-                    )
-                )
-                continue
-            for record in records:
-                data = record.model_dump()
-                if record.criticality == "controlled":
-                    if not (self.config.context_repo / record.kb_path).exists() or not record.body.strip():
-                        pkg.missing_blocks.append(
-                            MissingContextBlock(
-                                type=construct,
-                                reason=f"controlled record {record.id} has no body",
-                            )
-                        )
-                        continue
-                    controlled_used.append(data)
-                pkg.records.append(data)
-        if query:
-            pkg.search_pointers = self.repository.search(query, constructs)
-        if controlled_used and run_id:
-            self.audit.write(
-                run_id=run_id,
-                task=task,
-                record_ids=[record["id"] for record in controlled_used],
-                hashes=[record["content_hash"] for record in controlled_used],
+        type: str,
+        scope_id: str | None = None,
+        folder: str | None = None,
+        limit: int = 100,
+    ) -> list[dict]:
+        records = [
+            record
+            for record in self.repository.runtime_records(include_body=False)
+            if record.status == "approved"
+            and self.repository._is_current(record)
+            and (not type or record.type == type)
+            and self._record_visible_for_scope(record, scope_id)
+            and self._record_in_folder(record, folder)
+        ]
+        return [self._record_summary(record) for record in records[: max(limit, 0)]]
+
+    def read_context_document(self, path: str, scope_id: str | None = None) -> dict:
+        records = [
+            record
+            for record in self.repository.runtime_records(include_body=True)
+            if record.kb_path == path and record.status == "approved" and self.repository._is_current(record)
+        ]
+        if not records:
+            raise FileNotFoundError(path)
+        record = records[0]
+        if not self._record_visible_for_scope(record, scope_id):
+            raise PermissionError("document is not visible for the requested scope")
+        entry = self.repository.content.read_okf_entry(path)
+        entry["supporting_sources"] = record.supporting_sources
+        return entry
+
+    def search_collection(self, collection: str, query: str, limit: int = 10) -> list[dict]:
+        results = self.collections.search([collection], query, top_k=limit)
+        flattened = []
+        for item in results:
+            citation = item["citation"]
+            flattened.append(
+                {
+                    "collection_id": citation["collection_id"],
+                    "source_id": citation["source_document_id"],
+                    "source_title": citation["source_title"],
+                    "source_path": citation["source_path"],
+                    "location": citation["location"],
+                    "unit_id": citation["unit_id"],
+                    "snippet": item["text"],
+                    "content_hash": citation["content_hash"],
+                    "score": item["score"],
+                }
             )
-        return pkg
+        return flattened
+
+    def read_collection_source(self, collection: str, source_id: str) -> dict:
+        return self.collections.read_source(collection, source_id)
+
+    def validate_context(self) -> dict:
+        return self.repository.content.validation_report()
 
     def scan_okf_folder(self, source_folder: str | Path) -> dict:
         return self.importer.scan(source_folder)
@@ -200,3 +189,41 @@ class ContextService:
             if isinstance(item, dict) and source in {item.get("id"), item.get("url")}:
                 return item
         return None
+
+    def _record_summary(self, record) -> dict:
+        return {
+            "title": record.title,
+            "path": record.kb_path,
+            "type": record.type,
+            "scope_id": record.scope_id,
+            "status": record.status,
+            "criticality": record.criticality,
+            "description": record.okf.get("description", ""),
+            "supporting_sources": record.supporting_sources,
+            "content_hash": record.content_hash,
+            "links": record.links,
+            "external_links": record.external_links,
+            "citations": record.citations,
+            "headings": record.headings,
+        }
+
+    def _record_visible_for_scope(self, record, scope_id: str | None) -> bool:
+        if not scope_id:
+            return True
+        if not record.scope_id:
+            return True
+        try:
+            return record.scope_id in self.repository.content.scope_ancestors(scope_id)
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _record_in_folder(record, folder: str | None) -> bool:
+        if not folder:
+            return True
+        parent = Path(record.kb_path).parent.as_posix()
+        return parent == folder or parent.startswith(f"{folder}/")
+
+    def _folder_supporting_sources(self, folder: str | None) -> dict:
+        schema = self.repository.content.read_schema(folder or "")
+        return schema["effective_schema"].get("supporting_sources", {})

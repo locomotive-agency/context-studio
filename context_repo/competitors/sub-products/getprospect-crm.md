@@ -38,7 +38,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.getprospect-crm
 title: GetProspect
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.apollo-engage
 title: Apollo
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

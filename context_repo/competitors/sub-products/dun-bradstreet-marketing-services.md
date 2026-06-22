@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.dun-bradstreet-marketing-services
 title: Dun & Bradstreet
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

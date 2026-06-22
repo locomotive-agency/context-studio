@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.chili-piper-form-concierge
 title: Chili Piper
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

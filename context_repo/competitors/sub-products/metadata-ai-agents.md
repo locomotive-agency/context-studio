@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.metadata-ai-agents
 title: Metadata
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved

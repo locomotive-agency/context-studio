@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.ibm-infosphere-qualitystage-info-server-data-quality
 title: IBM InfoSphere QualityStage
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

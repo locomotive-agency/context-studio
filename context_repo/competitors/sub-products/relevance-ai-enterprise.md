@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.relevance-ai-enterprise
 title: Relevance AI
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

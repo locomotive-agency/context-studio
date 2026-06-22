@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.emailable-real-time-widget
 title: Emailable
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

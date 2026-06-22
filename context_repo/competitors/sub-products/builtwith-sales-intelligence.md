@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.builtwith-sales-intelligence
 title: BuiltWith
 description: ''
-scope_id: zoominfo
+scope_id: product-intent-data
 durability: persistent
 criticality: hybrid
 status: approved

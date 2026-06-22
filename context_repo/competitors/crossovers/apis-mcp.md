@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.apis-mcp
 title: 'Competitive landscape: APIs & MCP'
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

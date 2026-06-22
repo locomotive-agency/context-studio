@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.g2-market-intelligence-competitive-pulse
 title: G2 Market Intelligence
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

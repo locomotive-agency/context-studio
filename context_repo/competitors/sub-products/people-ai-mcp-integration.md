@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.people-ai-mcp-integration
 title: People.ai
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

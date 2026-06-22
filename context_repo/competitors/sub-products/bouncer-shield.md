@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.bouncer-shield
 title: Bouncer
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

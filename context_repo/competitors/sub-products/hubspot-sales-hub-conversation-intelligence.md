@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hubspot-sales-hub-conversation-intelligence
 title: HubSpot Sales Hub
 description: ''
-scope_id: zoominfo
+scope_id: product-chorus
 durability: persistent
 criticality: hybrid
 status: approved

@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hubspot-sales-hub-sales-hub
 title: HubSpot Sales Hub
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.zoominfo-sales
 title: 'Competitive landscape: ZoomInfo Sales'
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

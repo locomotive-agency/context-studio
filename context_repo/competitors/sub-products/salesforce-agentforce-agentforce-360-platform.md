@@ -37,7 +37,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.salesforce-agentforce-agentforce-360-platform
 title: Salesforce Agentforce
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

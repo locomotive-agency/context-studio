@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.insightsquared-activity-capture
 title: InsightSquared
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

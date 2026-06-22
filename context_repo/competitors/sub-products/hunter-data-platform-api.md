@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hunter-data-platform-api
 title: Hunter
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

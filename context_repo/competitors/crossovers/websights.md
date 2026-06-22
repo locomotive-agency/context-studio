@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.websights
 title: 'Competitive landscape: WebSights'
 description: ''
-scope_id: zoominfo
+scope_id: product-identify-website-visitors
 durability: persistent
 criticality: hybrid
 status: approved

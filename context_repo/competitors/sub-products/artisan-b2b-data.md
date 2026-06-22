@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.artisan-b2b-data
 title: Artisan
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

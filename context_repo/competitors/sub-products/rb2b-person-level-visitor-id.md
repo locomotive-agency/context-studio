@@ -36,7 +36,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.rb2b-person-level-visitor-id
 title: RB2B
 description: ''
-scope_id: zoominfo
+scope_id: product-identify-website-visitors
 durability: persistent
 criticality: hybrid
 status: approved

@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.keap-lead-capture-landing-pages
 title: Keap
 description: ''
-scope_id: zoominfo
+scope_id: product-form-optimization
 durability: persistent
 criticality: hybrid
 status: approved

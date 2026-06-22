@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.mutiny-blueprints
 title: Mutiny
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

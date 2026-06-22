@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.gtm-workspace
 title: 'Competitive landscape: GTM Workspace'
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

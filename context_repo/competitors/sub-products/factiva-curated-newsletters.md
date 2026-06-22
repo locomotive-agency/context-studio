@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.factiva-curated-newsletters
 title: Factiva
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

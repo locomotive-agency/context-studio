@@ -35,7 +35,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.experian-commercial-solutions
 title: Experian
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

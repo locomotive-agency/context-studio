@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hunter-discover
 title: Hunter
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

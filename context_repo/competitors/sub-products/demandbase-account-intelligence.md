@@ -28,7 +28,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.demandbase-account-intelligence
 title: Demandbase
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

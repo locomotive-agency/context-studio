@@ -37,7 +37,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.klenty-crm-acceleration
 title: Klenty
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

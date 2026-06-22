@@ -29,7 +29,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hg-insights-sales-copilot
 title: HG Insights
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

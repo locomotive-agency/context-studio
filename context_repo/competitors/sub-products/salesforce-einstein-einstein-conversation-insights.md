@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.salesforce-einstein-einstein-conversation-insights
 title: Salesforce Einstein
 description: ''
-scope_id: zoominfo
+scope_id: product-chorus
 durability: persistent
 criticality: hybrid
 status: approved

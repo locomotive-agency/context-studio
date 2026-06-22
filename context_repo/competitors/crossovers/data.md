@@ -9,7 +9,7 @@ type: competitive-landscape
 id: ctx.competitors.crossovers.data
 title: 'Competitive landscape: Data (Pillar 1)'
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.madison-logic-abm-linkedin-ads
 title: Madison Logic
 description: ''
-scope_id: zoominfo
+scope_id: product-marketing
 durability: persistent
 criticality: hybrid
 status: approved

@@ -36,7 +36,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.lemlist-email-finder-verifier
 title: Lemlist
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

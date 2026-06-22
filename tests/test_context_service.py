@@ -14,17 +14,13 @@ from context_system.repository import ContextRepository
 from context_system.service import ContextService
 
 
-def test_assemble_package_returns_controlled_records():
+def test_list_context_documents_returns_metadata_for_controlled_records():
     service = ContextService()
-    package = service.assemble_construct_context_package(
-        task="landing-page",
-        constructs=["brand-messaging", "how-we-sound"],
-        run_id="test-run",
-    )
+    records = service.list_context_documents(type="brand-messaging", limit=10)
 
-    assert not package.blocked
-    assert len(package.records) >= 2
-    assert any(record["criticality"] == "controlled" for record in package.records)
+    assert records
+    assert all(record["criticality"] == "controlled" for record in records)
+    assert all("body" not in record for record in records)
 
 
 def test_search_no_longer_runs_over_okf_records():
@@ -34,19 +30,19 @@ def test_search_no_longer_runs_over_okf_records():
     assert results == []
 
 
-def test_api_assemble_contract_for_content_improve():
+def test_api_mcp_tool_dispatch_lists_context_documents():
     client = TestClient(app)
     response = client.post(
-        "/api/assemble_context_package",
+        "/api/mcp-tools/list_context_documents",
         headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
-        json={"task": "brand_terms", "constructs": ["brand-messaging"]},
+        json={"type": "brand-messaging"},
     )
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["task"] == "brand_terms"
-    assert payload["blocked"] is False
-    assert payload["records"]
+    assert payload["tool"] == "list_context_documents"
+    assert payload["result"]
+    assert "body" not in payload["result"][0]
 
 
 def test_authenticated_records_list():

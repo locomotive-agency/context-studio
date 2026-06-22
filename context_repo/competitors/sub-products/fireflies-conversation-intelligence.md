@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.fireflies-conversation-intelligence
 title: Fireflies
 description: ''
-scope_id: zoominfo
+scope_id: product-chorus
 durability: persistent
 criticality: hybrid
 status: approved

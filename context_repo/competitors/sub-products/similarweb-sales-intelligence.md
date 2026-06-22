@@ -38,7 +38,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.similarweb-sales-intelligence
 title: Similarweb
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

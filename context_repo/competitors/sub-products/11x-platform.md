@@ -32,7 +32,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.11x-platform
 title: 11x
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

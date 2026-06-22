@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.people-data-labs-person-api
 title: People Data Labs
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

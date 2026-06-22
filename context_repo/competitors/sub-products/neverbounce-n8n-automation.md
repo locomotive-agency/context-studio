@@ -25,7 +25,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.neverbounce-n8n-automation
 title: NeverBounce
 description: ''
-scope_id: zoominfo
+scope_id: product-zoominfo-mcp
 durability: persistent
 criticality: hybrid
 status: approved

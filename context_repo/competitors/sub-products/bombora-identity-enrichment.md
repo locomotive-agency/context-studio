@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.bombora-identity-enrichment
 title: Bombora
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

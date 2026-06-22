@@ -34,7 +34,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.kaspr-linkedin-chrome-extension
 title: Kaspr
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

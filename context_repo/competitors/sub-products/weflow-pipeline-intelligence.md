@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.weflow-pipeline-intelligence
 title: Weflow
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.crayon-aggregate
 title: Crayon
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-context-graph
 durability: persistent
 criticality: hybrid
 status: approved

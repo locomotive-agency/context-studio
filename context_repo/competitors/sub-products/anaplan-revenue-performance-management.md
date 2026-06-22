@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.anaplan-revenue-performance-management
 title: Anaplan
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

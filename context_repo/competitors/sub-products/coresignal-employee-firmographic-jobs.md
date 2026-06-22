@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.coresignal-employee-firmographic-jobs
 title: Coresignal
 description: ''
-scope_id: zoominfo
+scope_id: product-data
 durability: persistent
 criticality: hybrid
 status: approved

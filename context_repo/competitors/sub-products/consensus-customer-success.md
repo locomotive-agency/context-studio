@@ -30,7 +30,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.consensus-customer-success
 title: Consensus
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-workspace
 durability: persistent
 criticality: hybrid
 status: approved

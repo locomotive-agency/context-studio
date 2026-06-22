@@ -27,7 +27,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.hubspot-data-hub
 title: HubSpot
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

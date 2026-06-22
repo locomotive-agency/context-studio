@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.momentum-deal-execution-agent
 title: Momentum
 description: ''
-scope_id: zoominfo
+scope_id: product-operations
 durability: persistent
 criticality: hybrid
 status: approved

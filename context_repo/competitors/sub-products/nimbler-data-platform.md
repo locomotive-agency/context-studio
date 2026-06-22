@@ -33,7 +33,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.nimbler-data-platform
 title: Nimbler
 description: ''
-scope_id: zoominfo
+scope_id: product-sales
 durability: persistent
 criticality: hybrid
 status: approved

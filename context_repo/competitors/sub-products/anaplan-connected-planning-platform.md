@@ -31,7 +31,7 @@ type: competitive-landscape
 id: ctx.competitors.sub-products.anaplan-connected-planning-platform
 title: Anaplan
 description: ''
-scope_id: zoominfo
+scope_id: product-gtm-studio
 durability: persistent
 criticality: hybrid
 status: approved
