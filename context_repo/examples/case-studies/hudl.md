@@ -1,5 +1,5 @@
 ---
-type: proof-points
+type: case-study
 company: Athlete Data Firm Reduces Evaluation Time 75% with Chorus
 slug: hudl
 source_url: https://www.zoominfo.com/about/case-studies/hudl
