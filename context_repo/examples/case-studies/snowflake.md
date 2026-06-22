@@ -1,26 +1,28 @@
 ---
-type: proof-points
-company: "Snowflake's Data"
+type: case-study
+company: Snowflake's Data
 slug: snowflake
 source_url: https://www.zoominfo.com/about/case-studies/snowflake
-industry: "Education"
+industry: Education
 company_size: enterprise
 products:
-  - "CRM Enrichment"
-  - "Data-as-a-Service"
-  - "ZoomInfo Data"
+- CRM Enrichment
+- Data-as-a-Service
+- ZoomInfo Data
 icps:
-  - sales_ae_sdr
-  - revops_gtm_eng
-  - account_mgmt_cs
-date_published: 2025-07-29
-date_modified: 2026-02-17
+- sales_ae_sdr
+- revops_gtm_eng
+- account_mgmt_cs
+date_published: '2025-07-29'
+date_modified: '2026-02-17'
 recency_tier: undated
 migration_date: true
 tags:
-  - case-study
-  - education
-  - enterprise
+- case-study
+- education
+- enterprise
+title: snowflake
+description: ''
 ---
 
 # Snowflake's Data
