@@ -2,11 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Follow the checkbox order and update this file as each task is completed.
 
-## Goal
+**Goal:** Make MCP the governed agent-facing retrieval surface for OKF records and OKF-routed Collection evidence.
 
-Make MCP the canonical agent-facing retrieval surface for OKF records and Collection evidence.
+**Architecture:** OKF folder and file schema remains the governance source of truth. MCP clients request context by OKF type and optional scope/query; the service resolves effective schema, approved OKF records, and any allowed Collection evidence. Collections are never exposed through MCP as a standalone browse or arbitrary search surface.
 
-AI systems should be able to use MCP to discover what context exists, traverse OKF `index.md` and `log.md`, retrieve approved OKF concepts, search only the Collections routed by governed metadata, receive citations and content hashes, and respect the same role policy as the API and UI.
+**Tech Stack:** FastAPI, FastMCP, Pydantic, SQLite FTS5 Collections, Git-backed OKF repository, Astro CMS, pytest.
+
+---
 
 ## Sources Reviewed
 
@@ -15,6 +17,27 @@ AI systems should be able to use MCP to discover what context exists, traverse O
 - Google OKF spec: https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md
 - Marketing context spec: `C:/Users/jroak/Downloads/structuring-marketing-context-for-ai-improved.md`
 - Current implementation in `context_system/app.py`, `context_system/mcp_server.py`, `context_system/service.py`, `context_system/repository.py`, `context_system/cms.py`, `context_system/okf.py`, `context_system/models.py`, and `context_system/collections.py`
+
+## Review Clarifications
+
+- The earlier "canonical label or alias resolver" item is removed. It was a solution looking for a problem. For now, skills and MCP callers should use the OKF `type` values defined in folder and file schema.
+- Supplying user context to MCP is not meant to personalize the AI session. Its value is authorization and auditability: MCP should not become a way to bypass Admin, Editor, and Viewer permissions. If a deployment intentionally runs MCP as one local trusted user, that should be represented as an explicit configured service account role, not as missing identity defaulting to Admin.
+- Collections must be reached only through OKF governance. MCP should not list Collections, list Collection documents, or accept arbitrary Collection IDs for search. The service may search Collection evidence only after resolving the OKF folder/file schema for the requested context type and scope.
+- Avoid `v1`, `v2`, `v3` function names unless there is a concrete compatibility need. Use one current context-package contract and keep versioning at the API/schema boundary only if a real migration requires it.
+- Required MCP request fields should either affect retrieval or be required for traceability. Do not require fields that the service ignores.
+- Do not add server-generated run workflows or a broader audit subsystem in this sprint. Keep existing explicit `run_id` audit behavior unless a concrete audit workflow is defined.
+
+## Current Request Contract
+
+The current MCP `assemble_context_package` tool accepts more fields than the service meaningfully uses.
+
+- `task`: required by the tool. It is echoed in the response and can be used for audit context, but it does not change which OKF records or Collection evidence are selected.
+- `requests`: optional in the current tool because of a legacy `constructs` path. The new contract should make `requests` required and non-empty.
+- `requests[].type`: required in each request item. This changes the response because it selects the OKF records, effective schema, criticality, and Collection routing.
+- `requests[].query`: optional. This changes the response only when the resolved schema allows Collection evidence and the service searches those routed Collections.
+- `scope_id`: optional. This changes the response because it controls scoped record and schema resolution.
+- `run_id`: optional. This affects audit records only. It should not be required to retrieve context.
+- `constructs` and `icp`: legacy inputs. Remove them from the MCP contract if they do not affect the current retrieval path.
 
 ## Alignment Summary
 
@@ -27,16 +50,15 @@ The repository is directionally aligned with the desired architecture:
 - API calls pass the authenticated user into context package assembly.
 - Admin, Editor, and Viewer roles are the active permission model.
 
-The gaps are mostly in the agent-facing surface:
+The remaining gaps are:
 
-- MCP authenticates the HTTP request but does not pass caller identity into tool execution.
+- MCP authenticates the HTTP request but does not pass caller identity or an explicit service-account role into tool execution.
+- Missing user context currently risks Admin-like behavior in MCP supporting-source filtering.
 - MCP tools require callers to already know a context `type`; they do not expose OKF bundle discovery, folder traversal, indexes, logs, types, scopes, links, or citations.
 - `index.md` and `log.md` are preserved as reserved OKF files but hidden from normal document listing and not exposed as first-class navigation/history resources.
-- Collections can be listed through HTTP API routes, but MCP does not expose Collection discovery or governed Collection evidence search.
-- Context package v1 returns an untyped dict instead of a validated response model at the API and MCP boundary.
-- There is no canonical label or alias resolver between skill prompts and OKF record types.
+- MCP does not yet expose a governed way to request Collection evidence through OKF folder/file schema.
+- Context package responses are raw dicts instead of a validated response model at the API and MCP boundary.
 - OKF links and `# Citations` sections are not parsed into structured fields for agents.
-- Controlled context audit is skipped unless callers provide a `run_id`.
 
 ## Role And Security Rules
 
@@ -45,32 +67,34 @@ The gaps are mostly in the agent-facing surface:
 - Viewers can review context and request context through the app, API, and MCP tools.
 - Do not add per-record edit metadata. `edit_roles` is not part of the model.
 - Add RBAC checks anywhere data leaves the system or an external tool can be invoked.
-- Missing MCP caller identity must fail closed. It must never imply Admin.
+- Missing MCP caller identity must fail closed unless an explicit service-account role is configured.
+- Missing MCP caller identity must never imply Admin.
 
-## Priority 0: Carry Authenticated User Context Into MCP Tools
+## Priority 0: Fail Closed On MCP Authorization Context
 
 ### Problem
 
 `context_system/app.py` checks login for `/mcp`, but `context_system/mcp_server.py` invokes `ContextService` without a user. `ContextService._rbac_mcp_sources()` currently treats missing user context as Admin.
 
-That is not aligned with `GOVERNANCE.md` because data leaves the system through MCP. It also prevents MCP packages from enforcing source policy for Viewers, Editors, and Admins.
+This does not add user-visible value to an AI session by itself. It matters because MCP returns governed data and may suggest external MCP sources. If identity is dropped at the tool layer, MCP can become a permission bypass.
 
 ### Required Changes
 
 - Add a small request context module, for example `context_system/request_context.py`, backed by `contextvars.ContextVar`.
 - In the `/mcp` middleware in `context_system/app.py`, resolve `current_user(request)`, store the public user in the context var before `call_next`, and reset it afterward.
-- In every MCP tool in `context_system/mcp_server.py`, read the current user from the context var and pass it into service methods that return data or suggest external sources.
-- Make MCP tools fail with a clear authorization error when no authenticated MCP user is available.
-- Remove the Admin fallback in `ContextService._rbac_mcp_sources()`. Missing user context should deny configured MCP source access and report `missing authenticated user`.
-- Decide whether the standalone `python -m context_system.mcp_server` path is local-demo-only. If retained, require an explicit config flag for unauthenticated local use.
+- In MCP tools that return data or source suggestions, read the current user from the context var and pass it into service methods.
+- If the project needs a local single-user MCP mode, add explicit config such as `mcp_service_account_role: viewer|editor|admin` and require it to be set. Do not infer Admin from a missing user.
+- Remove the Admin fallback in `ContextService._rbac_mcp_sources()`.
+- Missing MCP user context should deny configured MCP source access and report `missing authenticated user` unless an explicit service-account role is configured.
 
 ### Tests
 
 - Add `tests/test_mcp_auth.py`.
-- Prove unauthenticated MCP calls are rejected.
+- Prove unauthenticated MCP calls are rejected when no service-account role is configured.
 - Prove an MCP context package assembled as Viewer does not receive Admin-only MCP supporting sources.
 - Prove missing user context does not default to Admin in `ContextService._rbac_mcp_sources()`.
 - Prove API `/api/context-package` and MCP `assemble_context_package` apply the same source filtering for the same user role.
+- Prove explicit local service-account mode uses the configured role and nothing broader.
 
 ## Priority 1: Add Agent-Oriented OKF Discovery And Traversal Tools
 
@@ -106,54 +130,66 @@ Current MCP tools expose `get_construct`, deprecated `search_context`, `assemble
 - Add tests proving MCP `list_okf_bundle` exposes folders, concept docs, `index.md`, and `log.md`.
 - Add tests proving unknown OKF frontmatter keys are preserved in agent-facing responses.
 
-## Priority 2: Expose Governed Collection Evidence Through MCP
+## Priority 2: Keep Collection Evidence Routed Through OKF Schema
 
 ### Problem
 
-Collections are part of the desired evidence model, but MCP clients cannot discover Collections or search governed Collection sources directly. The only Collection search path is inside `assemble_context_package_v1`, and only when the caller already knows the exact context type and query.
+Collections are supporting evidence, not independent governed context. They should be pointed to by document folder and file schema, then searched only as part of a governed context request.
 
-AI systems need MCP tools that make Collection evidence findable while preserving the rule that OKF records are governed context and Collections are supporting evidence.
+The previous plan overexposed Collections by proposing MCP tools that could list and search Collections directly. That is not aligned with the governance model.
 
 ### Required Changes
 
-- Add MCP tools:
-  - `list_collections()`
-  - `list_collection_documents(collection_id: str)`
-  - `list_supporting_sources(type: str, scope_id: str | None = None)`
-  - `search_supporting_collections(type: str, query: str, scope_id: str | None = None, top_k: int = 5)`
-- Route `search_supporting_collections` through `ContextRepository.supporting_sources_for()` so agents can search only the Collections attached to the requested OKF type and scope.
-- Return Collection results with citation fields only: `collection_id`, `source_document_id`, `source_title`, logical `source_path`, `location`, `unit_id`, and `content_hash`.
+- Do not add MCP tools named `list_collections`, `list_collection_documents`, `search_collection`, or any tool that accepts an arbitrary `collection_id` from an MCP client.
+- Add or keep only a context-package path where the MCP caller requests OKF context:
+  - `task`
+  - `scope_id`
+  - `requests[].type`
+  - `requests[].query`
+- Resolve Collection access inside `ContextService` by using `ContextRepository.supporting_sources_for(type, scope_id)`.
+- `supporting_sources_for()` must merge Collection IDs only from effective folder schema and file frontmatter.
+- Search only the resolved `supporting_sources.collections` values for the requested OKF type and scope.
+- If no Collection source is routed by the effective OKF schema, return no Collection results.
+- If a query is omitted, return approved OKF records and source metadata, but do not run Collection search.
+- Return Collection evidence inside the context package with citation fields only: `collection_id`, `source_document_id`, `source_title`, logical `source_path`, `location`, `unit_id`, and `content_hash`.
 - Do not expose absolute server paths in MCP results.
 - Do not promote Collection excerpts into OKF records automatically.
 - Do not add Collection scope, criticality, status, allowed-use, or summarization fields.
 
 ### Tests
 
-- Prove Viewers, Editors, and Admins can list Collections through MCP.
-- Prove unauthenticated MCP callers cannot list or search Collections.
-- Prove `search_supporting_collections` searches only Collections routed by OKF `supporting_sources.collections`.
+- Prove MCP has no direct Collection listing or arbitrary Collection search tool.
+- Prove an MCP caller cannot pass `collection_id` to search a Collection directly.
+- Prove Collection search occurs only for Collections routed by effective OKF folder or file schema.
+- Prove a request for the same `type` and `query` returns different Collection evidence when `scope_id` changes the effective schema.
+- Prove a request with no routed Collections returns no Collection evidence.
 - Prove Collection results include citations and no absolute server filesystem paths.
 
-## Priority 3: Make Context Package V1 A Typed Boundary
+## Priority 3: Use One Typed Context Package Boundary
 
 ### Problem
 
 `ContextPackageV1Request` is typed, but `assemble_context_package_v1()` returns a raw dict. `ContextPackageV1Result` exists but is only a result item model, not the full response envelope.
 
-That is not aligned with the governance rule to use typed request and response models at API boundaries.
+The typing gap is real, but the `v1` naming creates avoidable complexity. We do not need `v1`, `v2`, and `v3` service functions unless there is a real compatibility migration.
 
 ### Required Changes
 
-- Add a Pydantic response envelope model, for example `ContextPackageV1Response`, with:
+- Rename current models and methods toward one current contract:
+  - `ContextPackageRequest`
+  - `ContextPackageResponse`
+  - `ContextPackageResult`
+  - `ContextService.assemble_context_package(...)`
+- Keep one implementation path for `/api/context-package` and MCP `assemble_context_package`.
+- Deprecate or remove legacy inputs that do not affect retrieval, especially `constructs` and `icp`.
+- Add a Pydantic response envelope with:
   - `task`
   - `scope_id`
   - `results`
   - `blocked`
   - `kb_git_sha`
-  - `run_id`
-  - `audit_id` or `audit_written`
-- Change `ContextService.assemble_context_package_v1()` to build and validate the response model before returning `model_dump()`.
-- Reuse the same response model for `/api/context-package`, `/api/assemble_context_package`, and MCP `assemble_context_package`.
+  - `run_id`, only when supplied by the caller
+- Build and validate the response model before returning `model_dump()`.
 - Include structured OKF provenance for each OKF record: `kb_path`, `content_hash`, `okf` frontmatter, `links`, and `citations`.
 - Preserve `missing` blocks and `access_issues` in the typed response.
 
@@ -163,6 +199,7 @@ That is not aligned with the governance rule to use typed request and response m
 - Prove invalid service output cannot leave the boundary without validation.
 - Prove controlled missing context still sets `blocked: true`.
 - Prove Collection citations validate against the response model.
+- Prove `constructs` and `icp` are not required by the MCP contract.
 
 ## Priority 4: Parse OKF Links, Citations, Indexes, And Logs
 
@@ -190,66 +227,17 @@ The OKF spec keeps links and citations lightweight, and the Karpathy wiki patter
 - Prove internal links are returned with normalized repository-relative paths.
 - Prove `index.md` and `log.md` return content hashes.
 
-## Priority 5: Add Canonical Label And Alias Resolution
-
-### Problem
-
-Skills and prompts should be able to request context by stable labels. The service currently looks up exact OKF `type` values only. That makes agents brittle and forces prompts to know repository internals.
-
-### Required Changes
-
-- Add a canonical label resolver in the service layer.
-- Store aliases in one governed place, such as `_context_aliases.yaml` or a config-backed registry.
-- Resolve aliases before:
-  - `get_construct`
-  - `assemble_context_package_v1`
-  - `list_supporting_sources`
-  - `search_supporting_collections`
-- Return the requested label and resolved OKF type in package results.
-- Make ambiguous aliases a clear validation error.
-- Do not use aliases for authorization. Roles remain Admin, Editor, and Viewer.
-- Do not reintroduce `edit_roles`.
-
-### Tests
-
-- Prove an alias resolves to a canonical OKF type.
-- Prove an ambiguous alias fails with a clear error.
-- Prove aliases work the same over API and MCP.
-- Prove authorization is still based only on the signed-in user role.
-
-## Priority 6: Make Controlled Usage Audit Reliable
-
-### Problem
-
-Controlled context usage is only audited when a caller provides `run_id`. Agents may forget to send one, especially over MCP.
-
-### Required Changes
-
-- Generate a server-side `run_id` when controlled context is used and the caller did not provide one.
-- Include `run_id` in the context package response.
-- Write audit records whenever controlled OKF records are included in API or MCP context packages.
-- Include record IDs, content hashes, `kb_git_sha`, task, timestamp, and caller identity.
-- Do not audit raw Collection excerpts unless they are included as supporting evidence in the returned package; when audited, store citation identifiers and hashes, not full extracted text.
-
-### Tests
-
-- Prove controlled package assembly writes an audit record without caller-provided `run_id`.
-- Prove package response includes generated `run_id`.
-- Prove audit entries include caller identity and OKF content hashes.
-- Prove flexible-only packages do not write controlled-use audit records.
-
 ## Acceptance Criteria
 
-- MCP uses the same authenticated user and role model as the API.
-- Missing MCP user identity fails closed.
-- Missing user context never defaults to Admin.
+- MCP uses either the authenticated user role or an explicit configured service-account role.
+- Missing MCP user identity fails closed unless an explicit service-account role is configured.
+- Missing MCP user identity never defaults to Admin.
 - AI systems can use MCP to list OKF folders, read `index.md`, read `log.md`, list OKF types and scopes, retrieve OKF concepts, inspect links, and inspect citations.
-- AI systems can use MCP to list Collections, list Collection documents, and search governed supporting Collections by OKF type or alias.
+- AI systems request Collection evidence only through context package requests governed by OKF folder/file schema.
+- MCP does not expose direct Collection listing, direct Collection document listing, arbitrary Collection IDs, or arbitrary Collection search.
 - Collection evidence is returned with citations and logical paths, not absolute server paths.
 - Context packages are validated by typed response models before leaving the service.
-- Controlled context usage is audited even when MCP clients omit `run_id`.
-- Alias resolution lets skills use stable labels without embedding repository internals.
-- Unknown OKF fields, unknown OKF types, and broken links remain tolerant according to OKF conformance.
+- Required MCP request fields are limited to fields that affect retrieval or traceability.
 - The role model remains Admin, Editor, Viewer.
 - `edit_roles` is not reintroduced.
 
@@ -258,6 +246,10 @@ Controlled context usage is only audited when a caller provides `run_id`. Agents
 - Do not add semantic search over OKF records as the primary retrieval path.
 - Do not add Collection summarization.
 - Do not auto-promote Collection evidence into OKF.
+- Do not expose Collections as a standalone MCP browsing or search surface.
+- Do not accept arbitrary Collection IDs in MCP context requests.
 - Do not add a central OKF schema registry.
 - Do not add per-record edit permissions.
+- Do not add a canonical label or alias resolver in this sprint.
+- Do not add server-generated run IDs or a broader audit workflow in this sprint.
 - Do not add a new role taxonomy.
