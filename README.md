@@ -122,13 +122,74 @@ When those variables are present, the login screen switches to GitHub sign-in an
 
 ## Deploying
 
-For a hosted deployment, run the FastAPI service and Astro frontend together with persistent storage for the Git working copy. The backend needs access to:
+Deploy the CMS and API behind the same public origin. The Astro app calls relative `/api/*` and `/mcp/*` paths, so either serve `cms/dist` and proxy those paths to FastAPI from one domain, or put both behind a gateway that preserves same-origin cookies.
 
-- The configured `context_repo/` checkout
-- `var/users.sqlite` for sessions and local fallback users
-- Git credentials that can pull and push the configured repository when GitHub mode is enabled
+1. Prepare the server:
 
-Use direct commits to the configured branch for the first implementation.
+```bash
+git clone https://github.com/jroakes/context-system-prototype-codex.git
+cd context-system-prototype-codex
+uv sync
+cd cms && npm install && npm run build && cd ..
+uv run python run.py validate
+```
+
+2. Configure persistent storage for:
+
+- `context_repo/`, the Git-backed OKF working copy
+- `var/users.sqlite`, local sessions and local demo users when GitHub mode is disabled
+- `var/audit.sqlite`, controlled-context audit events
+- `var/collections/` and `var/collections.sqlite`, Collection source files and indexes
+
+3. Set production environment variables before starting FastAPI:
+
+```bash
+export CS_SECRET_KEY=replace-with-a-long-random-value
+export CS_PUBLIC_APP_URL=https://your-context-app.example.com
+export CS_CONTEXT_REPOSITORY_PATH=/persistent/context_repo
+export CS_USERS_PATH=/persistent/var/users.sqlite
+export CS_AUDIT_PATH=/persistent/var/audit.sqlite
+export CS_COLLECTIONS_ROOT_PATH=/persistent/var/collections
+export CS_COLLECTIONS_DB_PATH=/persistent/var/collections.sqlite
+```
+
+For GitHub login and Git-backed production editing, also set:
+
+```bash
+export CS_GITHUB_OWNER=jroakes
+export CS_GITHUB_REPO=context-system-prototype-codex
+export CS_GITHUB_CLIENT_ID=...
+export CS_GITHUB_CLIENT_SECRET=...
+```
+
+The GitHub OAuth callback URL should be:
+
+```text
+https://your-context-app.example.com/api/auth/github/callback
+```
+
+4. Run the backend service:
+
+```bash
+uv run python run.py serve --port 8001
+```
+
+Use a process manager for production, and proxy:
+
+- `/api/*` -> `http://127.0.0.1:8001/api/*`
+- `/mcp/*` -> `http://127.0.0.1:8001/mcp/*`
+- all other paths -> static files from `cms/dist`
+
+5. Verify the deployment:
+
+```bash
+curl https://your-context-app.example.com/api/health
+uv run python run.py validate
+```
+
+Then sign in through the public URL and run a Tool Test Bench request. In GitHub mode, users must be collaborators on the configured repository; repository `admin` maps to Admin, `write` or `maintain` maps to Editor, and `read` or `triage` maps to Viewer.
+
+If GitHub mode is enabled, make sure the deployed working copy has an `origin` remote and Git credentials that can pull and push the configured branch. Writes use direct commits, pull with `--ff-only` before saving, and push after each successful Git-backed write.
 
 ## MCP
 
