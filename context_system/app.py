@@ -6,7 +6,7 @@ from subprocess import CalledProcessError
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from .auth import GitHubAuth, UserStore, current_user, require_role
 from .cms import ContentStore
@@ -124,3 +124,27 @@ app.include_router(collection_routes.build_router(lambda: service))
 app.include_router(mcp_tool_routes.build_router(lambda: service))
 
 app.mount("/mcp", mcp.streamable_http_app())
+
+static_dir = cfg.path("cms/dist")
+
+
+@app.api_route(
+    "/api/{full_path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+    include_in_schema=False,
+)
+def unknown_api_route(full_path: str):
+    raise HTTPException(status_code=404, detail=f"Unknown API route: /api/{full_path}")
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def cms_fallback(full_path: str):
+    if not static_dir.is_dir():
+        raise HTTPException(status_code=404, detail="CMS build not found")
+    requested = (static_dir / full_path).resolve()
+    if full_path and requested.is_file() and requested.is_relative_to(static_dir.resolve()):
+        return FileResponse(requested)
+    index = static_dir / "index.html"
+    if index.is_file():
+        return FileResponse(index)
+    raise HTTPException(status_code=404, detail="CMS build not found")

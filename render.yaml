@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: context-studio-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: CS_SECRET_KEY
+        generateValue: true
+      - key: CS_LOCAL_DEMO_USERS
+        value: '[{"username":"demo","password":"demo","role":"viewer"}]'
+      - key: CS_PUBLIC_APP_URL
+        value: https://context-studio-demo.onrender.com

@@ -170,6 +170,15 @@ When those variables are present, the login screen switches to GitHub sign-in an
 
 Deploy the CMS and API behind the same public origin. The Astro app calls relative `/api/*` and `/mcp/*` paths, so either serve `cms/dist` and proxy those paths to FastAPI from one domain, or put both behind a gateway that preserves same-origin cookies.
 
+This repository includes a Render blueprint in `render.yaml`. The Render demo runs as one Docker web service:
+
+- The Docker build compiles the Astro CMS and serves it from FastAPI.
+- Runtime data is stored in the service filesystem for the free read-only demo.
+- The demo seeds synthetic context and Collection data on first boot.
+- The public demo user is `demo` / `demo` with viewer access.
+
+For an editable hosted demo, use a paid Render instance type and attach a persistent disk mounted at `/var/data`.
+
 1. Prepare the server:
 
 ```bash

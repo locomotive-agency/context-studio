@@ -1,0 +1,11 @@
+.git
+.local
+.pytest_cache
+.venv
+archive
+cms/dist
+cms/node_modules
+__pycache__
+*.pyc
+.DS_Store
+
