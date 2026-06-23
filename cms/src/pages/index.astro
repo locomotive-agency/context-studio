@@ -363,7 +363,7 @@ import "../styles/global.css";
         byId("user-role").textContent = state.user.auth_mode === "github" ? `${state.user.role} via GitHub` : state.user.role;
         document.querySelectorAll(".admin-only").forEach((el) => el.classList.toggle("hidden", !canManage()));
         document.querySelectorAll(".editor-only").forEach((el) => el.classList.toggle("hidden", !canEdit()));
-        document.querySelector('[data-view="users"]')?.classList.toggle("hidden", state.user.auth_mode === "github");
+        document.querySelector('[data-view="users"]')?.classList.toggle("hidden", state.user.auth_mode === "github" || !canManage());
         byId("save-document").classList.add("hidden");
         byId("move-document").classList.add("hidden");
         await Promise.all([loadDocuments(), loadValidation(), loadScopes(), loadCollections()]);
