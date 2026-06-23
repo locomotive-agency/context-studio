@@ -9,35 +9,39 @@ Context Studio is a file-based context CMS for governed marketing Documents plus
 
 ## Demo Repository
 
-The included `context_repo/` is synthetic. It contains governed marketing Documents for the Context Studio demo brand, including audience profiles, brand messaging, product facts, value proposition, proof points, journey, competitive landscape, legal guardrails, measurement, tech stack, use cases, and communication preferences.
+The tracked `demo/` folder contains synthetic demo assets:
 
-The local demo Collection `enterprise-sales-conversations` can be seeded from `sample_sources/sales-conversations/`. These transcripts are synthetic supporting sources for testing cited Collection retrieval.
+- `demo/context_repo/` contains governed marketing Documents for the Context Studio demo brand.
+- `demo/sample_sources/` contains synthetic transcript files for Collection seeding.
+- `demo/screenshots/` contains README screenshots captured from the local demo app.
+
+Runtime data is not stored in tracked source paths. Local editing uses `.local/`, which is ignored by Git.
 
 ## Screenshots
 
-Screenshots are generated from the local demo app and stored in `docs/screenshots/`.
+Screenshots are generated from the local demo app and stored in `demo/screenshots/`.
 
 ### Documents
 
-![Context Studio Documents](docs/screenshots/context-studio-documents.png)
+![Context Studio Documents](demo/screenshots/context-studio-documents.png)
 
 ### Collections
 
-![Context Studio Collections](docs/screenshots/context-studio-collections.png)
+![Context Studio Collections](demo/screenshots/context-studio-collections.png)
 
 ### MCP Test Tool
 
-![Context Studio MCP Test Tool](docs/screenshots/context-studio-mcp-test-tool.png)
+![Context Studio MCP Test Tool](demo/screenshots/context-studio-mcp-test-tool.png)
 
 ## What It Does
 
-- Stores Markdown OKF records and JSON source files in `context_repo/`
+- Stores Markdown OKF records and JSON source files in the configured context repository
 - Uses local Git for commits, history, diffs, restores, and deletes
 - Supports folder-level metadata inherited by documents
 - Lets document frontmatter override folder metadata
 - Validates documents for OKF and governance rules
 - Provides Raw, Preview, and Split document views
-- Imports OKF folders into `context_repo/`
+- Imports OKF folders into the configured context repository
 - Stores supporting source files in Collections
 - Indexes Collection passages with SQLite FTS5 and a local deterministic embedding vector
 - Returns cited Collection passages for hybrid and flexible context when routed by OKF supporting sources
@@ -47,28 +51,36 @@ Screenshots are generated from the local demo app and stored in `docs/screenshot
 
 ## Storage
 
-The project is one Git repository. CMS writes commit only the changed paths under `context_repo/`. In local mode, commits stay local. In GitHub mode, we sync from `origin` on startup, pull with `--ff-only` before a write, commit the changed path, and push back to the current branch.
+The source repository keeps code, docs, and demo seed files. Editable runtime data lives outside tracked source paths by default:
+
+- `demo/context_repo/` is the tracked synthetic seed repository.
+- `.local/context_repo/` is the ignored editable local context repository.
+- `.local/var/` holds ignored local SQLite databases and Collection source files.
+
+`uv run python run.py init-demo` copies the tracked seed repository into `.local/context_repo/` if it does not already exist and seeds the demo Collection. `uv run python run.py reset-demo` recreates `.local/` demo content from the tracked seeds.
+
+CMS writes commit only the changed paths under the configured context repository. In local mode, commits stay local. In GitHub mode, we sync from `origin` on startup, pull with `--ff-only` before a write, commit the changed path, and push back to the current branch.
 
 Governance resolves in this order:
 
-1. `context_repo/_schema.yaml`
+1. `.local/context_repo/_schema.yaml`
 2. Each nested folder's `_schema.yaml`
 3. The document's YAML frontmatter
 
 Later values override earlier values. Every concept document must still contain its own OKF `type` field.
 
-`context_repo/_scopes.yaml` stores the parent-linked scope hierarchy. Documents use a `scope_id`; context retrieval inherits from parent scopes and prefers the most specific matching records.
+`.local/context_repo/_scopes.yaml` stores the parent-linked scope hierarchy after demo initialization. Documents use a `scope_id`; context retrieval inherits from parent scopes and prefers the most specific matching records.
 
 CMS creation and editing actions use right-side drawers. Documents can be added, edited, deleted, restored, and inspected through Git history. Folders can be added and deleted when empty. Admins can edit users, scopes, folder metadata schemas, folders, documents, imports, and Collections. Editors can edit Folders, Documents, and Collections. Viewers can review and request context. In GitHub mode, user access is managed in GitHub repository settings.
 
-Markdown files are validated as OKF records. JSON files are supported as structured source documents. Both formats provide Raw, Preview, and Split editor modes. Representative case study, competitive, and ICP examples live under `context_repo/examples/`.
+Markdown files are validated as OKF records. JSON files are supported as structured source documents. Both formats provide Raw, Preview, and Split editor modes.
 
 ## Context Model
 
 The project separates curated context from supporting source material.
 
-- **Documents** are OKF records in `context_repo/`. They are retrieved deterministically by fields like `type`, `scope_id`, `status`, `criticality`, and `valid_until`.
-- **Collections** are local buckets of source files under `var/collections/`. They store original source documents and indexed retrieval units. They are not OKF records.
+- **Documents** are OKF records in the configured context repository. They are retrieved deterministically by fields like `type`, `scope_id`, `status`, `criticality`, and `valid_until`.
+- **Collections** are local buckets of source files under the configured Collections root. They store original source documents and indexed retrieval units. They are not OKF records.
 - **MCP Test Tool** calls the same service methods used by MCP tools.
 
 OKF records are never retrieved with semantic embeddings. Collection retrieval is available only when a matching OKF document or inherited folder schema points to that Collection through `supporting_sources.collections`.
@@ -93,6 +105,7 @@ Terminal 1:
 
 ```bash
 uv sync
+uv run python run.py init-demo
 uv run python run.py serve --port 8001
 ```
 
@@ -105,6 +118,12 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:4321`.
+
+To discard local edits and recreate the demo workspace from tracked seed files:
+
+```bash
+uv run python run.py reset-demo
+```
 
 Default local users are configured in `config.json` and used when GitHub mode is not configured:
 
@@ -163,10 +182,10 @@ uv run python run.py validate
 
 2. Configure persistent storage for:
 
-- `context_repo/`, the Git-backed OKF working copy
-- `var/users.sqlite`, local sessions and local demo users when GitHub mode is disabled
-- `var/audit.sqlite`, controlled-context audit events
-- `var/collections/` and `var/collections.sqlite`, Collection source files and indexes
+- A persistent context repository working copy
+- A persistent users SQLite database for sessions and local users when GitHub mode is disabled
+- A persistent audit SQLite database for controlled-context audit events
+- Persistent Collection source files and a Collection SQLite database
 
 3. Set production environment variables before starting FastAPI:
 
@@ -235,6 +254,8 @@ The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. MCP access requires
 
 ```bash
 uv run python run.py validate
+uv run python run.py init-demo
+uv run python run.py reset-demo
 uv run python run.py stats
 uv run python run.py serve --port 8001
 ```

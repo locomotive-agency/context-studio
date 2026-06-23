@@ -1,11 +1,12 @@
 {
   "domain": "contextstudio.example.com",
   "internal_domains": ["contextstudio.example.com"],
-  "default_icp": "sales_ae_sdr",
   "context_server_name": "context-studio",
-  "context_repository_path": "context_repo",
-  "index_path": "var/index.sqlite",
-  "audit_path": "var/audit.sqlite",
+  "context_repository_path": ".local/context_repo",
+  "audit_path": ".local/var/audit.sqlite",
+  "users_path": ".local/var/users.sqlite",
+  "collections_root_path": ".local/var/collections",
+  "collections_db_path": ".local/var/collections.sqlite",
   "local_demo_users": [
     {"username": "admin", "password": "admin123", "role": "admin"},
     {"username": "editor", "password": "editor123", "role": "editor"},

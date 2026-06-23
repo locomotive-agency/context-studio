@@ -8,5 +8,6 @@ __pycache__/
 cms/.astro/
 cms/dist/
 cms/node_modules/
+.local/
 var/
 /archive/

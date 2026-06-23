@@ -21,11 +21,11 @@ class Config(BaseModel):
     domain: str = "contextstudio.example.com"
     internal_domains: list[str] = Field(default_factory=lambda: ["contextstudio.example.com"])
     context_server_name: str = "context-studio"
-    context_repository_path: str = "context_repo"
-    audit_path: str = "var/audit.sqlite"
-    users_path: str = "var/users.sqlite"
-    collections_root_path: str = "var/collections"
-    collections_db_path: str = "var/collections.sqlite"
+    context_repository_path: str = ".local/context_repo"
+    audit_path: str = ".local/var/audit.sqlite"
+    users_path: str = ".local/var/users.sqlite"
+    collections_root_path: str = ".local/var/collections"
+    collections_db_path: str = ".local/var/collections.sqlite"
     connectors: list[str] = Field(default_factory=lambda: ["local"])
     mcp_servers: list[str | dict] = Field(default_factory=list)
     mcp_service_account_role: Optional[Literal["viewer", "editor", "admin"]] = None

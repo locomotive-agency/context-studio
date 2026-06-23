@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from context_system.app import app
+from context_system import app as app_module
 from context_system.auth import UserStore, create_token, github_role_for_permission, verify_token
 from context_system.cms import ContentStore
 from context_system.config import Config
@@ -15,7 +15,7 @@ from context_system.service import ContextService
 
 
 def test_list_context_documents_returns_metadata_for_controlled_records():
-    service = ContextService()
+    service = ContextService(Config(context_repository_path="demo/context_repo"))
     records = service.list_context_documents(type="brand-messaging", limit=10)
 
     assert records
@@ -24,7 +24,7 @@ def test_list_context_documents_returns_metadata_for_controlled_records():
 
 
 def test_document_semantic_search_route_is_removed():
-    client = TestClient(app)
+    client = TestClient(app_module.app)
     response = client.get(
         "/api/search",
         headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
@@ -35,12 +35,16 @@ def test_document_semantic_search_route_is_removed():
 
 
 def test_api_mcp_tool_dispatch_lists_context_documents():
-    client = TestClient(app)
+    cfg = Config(context_repository_path="demo/context_repo")
+    original_service = app_module.service
+    app_module.service = ContextService(cfg)
+    client = TestClient(app_module.app)
     response = client.post(
         "/api/mcp-tools/list_context_documents",
         headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
         json={"type": "brand-messaging"},
     )
+    app_module.service = original_service
 
     assert response.status_code == 200
     payload = response.json()
@@ -50,11 +54,14 @@ def test_api_mcp_tool_dispatch_lists_context_documents():
 
 
 def test_authenticated_records_list():
-    client = TestClient(app)
+    original_content = app_module.content
+    app_module.content = ContentStore(Config(context_repository_path="demo/context_repo").context_repo)
+    client = TestClient(app_module.app)
     login = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
     assert login.status_code == 200
 
     response = client.get("/api/records")
+    app_module.content = original_content
     assert response.status_code == 200
     assert response.json()
 

@@ -4,16 +4,19 @@ import re
 import subprocess
 from pathlib import Path
 
+from .config import PROJECT_DIR
+
 
 class GitStore:
     def __init__(self, repository: Path):
         self.content_root = repository.resolve()
         self.content_root.mkdir(parents=True, exist_ok=True)
         discovered = subprocess.run(["git", "-C", str(self.content_root), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
-        if discovered.returncode == 0:
+        if discovered.returncode == 0 and not self._uses_isolated_runtime_repo():
             self.repository = Path(discovered.stdout.strip())
         else:
             self.repository = self.content_root
+        if not (self.repository / ".git").exists():
             self._run("init", "--initial-branch=main")
             self._run("config", "user.name", "Context Studio")
             self._run("config", "user.email", "context-studio@localhost")
@@ -99,6 +102,13 @@ class GitStore:
 
     def _content_path(self, path: str) -> str:
         return f"{self.path_prefix}/{path}" if self.path_prefix else path
+
+    def _uses_isolated_runtime_repo(self) -> bool:
+        try:
+            relative = self.content_root.relative_to(PROJECT_DIR)
+        except ValueError:
+            return False
+        return bool(relative.parts) and relative.parts[0] == ".local"
 
     @staticmethod
     def _validate_commit(commit: str) -> str:
