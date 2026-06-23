@@ -140,7 +140,7 @@ def test_folder_and_document_supporting_sources_are_merged(tmp_path: Path):
         "admin",
     )
 
-    record = ContextRepository(cfg).get_construct("audience-profile")[0]
+    record = next(record for record in ContextRepository(cfg).runtime_records() if record.type == "audience-profile")
 
     assert record.supporting_sources == {
         "collections": ["folder-collection", "document-collection"],
@@ -219,7 +219,7 @@ def test_runtime_records_include_structured_links_and_citations(tmp_path: Path):
         "admin",
     )
 
-    record = ContextRepository(cfg).get_construct("audience-profile")[0]
+    record = next(record for record in ContextRepository(cfg).runtime_records() if record.type == "audience-profile")
 
     assert record.headings == [{"level": 1, "text": "Sales Leaders"}, {"level": 2, "text": "Citations"}]
     assert record.links == [{"text": "Proof", "target": "proof/customer.md"}]

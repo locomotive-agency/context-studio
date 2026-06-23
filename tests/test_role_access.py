@@ -34,12 +34,23 @@ def test_context_and_semantic_routes_require_login() -> None:
     with TestClient(app_module.app) as client:
         responses = [
             client.get("/api/stats"),
-            client.get("/api/search", params={"query": "brand"}),
             client.post("/api/mcp-tools/list_context_documents", json={"type": "brand-messaging"}),
             client.post("/mcp/"),
         ]
 
     assert {response.status_code for response in responses} == {401}
+
+
+def test_document_semantic_search_route_is_removed() -> None:
+    client = TestClient(app_module.app)
+
+    response = client.get(
+        "/api/search",
+        headers=_headers("viewer"),
+        params={"query": "brand"},
+    )
+
+    assert response.status_code == 404
 
 
 def test_viewer_can_request_context_but_cannot_write() -> None:

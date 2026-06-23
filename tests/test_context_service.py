@@ -23,11 +23,15 @@ def test_list_context_documents_returns_metadata_for_controlled_records():
     assert all("body" not in record for record in records)
 
 
-def test_search_no_longer_runs_over_okf_records():
-    service = ContextService()
-    results = service.search("customer case study revenue operations", constructs=["proof-points"], top_k=3)
+def test_document_semantic_search_route_is_removed():
+    client = TestClient(app)
+    response = client.get(
+        "/api/search",
+        headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
+        params={"query": "customer case study revenue operations"},
+    )
 
-    assert results == []
+    assert response.status_code == 404
 
 
 def test_api_mcp_tool_dispatch_lists_context_documents():
@@ -114,12 +118,13 @@ def test_expired_context_is_excluded_from_retrieval(tmp_path: Path):
     store.save_document("current.md", base | {"title": "Current", "valid_until": today + timedelta(days=1)}, "Current", "admin")
     config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users.sqlite"))
 
-    records = ContextRepository(config).get_construct("business-goals")
+    service = ContextService(config)
+    records = service.list_context_documents(type="business-goals")
 
-    assert [record.title for record in records] == ["Current"]
+    assert [record["title"] for record in records] == ["Current"]
 
 
-def test_construct_lookup_reuses_runtime_records(tmp_path: Path, monkeypatch):
+def test_runtime_record_lookup_reuses_cached_documents(tmp_path: Path, monkeypatch):
     repository_path = tmp_path / "context"
     store = ContentStore(repository_path)
     store.save_document("goals.md", {"type": "business-goals", "title": "Goals"}, "Goals", "admin")
@@ -135,9 +140,9 @@ def test_construct_lookup_reuses_runtime_records(tmp_path: Path, monkeypatch):
 
     monkeypatch.setattr(repository.content, "read_document", counted_read_document)
 
-    assert [record.title for record in repository.get_construct("business-goals")] == ["Goals"]
+    assert [record.title for record in repository.runtime_records() if record.type == "business-goals"] == ["Goals"]
     first_lookup_calls = len(calls)
-    assert [record.title for record in repository.get_construct("brand-messaging")] == ["Brand"]
+    assert [record.title for record in repository.runtime_records() if record.type == "brand-messaging"] == ["Brand"]
 
     assert len(calls) == first_lookup_calls
 
@@ -334,9 +339,10 @@ def test_scope_hierarchy_prefers_most_specific_context(tmp_path: Path):
     store.save_document("product.md", base | {"title": "Product offering", "scope_id": "product"}, "Product", "admin")
     config = Config(context_repository_path=str(repository_path), audit_path=str(tmp_path / "audit.sqlite"), users_path=str(tmp_path / "users-2.sqlite"))
 
-    records = ContextRepository(config).get_construct("product-and-offering", scope_id="product")
+    service = ContextService(config)
+    records = service.list_context_documents(type="product-and-offering", scope_id="product")
 
-    assert [record.title for record in records] == ["Product offering"]
+    assert [record["title"] for record in records] == ["Company offering", "Product offering"]
 
 
 def test_document_listing_reuses_scope_metadata(tmp_path: Path, monkeypatch):

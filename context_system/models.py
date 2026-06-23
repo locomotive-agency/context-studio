@@ -90,10 +90,3 @@ class RuntimeRecord(BaseModel):
     citations: list[dict] = Field(default_factory=list)
     headings: list[dict] = Field(default_factory=list)
     body: str = ""
-
-
-class SearchPointer(BaseModel):
-    record_id: str
-    kb_path: str
-    score: float
-    type: str

@@ -17,9 +17,6 @@ class ContextService:
         self.importer = OKFImporter(self.config)
         self.audit = AuditLog(self.config.audit_db)
 
-    def search(self, query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[dict]:
-        return [pointer.model_dump() for pointer in self.repository.search(query, constructs, top_k)]
-
     def list_context_scopes(self) -> list[dict]:
         return self.repository.content.list_scopes()
 

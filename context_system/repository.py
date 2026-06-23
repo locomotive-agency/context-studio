@@ -4,7 +4,7 @@ from datetime import date
 
 from .cms import ContentStore
 from .config import Config, get_config
-from .models import ContextRecord, Criticality, RuntimeRecord, SearchPointer
+from .models import ContextRecord, RuntimeRecord
 from .okf import parse_document, parse_markdown_metadata
 
 
@@ -28,48 +28,6 @@ class ContextRepository:
             records.append(self._runtime_record(definition, full_document))
         self._runtime_cache[include_body] = (signature, records)
         return records
-
-    def get_construct(self, construct: str, include_body: bool = True, scope_id: str | None = None) -> list[RuntimeRecord]:
-        records = [record for record in self.runtime_records(include_body) if record.type == construct and record.status == "approved" and self._is_current(record)]
-        if not scope_id:
-            return records
-        ancestors = self.content.scope_ancestors(scope_id)
-        eligible = [record for record in records if not record.scope_id or record.scope_id in ancestors]
-        if not eligible:
-            return []
-        rank = {scope: index + 1 for index, scope in enumerate(ancestors)}
-        highest = max(rank.get(record.scope_id, 0) for record in eligible)
-        return [record for record in eligible if rank.get(record.scope_id, 0) == highest]
-
-    def search(self, query: str, constructs: list[str] | None = None, top_k: int = 5) -> list[SearchPointer]:
-        return []
-
-    def resolve_criticality(self, construct: str, scope_id: str | None = None) -> Criticality:
-        candidates: list[Criticality] = [record.criticality for record in self.get_construct(construct, include_body=False, scope_id=scope_id)]
-        for folder in self.content.list_folders():
-            schema = folder["effective_schema"]
-            if schema.get("type") != construct:
-                continue
-            if not self._scope_matches(schema.get("scope_id"), scope_id):
-                continue
-            criticality = schema.get("criticality")
-            if criticality in {"controlled", "hybrid", "flexible"}:
-                candidates.append(criticality)
-        if not candidates:
-            return "flexible"
-        rank = {"flexible": 0, "hybrid": 1, "controlled": 2}
-        return max(candidates, key=lambda value: rank[value])
-
-    def supporting_sources_for(self, construct: str, scope_id: str | None = None) -> dict[str, list[str]]:
-        merged: dict[str, list[str]] = {}
-        for folder in self.content.list_folders():
-            schema = folder["effective_schema"]
-            if schema.get("type") != construct or not self._scope_matches(schema.get("scope_id"), scope_id):
-                continue
-            self._extend_sources(merged, schema.get("supporting_sources", {}))
-        for record in self.get_construct(construct, include_body=False, scope_id=scope_id):
-            self._extend_sources(merged, record.supporting_sources)
-        return merged
 
     def stats(self) -> dict:
         records = self.runtime_records(include_body=False)
