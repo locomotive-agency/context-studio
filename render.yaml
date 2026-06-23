@@ -8,6 +8,6 @@ services:
       - key: CS_SECRET_KEY
         generateValue: true
       - key: CS_LOCAL_DEMO_USERS
-        value: '[{"username":"demo","password":"demo","role":"viewer"}]'
+        value: '[{"username":"admin","password":"admin123","role":"admin"},{"username":"editor","password":"editor123","role":"editor"},{"username":"viewer","password":"viewer123","role":"viewer"}]'
       - key: CS_PUBLIC_APP_URL
         value: https://context-studio-demo.onrender.com

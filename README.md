@@ -12,51 +12,27 @@ The system is intentionally simple:
 - **Astro** provides the browser UI.
 - **Docker/Render** can host the demo as one web service.
 
+## What It Does
+
+- Stores governed marketing context as Markdown files.
+- Uses folder metadata and document frontmatter for scope, type, status, and criticality.
+- Keeps curated Documents separate from searchable supporting Collections.
+- Avoids semantic search over governed Documents; scoped retrieval is deterministic.
+- Uses Collection search only when a surfaced Document or folder points to that Collection.
+- Exposes MCP tools for scopes, types, folders, indexes, logs, document metadata, document reads, Collection search, source reads, and validation.
+- Provides a browser MCP Test Tool so we can test agent-facing retrieval behavior directly.
+
+## Context Solution Guide
+
+[MARKETING_CONTEXT_GUIDE.md](MARKETING_CONTEXT_GUIDE.md) explains the larger marketing-team context model behind this prototype: how context should be structured, governed, retrieved, and separated from skills and outcome specs.
+
 ## Try the Demo
 
 Hosted demo:
 
 [https://context-studio-demo.onrender.com/](https://context-studio-demo.onrender.com/)
 
-Demo login:
-
-```text
-demo / demo
-```
-
-The hosted demo is read-only and uses synthetic data.
-
-## Run Locally
-
-Requirements:
-
-- Python 3.11+
-- Node.js 20+
-- `uv`
-
-Start the API:
-
-```bash
-git clone https://github.com/locomotive-agency/context-studio.git
-cd context-studio
-uv sync
-uv run python run.py init-demo
-uv run python run.py serve --port 8001
-```
-
-Start the CMS in a second terminal:
-
-```bash
-cd cms
-npm install
-npm run dev
-```
-
-Open:
-
-[http://127.0.0.1:4321](http://127.0.0.1:4321)
-
-Local demo users:
+Demo logins:
 
 ```text
 admin / admin123
@@ -64,7 +40,17 @@ editor / editor123
 viewer / viewer123
 ```
 
-More setup notes live in [docs/getting-started/README.md](docs/getting-started/README.md).
+The hosted demo uses synthetic data. Edits are useful for testing but should be treated as ephemeral on the free Render service.
+
+## Run It Yourself
+
+Local setup:
+
+[docs/getting-started.md](docs/getting-started.md)
+
+Render deployment:
+
+[docs/deploy-to-render.md](docs/deploy-to-render.md)
 
 ## Screenshots
 
@@ -79,16 +65,6 @@ More setup notes live in [docs/getting-started/README.md](docs/getting-started/R
 ### MCP Test Tool
 
 ![Context Studio MCP Test Tool](demo/screenshots/context-studio-mcp-test-tool.png)
-
-## What It Does
-
-- Stores governed marketing context as Markdown files.
-- Uses folder metadata and document frontmatter for scope, type, status, and criticality.
-- Keeps curated Documents separate from searchable supporting Collections.
-- Avoids semantic search over governed Documents; scoped retrieval is deterministic.
-- Uses Collection search only when a surfaced Document or folder points to that Collection.
-- Exposes MCP tools for scopes, types, folders, indexes, logs, document metadata, document reads, Collection search, source reads, and validation.
-- Provides a browser MCP Test Tool so we can test agent-facing retrieval behavior directly.
 
 ## Demo Data
 
@@ -106,12 +82,6 @@ Reset local demo data:
 uv run python run.py reset-demo
 ```
 
-## Deploy
-
-This repository includes a Render-ready Docker setup and `render.yaml`.
-
-Render deployment notes live in [docs/deploy-to-render/README.md](docs/deploy-to-render/README.md).
-
 ## Tests
 
 ```bash
@@ -119,7 +89,3 @@ uv run pytest
 cd cms && npm run build
 uv run python run.py validate
 ```
-
-## Guiding Document
-
-- [MARKETING_CONTEXT_GUIDE.md](MARKETING_CONTEXT_GUIDE.md) explains how marketing context should be structured, governed, retrieved, and separated from skills and outcome specs.

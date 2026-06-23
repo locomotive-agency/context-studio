@@ -10,13 +10,15 @@ Public demo:
 https://context-studio-demo.onrender.com/
 ```
 
-Demo login:
+Demo logins:
 
 ```text
-demo / demo
+admin / admin123
+editor / editor123
+viewer / viewer123
 ```
 
-The public demo is read-only and uses synthetic data.
+The public demo uses synthetic data. On the free Render service, edits are useful for testing but should be treated as ephemeral.
 
 ## Included Files
 
@@ -24,17 +26,17 @@ The public demo is read-only and uses synthetic data.
 - `render.yaml` defines the Render web service.
 - `.dockerignore` keeps local runtime data and build artifacts out of the image.
 
-## Free Read-Only Demo
+## Free Synthetic Demo
 
 The checked-in `render.yaml` is configured for a free Render web service:
 
 - Docker runtime
 - `/api/health` health check
 - generated `CS_SECRET_KEY`
-- `demo / demo` viewer user
+- seeded local demo users
 - synthetic demo data seeded on boot
 
-Free Render web services do not support persistent disks. That is acceptable for a read-only demo because viewer users cannot edit content.
+Free Render web services do not support persistent disks. That is acceptable for a synthetic demo, but edits should not be treated as durable.
 
 ## Editable Hosted Demo
 
