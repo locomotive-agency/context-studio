@@ -7,14 +7,14 @@ import "../styles/global.css";
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="description" content="Context documentation system" />
-    <title>Context System</title>
+    <meta name="description" content="Context Studio" />
+    <title>Context Studio</title>
   </head>
   <body>
     <section id="login" class="login-shell">
       <form id="login-form" class="login-panel">
         <div class="mark"><i data-lucide="braces"></i></div>
-        <div><h1>Context System</h1><p id="login-copy">Documentation workspace</p></div>
+        <div><h1>Context Studio</h1><p id="login-copy">Governed context workspace</p></div>
         <div class="field local-login-field"><label for="username">Username</label><input class="input" id="username" name="username" value="admin" autocomplete="username" /></div>
         <div class="field local-login-field"><label for="password">Password</label><input class="input" id="password" name="password" type="password" value="admin123" autocomplete="current-password" /></div>
         <p id="login-error" class="form-error hidden"></p>
@@ -27,7 +27,7 @@ import "../styles/global.css";
       <aside class="sidebar" id="library">
         <header class="brand-header">
           <span class="brand-mark"><i data-lucide="braces"></i></span>
-          <span><strong>Context</strong><small>Documentation</small></span>
+          <span><strong>Context Studio</strong><small>Governed context</small></span>
         </header>
         <nav class="primary-nav" aria-label="Workspace">
           <button class="rail-button active" data-view="documents"><i data-lucide="files"></i><span>Documents</span></button>
@@ -53,7 +53,7 @@ import "../styles/global.css";
       <main class="main">
         <header class="topbar">
           <button id="mobile-library" class="icon-button mobile-only" title="Open navigation"><i data-lucide="menu"></i></button>
-          <div class="breadcrumbs"><span>Context</span><i data-lucide="chevron-right"></i><strong id="current-location">Documents</strong></div>
+          <div class="breadcrumbs"><span>Context Studio</span><i data-lucide="chevron-right"></i><strong id="current-location">Documents</strong></div>
           <div class="top-actions">
             <span id="save-state" class="save-state"></span>
             <button id="move-document" class="button editor-only hidden"><i data-lucide="folder"></i>Move</button>
@@ -201,6 +201,7 @@ import "../styles/global.css";
 
       const API = "";
       const state = { user: null, auth: {mode: "local", repository: null}, documents: [], folders: [], scopes: [], collections: [], collectionDocuments: [], selectedCollection: "", revisions: [], current: null, selectedRevision: null, schemaPath: "", drawerMode: "", drawerData: null, deleteArmed: false, documentDeleteArmed: false, folderDeleteArmed: false, dirty: false, folder: "", page: 1, pageSize: 50, draggedScopeId: null, draggedDocumentPath: "", draggedFolderPath: "", editorMode: "raw", historyMode: "repository", okfImportScan: null, okfImportFiles: [], okfImportFolderName: "", okfImportPayload: null, benchCollections: new Set(), benchSources: new Map() };
+      const viewLabels = { documents: "Documents", collections: "Collections", "test-bench": "MCP Test Tool", validation: "Validation", history: "History", scopes: "Scopes", schemas: "Schemas", users: "Users" };
       const byId = (id) => document.getElementById(id);
       const api = async (path, options = {}) => {
         const response = await fetch(`${API}${path}`, { credentials: "include", headers: { "Content-Type": "application/json", ...(options.headers || {}) }, ...options });
@@ -667,7 +668,7 @@ import "../styles/global.css";
           byId("move-document").classList.add("hidden");
           byId("save-state").textContent = "";
         }
-        byId("current-location").textContent = name === "documents" && state.current ? state.current.frontmatter.title : name[0].toUpperCase() + name.slice(1);
+        byId("current-location").textContent = name === "documents" && state.current ? state.current.frontmatter.title : viewLabels[name] || name;
       }
 
       function showDocumentBrowser() {

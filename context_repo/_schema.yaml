@@ -1,4 +1,7 @@
 durability: persistent
 criticality: hybrid
-scope_id: zoominfo
+scope_id: northstar-labs
 status: approved
+supporting_sources:
+  collections:
+    - enterprise-sales-conversations

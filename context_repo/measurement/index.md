@@ -1,3 +1,3 @@
-# Measurement Context
+# Measurement Context Index
 
-Documents in this folder are governed OKF records rebuilt from `marketing-main/knowledge-base`.
+Measurement Documents define success metrics for campaigns and product adoption.

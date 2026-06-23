@@ -1,3 +1,3 @@
-# Legal And Compliance Context
+# Legal Context Index
 
-Documents in this folder are governed OKF records rebuilt from `marketing-main/knowledge-base`.
+Legal Documents contain controlled claims, disclosure, and compliance guidance.

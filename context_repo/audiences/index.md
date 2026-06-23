@@ -1,3 +1,3 @@
-# Audience Context
+# Audience Context Index
 
-Documents in this folder are governed OKF records rebuilt from `marketing-main/knowledge-base`.
+Audience Documents describe reusable needs, objections, and decision criteria for key buying groups.

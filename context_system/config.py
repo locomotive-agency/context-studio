@@ -18,9 +18,9 @@ class LocalDemoUser(BaseModel):
 
 
 class Config(BaseModel):
-    domain: str = "pipeline.zoominfo.com"
-    internal_domains: list[str] = Field(default_factory=lambda: ["pipeline.zoominfo.com", "zoominfo.com"])
-    context_server_name: str = "marketing-context"
+    domain: str = "contextstudio.example.com"
+    internal_domains: list[str] = Field(default_factory=lambda: ["contextstudio.example.com"])
+    context_server_name: str = "context-studio"
     context_repository_path: str = "context_repo"
     audit_path: str = "var/audit.sqlite"
     users_path: str = "var/users.sqlite"

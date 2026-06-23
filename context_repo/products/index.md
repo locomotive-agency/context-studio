@@ -1,3 +1,3 @@
-# Product And Offering Context
+# Product Context Index
 
-Documents in this folder are governed OKF records rebuilt from `marketing-main/knowledge-base`.
+Use this folder for approved product and value proposition records.

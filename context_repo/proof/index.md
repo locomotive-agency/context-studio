@@ -1,3 +1,3 @@
-# Proof Point Context
+# Proof Context Index
 
-Documents in this folder are governed OKF records rebuilt from `marketing-main/knowledge-base`.
+Proof Documents contain approved claims, case-study summaries, and citation guidance.

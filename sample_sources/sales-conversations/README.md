@@ -14,7 +14,7 @@ How to test:
 2. Open Collections.
 3. Create a Collection with ID `enterprise-sales-conversations`.
 4. Upload the transcript files in this folder.
-5. Open Tool Test Bench.
+5. Open MCP Test Tool.
 6. Request context type `audience-profile`, `value-proposition`, or `brand-messaging` with a query such as:
    - `buyers worried about stale AI context`
    - `approved truth versus raw transcripts`

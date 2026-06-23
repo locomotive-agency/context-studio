@@ -15,8 +15,8 @@ class GitStore:
         else:
             self.repository = self.content_root
             self._run("init", "--initial-branch=main")
-            self._run("config", "user.name", "Context System")
-            self._run("config", "user.email", "context-system@localhost")
+            self._run("config", "user.name", "Context Studio")
+            self._run("config", "user.email", "context-studio@localhost")
         relative = self.content_root.relative_to(self.repository)
         self.path_prefix = "" if relative == Path(".") else relative.as_posix()
 

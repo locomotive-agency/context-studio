@@ -1,0 +1,4 @@
+type: business-goals
+durability: time_bound
+valid_until: 2026-12-31
+criticality: hybrid

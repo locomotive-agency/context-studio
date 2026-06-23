@@ -1,7 +1,0 @@
-type: reference
-status: approved
-durability: persistent
-criticality: flexible
-tags:
-- getting-started
-- documentation

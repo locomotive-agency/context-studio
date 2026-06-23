@@ -1,7 +1,7 @@
 [project]
-name = "content-system-prototype-codex"
+name = "context-studio"
 version = "0.1.0"
-description = "Standalone marketing context service prototype"
+description = "Governed marketing context studio"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi",

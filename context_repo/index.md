@@ -1,23 +1,16 @@
-# ZoomInfo Marketing Context Repository
+# Context Studio Demo Context
 
-This OKF repository was rebuilt from `marketing-main/knowledge-base` for corpus pressure testing.
+This repository contains synthetic governed marketing context for the Context Studio demo.
 
-## Classification rule
+## Key Folders
 
-Content that maps to a governed marketing construct is stored as a Document. Source material that does not map cleanly to a governed construct is stored as a Collection. Case studies are Documents because `case-study` is a governed construct. Sales calls are Collections because call transcripts are supporting evidence, not a governed construct.
+- `brand/`: positioning, voice, writing, and visual guidance.
+- `audiences/`: reusable audience profiles for marketing and enablement teams.
+- `products/`: product facts and value proposition records for Context Studio.
+- `proof/`: approved proof points and case-study style summaries.
+- `legal/`: claims and compliance guardrails.
+- `campaigns/`, `journey/`, `competitive/`, `measurement/`, `tech-stack/`, `use-cases/`, and `communication/`: supporting marketing constructs.
 
-## Document areas
+## Supporting Sources
 
-- `brand/` contains brand messaging and legal/compliance language from the brand guidelines.
-- `voice/` contains writing, linking, and content production rules.
-- `audiences/` contains ICP and audience-profile Documents.
-- `case-studies/` contains customer case-study Documents.
-- `products/` contains product/offering rollups.
-- `competitors/` contains competitive landscape Documents.
-- `proof/` contains proof-point and advocacy context.
-- `measurement/` contains SEO and measurement context.
-
-## Collections
-
-- `sales-call-transcripts` contains raw call transcript and pain-point source files. Audience-profile Documents declare this Collection as supporting evidence.
-- `knowledge-base-source-metadata` contains non-construct operational files such as schema, logs, README, and crawl CSV metadata.
+Most governed Documents point to the `enterprise-sales-conversations` Collection. That Collection contains synthetic sales conversations used for buyer-language search and citation testing.

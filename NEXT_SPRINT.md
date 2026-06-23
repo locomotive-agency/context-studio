@@ -1,4 +1,4 @@
-# Context System Organization Cleanup Sprint
+# Context Studio Organization Cleanup Sprint
 
 **Goal:** Simplify `context_system/` around the current MCP retrieval model, remove construct-era remnants, and improve API organization without changing product behavior.
 
@@ -37,7 +37,7 @@
 
 ### 2. Share MCP Tool Dispatch
 
-- [x] Create one MCP tool registry used by both MCP and Tool Test Bench HTTP calls.
+- [x] Create one MCP tool registry used by both MCP and MCP Test Tool HTTP calls.
 - [x] Move the `/api/mcp-tools/{tool_name}` dispatch table out of `app.py`.
 - [x] Keep tool names aligned with the current contract:
   - [x] `list_context_scopes`
@@ -50,7 +50,7 @@
   - [x] `search_collection`
   - [x] `read_collection_source`
   - [x] `validate_context`
-- [x] Confirm MCP and Tool Test Bench call the same service methods.
+- [x] Confirm MCP and MCP Test Tool call the same service methods.
 
 ### 3. Add Typed API Boundaries
 
@@ -83,6 +83,6 @@
 - [x] Run `uv run pytest`.
 - [x] Run `npm run build` from `cms/` if frontend-facing code changes.
 - [x] Run `git diff --check`.
-- [x] Confirm Tool Test Bench still lists and runs all MCP tools.
+- [x] Confirm MCP Test Tool still lists and runs all MCP tools.
 - [x] Confirm no Document semantic search endpoint remains.
 - [x] Confirm Collections search still works through `search_collection()`.

@@ -40,7 +40,7 @@ async def lifespan(_app: FastAPI):
         yield
 
 
-app = FastAPI(title="Context Documentation System", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Context Studio", version="0.2.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:4321", "http://127.0.0.1:4321"],

@@ -1,186 +1,31 @@
 scopes:
-- id: zoominfo
-  name: ZoomInfo
-  level: company
-  parent_id: null
-  order: 0
-- id: zoominfo-brand
-  name: ZoomInfo Brand
-  level: brand
-  parent_id: zoominfo
-  order: 1
-- id: product-ad-targeting
-  name: Ad Targeting
-  level: product
-  parent_id: zoominfo-brand
-  order: 1
-- id: product-chat
-  name: Chat
-  level: product
-  parent_id: zoominfo-brand
-  order: 2
-- id: product-chorus
-  name: Chorus
-  level: product
-  parent_id: zoominfo-brand
-  order: 3
-- id: product-cloud-partners
-  name: Cloud Partners
-  level: product
-  parent_id: zoominfo-brand
-  order: 4
-- id: product-contact-company-search
-  name: Contact Company Search
-  level: product
-  parent_id: zoominfo-brand
-  order: 5
-- id: product-copilot
-  name: Copilot
-  level: product
-  parent_id: zoominfo-brand
-  order: 6
-- id: product-crm-enrichment
-  name: Crm Enrichment
-  level: product
-  parent_id: zoominfo-brand
-  order: 7
-- id: product-data-as-a-service
-  name: Data As A Service
-  level: product
-  parent_id: zoominfo-brand
-  order: 8
-- id: product-data-services
-  name: Data Services
-  level: product
-  parent_id: zoominfo-brand
-  order: 9
-- id: product-data
-  name: Data
-  level: product
-  parent_id: zoominfo-brand
-  order: 10
-- id: product-enterprise
-  name: Enterprise
-  level: product
-  parent_id: zoominfo-brand
-  order: 11
-- id: product-form-optimization
-  name: Form Optimization
-  level: product
-  parent_id: zoominfo-brand
-  order: 12
-- id: product-global-coverage
-  name: Global Coverage
-  level: product
-  parent_id: zoominfo-brand
-  order: 13
-- id: product-gtm-context-graph
-  name: Gtm Context Graph
-  level: product
-  parent_id: zoominfo-brand
-  order: 14
-- id: product-gtm-studio
-  name: Gtm Studio
-  level: product
-  parent_id: zoominfo-brand
-  order: 15
-- id: product-gtm-workspace
-  name: Gtm Workspace
-  level: product
-  parent_id: zoominfo-brand
-  order: 16
-- id: product-ideal-customer
-  name: Ideal Customer
-  level: product
-  parent_id: zoominfo-brand
-  order: 17
-- id: product-identify-website-visitors
-  name: Identify Website Visitors
-  level: product
-  parent_id: zoominfo-brand
-  order: 18
-- id: product-intent-data
-  name: Intent Data
-  level: product
-  parent_id: zoominfo-brand
-  order: 19
-- id: product-labs
-  name: Labs
-  level: product
-  parent_id: zoominfo-brand
-  order: 20
-- id: product-lead-generation
-  name: Lead Generation
-  level: product
-  parent_id: zoominfo-brand
-  order: 21
-- id: product-market.zoominfo.com
-  name: Market.Zoominfo.Com
-  level: product
-  parent_id: zoominfo-brand
-  order: 22
-- id: product-marketing
-  name: Marketing
-  level: product
-  parent_id: zoominfo-brand
-  order: 23
-- id: product-operations
-  name: Operations
-  level: product
-  parent_id: zoominfo-brand
-  order: 24
-- id: product-platform
-  name: Platform
-  level: product
-  parent_id: zoominfo-brand
-  order: 25
-- id: product-recruiting
-  name: Recruiting
-  level: product
-  parent_id: zoominfo-brand
-  order: 26
-- id: product-sales
-  name: Sales
-  level: product
-  parent_id: zoominfo-brand
-  order: 27
-- id: product-salesloft
-  name: Salesloft
-  level: product
-  parent_id: zoominfo-brand
-  order: 28
-- id: product-workflow-tools
-  name: Workflow Tools
-  level: product
-  parent_id: zoominfo-brand
-  order: 29
-- id: product-zoominfo-mcp
-  name: Zoominfo Mcp
-  level: product
-  parent_id: zoominfo-brand
-  order: 30
-- id: audience-sales_ae_sdr
-  name: Sales Ae Sdr
-  level: audience
-  parent_id: zoominfo
-  order: 1
-- id: audience-marketing_demandgen
-  name: Marketing Demandgen
-  level: audience
-  parent_id: zoominfo
-  order: 2
-- id: audience-revops_gtm_eng
-  name: Revops Gtm Eng
-  level: audience
-  parent_id: zoominfo
-  order: 3
-- id: audience-account_mgmt_cs
-  name: Account Mgmt Cs
-  level: audience
-  parent_id: zoominfo
-  order: 4
-- id: audience-developer_ai_builder
-  name: Developer Ai Builder
-  level: audience
-  parent_id: zoominfo
-  order: 5
+  - id: northstar-labs
+    name: Northstar Labs
+    level: company
+    parent_id: null
+    order: 0
+  - id: context-studio-brand
+    name: Context Studio Brand
+    level: brand
+    parent_id: northstar-labs
+    order: 1
+  - id: context-studio-platform
+    name: Context Studio Platform
+    level: product
+    parent_id: context-studio-brand
+    order: 1
+  - id: enterprise-marketing
+    name: Enterprise Marketing Teams
+    level: audience
+    parent_id: northstar-labs
+    order: 1
+  - id: revenue-enablement
+    name: Revenue Enablement Teams
+    level: audience
+    parent_id: northstar-labs
+    order: 2
+  - id: regulated-industries
+    name: Regulated Industries
+    level: market
+    parent_id: northstar-labs
+    order: 3

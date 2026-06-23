@@ -1,6 +1,33 @@
-# Context Documentation System Prototype
+# Context Studio
 
-This prototype is a file-based context CMS for OKF context documents plus searchable supporting Collections. Astro provides the CMS interface. FastAPI and Pydantic handle authentication, filesystem operations, OKF validation, scoped retrieval, Git history, Collection indexing, context package assembly, and MCP access. FastMCP exposes valid context to AI tools.
+Context Studio is a file-based context CMS for governed marketing Documents plus searchable supporting Collections. Astro provides the CMS interface. FastAPI and Pydantic handle authentication, filesystem operations, OKF validation, scoped retrieval, Git history, Collection indexing, and MCP access. FastMCP exposes valid context to AI tools.
+
+## Guiding Documents
+
+- [MARKETING_CONTEXT_GUIDE.md](MARKETING_CONTEXT_GUIDE.md) guides how marketing context should be structured, governed, retrieved, and separated from skills and outcome specs.
+- [GOVERNANCE.md](GOVERNANCE.md) defines repository guardrails, OKF usage, scope inheritance, retrieval rules, and Collection boundaries.
+
+## Demo Repository
+
+The included `context_repo/` is synthetic. It contains governed marketing Documents for the Context Studio demo brand, including audience profiles, brand messaging, product facts, value proposition, proof points, journey, competitive landscape, legal guardrails, measurement, tech stack, use cases, and communication preferences.
+
+The local demo Collection `enterprise-sales-conversations` can be seeded from `sample_sources/sales-conversations/`. These transcripts are synthetic supporting sources for testing cited Collection retrieval.
+
+## Screenshots
+
+Screenshots are generated from the local demo app and stored in `docs/screenshots/`.
+
+### Documents
+
+![Context Studio Documents](docs/screenshots/context-studio-documents.png)
+
+### Collections
+
+![Context Studio Collections](docs/screenshots/context-studio-collections.png)
+
+### MCP Test Tool
+
+![Context Studio MCP Test Tool](docs/screenshots/context-studio-mcp-test-tool.png)
 
 ## What It Does
 
@@ -14,7 +41,7 @@ This prototype is a file-based context CMS for OKF context documents plus search
 - Stores supporting source files in Collections
 - Indexes Collection passages with SQLite FTS5 and a local deterministic embedding vector
 - Returns cited Collection passages for hybrid and flexible context when routed by OKF supporting sources
-- Provides a Tool Test Bench for calling the real context package endpoint
+- Provides an MCP Test Tool for calling the same service methods used by MCP tools
 - Exposes MCP tools at `/mcp/`
 - Supports local demo users or GitHub-backed access control
 
@@ -42,7 +69,7 @@ The project separates curated context from supporting source material.
 
 - **Documents** are OKF records in `context_repo/`. They are retrieved deterministically by fields like `type`, `scope_id`, `status`, `criticality`, and `valid_until`.
 - **Collections** are local buckets of source files under `var/collections/`. They store original source documents and indexed retrieval units. They are not OKF records.
-- **Tool Test Bench** calls the same context package endpoint used by AI workflows and MCP clients.
+- **MCP Test Tool** calls the same service methods used by MCP tools.
 
 OKF records are never retrieved with semantic embeddings. Collection retrieval is available only when a matching OKF document or inherited folder schema points to that Collection through `supporting_sources.collections`.
 
@@ -187,7 +214,7 @@ curl https://your-context-app.example.com/api/health
 uv run python run.py validate
 ```
 
-Then sign in through the public URL and run a Tool Test Bench request. In GitHub mode, users must be collaborators on the configured repository; repository `admin` maps to Admin, `write` or `maintain` maps to Editor, and `read` or `triage` maps to Viewer.
+Then sign in through the public URL and run an MCP Test Tool request. In GitHub mode, users must be collaborators on the configured repository; repository `admin` maps to Admin, `write` or `maintain` maps to Editor, and `read` or `triage` maps to Viewer.
 
 If GitHub mode is enabled, make sure the deployed working copy has an `origin` remote and Git credentials that can pull and push the configured branch. Writes use direct commits, pull with `--ff-only` before saving, and push after each successful Git-backed write.
 
@@ -197,7 +224,7 @@ The streamable HTTP MCP URL is `http://127.0.0.1:8001/mcp/`. MCP access requires
 
 ## API Highlights
 
-- `POST /api/mcp-tools/{tool_name}` runs an authenticated Tool Test Bench request through the same service methods used by MCP tools.
+- `POST /api/mcp-tools/{tool_name}` runs an authenticated MCP Test Tool request through the same service methods used by MCP tools.
 - `POST /api/imports/okf-folder/scan` scans an OKF folder before import.
 - `POST /api/imports/okf-folder/apply` imports an OKF folder as one Git-backed operation.
 - `GET /api/collections` lists Collections.

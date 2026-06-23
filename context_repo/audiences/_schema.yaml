@@ -1,5 +1,2 @@
 type: audience-profile
 criticality: hybrid
-supporting_sources:
-  collections:
-  - sales-call-transcripts
