@@ -39,12 +39,14 @@ def test_api_mcp_tool_dispatch_lists_context_documents():
     original_service = app_module.service
     app_module.service = ContextService(cfg)
     client = TestClient(app_module.app)
-    response = client.post(
-        "/api/mcp-tools/list_context_documents",
-        headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
-        json={"type": "brand-messaging"},
-    )
-    app_module.service = original_service
+    try:
+        response = client.post(
+            "/api/mcp-tools/list_context_documents",
+            headers={"Authorization": f"Bearer {create_token('viewer', 'viewer')}"},
+            json={"type": "brand-messaging"},
+        )
+    finally:
+        app_module.service = original_service
 
     assert response.status_code == 200
     payload = response.json()
@@ -53,17 +55,37 @@ def test_api_mcp_tool_dispatch_lists_context_documents():
     assert "body" not in payload["result"][0]
 
 
-def test_authenticated_records_list():
+def test_authenticated_records_list(tmp_path: Path):
+    cfg = Config(
+        context_repository_path=str(tmp_path / "context_repo"),
+        audit_path=str(tmp_path / "audit.sqlite"),
+        users_path=str(tmp_path / "users.sqlite"),
+        collections_root_path=str(tmp_path / "collections"),
+        collections_db_path=str(tmp_path / "collections.sqlite"),
+    )
+    store = ContentStore(cfg.context_repo)
+    store.save_document(
+        "records/example.md",
+        {"type": "reference", "title": "Example record", "status": "approved"},
+        "Example body.",
+        "admin",
+    )
     original_content = app_module.content
-    app_module.content = ContentStore(Config(context_repository_path="demo/context_repo").context_repo)
+    original_service = app_module.service
+    app_module.content = store
+    app_module.service = ContextService(cfg)
     client = TestClient(app_module.app)
-    login = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
-    assert login.status_code == 200
+    try:
+        login = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+        assert login.status_code == 200
 
-    response = client.get("/api/records")
-    app_module.content = original_content
+        response = client.get("/api/records")
+    finally:
+        app_module.content = original_content
+        app_module.service = original_service
     assert response.status_code == 200
-    assert response.json()
+    records = response.json()
+    assert [record["title"] for record in records] == ["Example record"]
 
 
 def test_frontmatter_overrides_folder_schema(tmp_path: Path):
