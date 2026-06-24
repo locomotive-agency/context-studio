@@ -229,7 +229,7 @@ import "../styles/global.css";
           {key:"provenance", label:"Provenance", type:"text", placeholder:"Source URL, URI, or document name"},
           {key:"valid_until", label:"Good until", type:"date", temporal:true},
         ]},
-        {title:"Supporting sources", fields:[
+        {title:"Supporting sources", hideWhenCriticality:"controlled", fields:[
           {key:"supporting_sources.collections", label:"Collections", type:"list", placeholder:"collection-1, collection-2"},
           {key:"supporting_sources.web", label:"Web", type:"list", placeholder:"https://example.com/page"},
           {key:"supporting_sources.mcp", label:"MCP servers", type:"list", placeholder:"sales-calls, https://example.com/mcp"},
@@ -239,14 +239,25 @@ import "../styles/global.css";
 
       function renderMetadataFields(prefix, own = {}, inherited = {}, disabled = false) {
         const container = byId(`${prefix}-metadata-fields`);
-        container.innerHTML = metadataGroups.map((group) => `<section class="metadata-section"><div class="metadata-section-heading"><strong>${group.title}</strong></div><div class="metadata-grid">${group.fields.map((field) => metadataFieldMarkup(prefix, field, own, inherited, disabled)).join("")}</div></section>`).join("");
+        container.innerHTML = visibleMetadataGroups(own, inherited).map((group) => `<section class="metadata-section"><div class="metadata-section-heading"><strong>${group.title}</strong></div><div class="metadata-grid">${group.fields.map((field) => metadataFieldMarkup(prefix, field, own, inherited, disabled)).join("")}</div></section>`).join("");
         const durability = byId(`${prefix}-meta-durability`);
         const updateTemporal = () => {
           const show = (durability.value || inherited.durability) === "time_bound" || Boolean(own.valid_until);
           container.querySelectorAll("[data-temporal]").forEach((element) => element.classList.toggle("hidden", !show));
         };
         durability.addEventListener("change", updateTemporal); updateTemporal();
+        const criticality = byId(`${prefix}-meta-criticality`);
+        criticality.addEventListener("change", () => {
+          const draft = collectMetadataFields(prefix, structuredClone(own), {pruneControlled:false});
+          renderMetadataFields(prefix, draft, inherited, disabled);
+          if (prefix === "document") markDocumentDirty();
+        });
         if (prefix === "document") container.querySelectorAll("input, select").forEach((element) => element.addEventListener("input", markDocumentDirty));
+      }
+
+      function visibleMetadataGroups(own = {}, inherited = {}) {
+        const effectiveCriticality = own.criticality || inherited.criticality || "";
+        return metadataGroups.filter((group) => group.hideWhenCriticality !== effectiveCriticality);
       }
 
       function metadataFieldMarkup(prefix, field, own, inherited, disabled) {
@@ -285,10 +296,12 @@ import "../styles/global.css";
         return String(value).replaceAll("_", " ");
       }
 
-      function collectMetadataFields(prefix, target) {
+      function collectMetadataFields(prefix, target, options = {}) {
+        const {pruneControlled = true} = options;
         for (const key of metadataKeys) {
           const field = metadataGroups.flatMap((group) => group.fields).find((item) => item.key === key);
           const element = byId(metadataElementId(prefix, key));
+          if (!element) { deletePathValue(target, key); continue; }
           const value = element.value.trim();
           if (!value) { deletePathValue(target, key); continue; }
           if (field.type === "list") setPathValue(target, key, value.split(",").map((item) => item.trim()).filter(Boolean));
@@ -296,8 +309,14 @@ import "../styles/global.css";
           else if (field.type === "number") setPathValue(target, key, Number(value));
           else setPathValue(target, key, value);
         }
+        if (pruneControlled) pruneControlledSupportingSources(prefix, target);
         if (target.supporting_sources && !Object.values(target.supporting_sources).some((value) => Array.isArray(value) && value.length)) delete target.supporting_sources;
         return target;
+      }
+
+      function pruneControlledSupportingSources(prefix, target) {
+        const criticality = target.criticality || byId(`${prefix}-meta-criticality`)?.value || "";
+        if (criticality === "controlled") delete target.supporting_sources;
       }
 
       function metadataElementId(prefix, key) {

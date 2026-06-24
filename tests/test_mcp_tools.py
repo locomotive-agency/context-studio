@@ -138,6 +138,40 @@ def test_list_context_documents_is_metadata_only_and_defaults_to_100(tmp_path: P
     assert "body" not in documents[0]
 
 
+def test_controlled_context_payloads_do_not_surface_supporting_sources(tmp_path: Path):
+    cfg = _config(tmp_path, mcp_service_account_role="viewer")
+    store = ContentStore(cfg.context_repo)
+    store.save_schema(
+        "legal",
+        {
+            "type": "legal-and-compliance",
+            "criticality": "controlled",
+            "supporting_sources": {"collections": ["legal-notes"], "mcp": ["legal-mcp"]},
+        },
+        "admin",
+    )
+    store.save_document(
+        "legal/disclaimer.md",
+        {
+            "title": "Required disclaimer",
+            "status": "approved",
+            "supporting_sources": {"collections": ["document-notes"]},
+        },
+        "Use the approved disclaimer.",
+        "admin",
+    )
+    service = ContextService(cfg)
+
+    folders = service.list_context_folders(type="legal-and-compliance")
+    document = service.read_context_document("legal/disclaimer.md")
+
+    assert folders
+    assert folders[0]["criticality"] == "controlled"
+    assert "supporting_sources" not in folders[0]
+    assert document["effective_frontmatter"]["criticality"] == "controlled"
+    assert "supporting_sources" not in document
+
+
 def test_read_context_document_returns_body_after_scope_check(tmp_path: Path):
     cfg = _config(tmp_path, mcp_service_account_role="viewer")
     store = ContentStore(cfg.context_repo)

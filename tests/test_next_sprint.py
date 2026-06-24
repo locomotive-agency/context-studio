@@ -69,7 +69,7 @@ def test_document_metadata_surfaces_supporting_collection_for_agent_search(tmp_p
     assert "content_hash" in results[0]
 
 
-def test_controlled_document_metadata_does_not_run_collection_search(tmp_path: Path):
+def test_controlled_document_metadata_does_not_surface_collection_sources(tmp_path: Path):
     cfg = _config(tmp_path)
     store = ContentStore(cfg.context_repo)
     store.save_document(
@@ -93,7 +93,9 @@ def test_controlled_document_metadata_does_not_run_collection_search(tmp_path: P
 
     assert documents
     assert documents[0]["criticality"] == "controlled"
-    assert documents[0]["supporting_sources"]["collections"] == ["legal-notes"]
+    assert documents[0]["path"] == "legal/disclaimer.md"
+    assert documents[0]["content_hash"]
+    assert "supporting_sources" not in documents[0]
 
 
 def test_collection_records_have_no_scope_allowed_use_or_summary(tmp_path: Path):

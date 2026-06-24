@@ -58,24 +58,25 @@ class ContextService:
                     "path": path,
                     "type": schema["effective_schema"].get("type"),
                     "scope_id": schema["effective_schema"].get("scope_id"),
+                    "criticality": schema["effective_schema"].get("criticality"),
                     "document_count": len(nested_records),
                     "direct_document_count": len(direct_records),
-                    "supporting_sources": schema["effective_schema"].get("supporting_sources", {}),
                     "has_index": (self.config.context_repo / path / "index.md").is_file(),
                     "has_log": (self.config.context_repo / path / "log.md").is_file(),
                 }
+                | self._supporting_sources_payload(schema["effective_schema"])
             )
         return folders
 
     def read_context_index(self, folder: str | None = None, scope_id: str | None = None) -> dict:
         entry = self.repository.content.read_okf_index(folder)
-        entry["supporting_sources"] = self._folder_supporting_sources(folder)
+        entry.update(self._folder_supporting_sources_payload(folder))
         entry["entries"] = self.list_context_documents(type="", scope_id=scope_id, folder=folder, limit=100)
         return entry
 
     def read_context_log(self, folder: str | None = None, scope_id: str | None = None) -> dict:
         entry = self.repository.content.read_okf_log(folder)
-        entry["supporting_sources"] = self._folder_supporting_sources(folder)
+        entry.update(self._folder_supporting_sources_payload(folder))
         entry["git_history"] = self.repository.content.git.history(folder, limit=10)
         return entry
 
@@ -109,7 +110,7 @@ class ContextService:
         if not self._record_visible_for_scope(record, scope_id):
             raise PermissionError("document is not visible for the requested scope")
         entry = self.repository.content.read_okf_entry(path)
-        entry["supporting_sources"] = record.supporting_sources
+        entry.update(self._supporting_sources_payload(record))
         return entry
 
     def search_collection(self, collection: str, query: str, limit: int = 10) -> list[dict]:
@@ -188,7 +189,7 @@ class ContextService:
         return None
 
     def _record_summary(self, record) -> dict:
-        return {
+        summary = {
             "title": record.title,
             "path": record.kb_path,
             "type": record.type,
@@ -196,13 +197,15 @@ class ContextService:
             "status": record.status,
             "criticality": record.criticality,
             "description": record.okf.get("description", ""),
-            "supporting_sources": record.supporting_sources,
             "content_hash": record.content_hash,
             "links": record.links,
             "external_links": record.external_links,
             "citations": record.citations,
             "headings": record.headings,
         }
+        if record.criticality != "controlled":
+            summary["supporting_sources"] = record.supporting_sources
+        return summary
 
     def _record_visible_for_scope(self, record, scope_id: str | None) -> bool:
         if not scope_id:
@@ -221,6 +224,14 @@ class ContextService:
         parent = Path(record.kb_path).parent.as_posix()
         return parent == folder or parent.startswith(f"{folder}/")
 
-    def _folder_supporting_sources(self, folder: str | None) -> dict:
+    def _folder_supporting_sources_payload(self, folder: str | None) -> dict:
         schema = self.repository.content.read_schema(folder or "")
-        return schema["effective_schema"].get("supporting_sources", {})
+        return self._supporting_sources_payload(schema["effective_schema"])
+
+    @staticmethod
+    def _supporting_sources_payload(metadata) -> dict:
+        criticality = metadata.get("criticality") if isinstance(metadata, dict) else metadata.criticality
+        if criticality == "controlled":
+            return {}
+        supporting_sources = metadata.get("supporting_sources", {}) if isinstance(metadata, dict) else metadata.supporting_sources
+        return {"supporting_sources": supporting_sources}
