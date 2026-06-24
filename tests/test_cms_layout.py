@@ -1,11 +1,13 @@
 from pathlib import Path
 
 
-CMS_PAGE = Path(__file__).resolve().parents[1] / "cms" / "src" / "pages" / "index.astro"
+CMS_SRC = Path(__file__).resolve().parents[1] / "cms" / "src"
+CMS_PAGE = CMS_SRC / "pages" / "index.astro"
+CMS_STYLES = CMS_SRC / "styles" / "context-studio.css"
 
 
 def _css_declarations(selector: str) -> list[str]:
-    source = CMS_PAGE.read_text()
+    source = CMS_STYLES.read_text()
     prefix = f"{selector} {{"
     declarations = []
     start = 0
@@ -26,3 +28,13 @@ def test_document_title_column_uses_available_header_space() -> None:
 
     assert rules
     assert any("flex: 1 1 auto" in rule for rule in rules)
+
+
+def test_context_studio_assets_are_extracted_from_page_shell() -> None:
+    source = CMS_PAGE.read_text()
+
+    assert 'import "../styles/context-studio.css";' in source
+    assert '<script src="../scripts/context-studio.js"></script>' in source
+    assert "<style>" not in source
+    assert len(source.splitlines()) < 300
+    assert CMS_STYLES.exists()
