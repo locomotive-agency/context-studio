@@ -24,7 +24,7 @@ The system is intentionally simple:
 
 ## Context Solution Guide
 
-[MARKETING_CONTEXT_GUIDE.md](MARKETING_CONTEXT_GUIDE.md) explains the larger marketing-team context model behind this prototype: how context should be structured, governed, retrieved, and separated from skills and outcome specs.
+[Marketing_Context.md](Marketing_Context.md) explains the larger marketing-team context model behind this prototype: how context should be structured, governed, retrieved, and separated from skills and outcome specs.
 
 ## Try the Demo
 
