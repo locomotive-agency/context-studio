@@ -11,3 +11,4 @@ cms/node_modules/
 .local/
 var/
 /archive/
+STATE.md
